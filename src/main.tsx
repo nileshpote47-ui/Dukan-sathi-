@@ -8,3 +8,14 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
+      // App still works online without the service worker.
+    })
+  })
+}
+
+// Ask the browser not to evict shop data under storage pressure.
+navigator.storage?.persist?.().catch(() => {})

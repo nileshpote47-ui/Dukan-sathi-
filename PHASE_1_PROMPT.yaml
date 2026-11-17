@@ -42,6 +42,8 @@ features:
   general:
     - Currency in Indian rupees (en-IN formatting)
     - Export and import all data as JSON (backup and restore)
+    - App loads offline after first visit (service worker) and is installable (web app manifest)
+    - Multiple open tabs stay in sync
 
 non_goals_phase_1:
   - User accounts, login and cloud sync (Phase 2)
@@ -53,3 +55,5 @@ acceptance:
   - npm run build succeeds with no type errors
   - npm test passes (billing, stock and ledger logic covered)
   - All four screens are usable at phone width (360px)
+  - After one online visit, the app reloads and shows saved data with the network off
+  - CI runs lint, tests and build on every push

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ShopError, parseBackup } from './shop'
 import { emptyShopData, type ShopData } from './types'
 
@@ -29,6 +29,15 @@ const save = (data: ShopData): boolean => {
 export const useShop = () => {
   const [data, setData] = useState<ShopData>(load)
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Keep other open tabs in step, so one tab never overwrites the other's changes with stale data.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) setData(load())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const run = useCallback(
     (update: (d: ShopData) => ShopData): string | null => {

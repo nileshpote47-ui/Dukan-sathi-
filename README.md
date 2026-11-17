@@ -14,6 +14,18 @@ See [`PHASE_1_PROMPT.yaml`](./PHASE_1_PROMPT.yaml) for the full spec.
 
 Data is stored in the browser's `localStorage` on this device only. Use **Export backup** on the Home screen regularly.
 
+### Offline and install
+
+After the first visit the app loads with no internet: a service worker caches every file of the build.
+On Android/Chrome use **Add to Home screen** / **Install app**; on iPhone use Safari's **Share → Add to Home Screen**.
+Opening the app in two tabs is safe: each tab picks up the other's changes.
+
+## Deploying
+
+`npm run build` produces a static site in `dist/` with relative paths, so it can be hosted anywhere
+(GitHub Pages, Netlify, Vercel, any web server), including from a sub-path. It must be served over HTTPS
+(or `localhost`) for offline mode and installing to work.
+
 ## Development
 
 ```bash
@@ -23,6 +35,8 @@ npm test         # run the domain logic tests (Vitest)
 npm run build    # type-check and build to dist/
 npm run lint     # oxlint
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, tests and build on every push and pull request.
 
 ## Code layout
 
@@ -36,6 +50,9 @@ src/
     useShop.ts    React state hook + localStorage persistence
   screens/        Dashboard, Billing, Stock, Customers
   App.tsx         header and bottom tab navigation
+  main.tsx        entry point, registers the service worker
+sw/service-worker.js   offline caching; vite.config.ts injects the list of built files
+public/          icons and web app manifest
 ```
 
 All business rules live in `src/lib/shop.ts` as pure functions, so a backend can replace
