@@ -22,6 +22,11 @@ Opening the app in two tabs is safe: each tab picks up the other's changes.
 
 ## Deploying
 
+Every push to `main` is built, tested and published to GitHub Pages by
+`.github/workflows/deploy.yml` (Settings → Pages → Source must be **GitHub Actions**).
+It can also be run by hand from the Actions tab.
+
+
 `npm run build` produces a static site in `dist/` with relative paths, so it can be hosted anywhere
 (GitHub Pages, Netlify, Vercel, any web server), including from a sub-path. It must be served over HTTPS
 (or `localhost`) for offline mode and installing to work.
