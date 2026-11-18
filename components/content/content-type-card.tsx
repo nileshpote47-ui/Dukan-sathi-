@@ -30,7 +30,10 @@ export function ContentTypeCard({
         name={name}
         value={type}
         checked={checked}
-        onChange={() => onSelect(type)}
+        // onClick (not onChange) so tapping the already-selected card still continues.
+        // Keyboard selection also fires click on radios.
+        onClick={() => onSelect(type)}
+        onChange={() => {}}
         className="sr-only"
       />
       <Icon aria-hidden className={cn('size-6', checked ? 'text-primary' : 'text-muted-foreground')} />

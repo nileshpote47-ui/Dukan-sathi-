@@ -37,3 +37,34 @@ export function trackPageErrors(page: Page) {
   })
   return errors
 }
+
+/** Give a test user a fresh, onboarded business (deletes their old one and its content). */
+export async function resetBusiness(user: { email: string; password: string }, name: string, category: string) {
+  const { client, userId } = await apiClientFor(user)
+  await client.from('businesses').delete().eq('owner_id', userId)
+  await client.from('profiles').update({ preferred_language: 'en' }).eq('user_id', userId)
+  const { data, error } = await client
+    .from('businesses')
+    .insert({
+      business_name: name,
+      business_category: category,
+      phone: '9876543210',
+      village: 'Shirur',
+      district: 'Pune',
+      state: 'Maharashtra',
+      onboarding_completed_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  expect(error).toBeNull()
+  return { client, userId, businessId: data!.id }
+}
+
+/** Remove the test users' businesses (and their content) and reset their language. */
+export async function cleanupBusinesses(...list: { email: string; password: string }[]) {
+  for (const user of list) {
+    const { client, userId } = await apiClientFor(user)
+    await client.from('businesses').delete().eq('owner_id', userId)
+    await client.from('profiles').update({ preferred_language: 'en' }).eq('user_id', userId)
+  }
+}

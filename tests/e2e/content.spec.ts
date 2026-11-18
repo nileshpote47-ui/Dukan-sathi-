@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { isoToIstInput } from '../../lib/utils/datetime'
-import { apiClientFor, hasTestUsers, login, trackPageErrors, users } from './helpers'
+import { apiClientFor, cleanupBusinesses, hasTestUsers, login, resetBusiness, trackPageErrors, users } from './helpers'
 
 /*
  * Phase 2 journey: LOGIN → DASHBOARD → CREATE → CHOOSE POST → PRODUCT → OFFER →
@@ -16,27 +16,6 @@ test.describe.configure({ mode: 'serial' })
 test.skip(!hasTestUsers, 'Set E2E_USER_A_* and E2E_USER_B_* (see tests/e2e/README.md)')
 
 let bContentId = ''
-
-async function resetBusiness(user: typeof users.a, name: string, category: string) {
-  const { client, userId } = await apiClientFor(user)
-  await client.from('businesses').delete().eq('owner_id', userId)
-  await client.from('profiles').update({ preferred_language: 'en' }).eq('user_id', userId)
-  const { data, error } = await client
-    .from('businesses')
-    .insert({
-      business_name: name,
-      business_category: category,
-      phone: '9876543210',
-      village: 'Shirur',
-      district: 'Pune',
-      state: 'Maharashtra',
-      onboarding_completed_at: new Date().toISOString(),
-    })
-    .select('id')
-    .single()
-  expect(error).toBeNull()
-  return { client, userId, businessId: data!.id }
-}
 
 const tomorrowIst = () => isoToIstInput(new Date(Date.now() + 24 * 3600 * 1000).toISOString()).slice(0, 10)
 
@@ -59,11 +38,7 @@ test.beforeAll(async () => {
 })
 
 test.afterAll(async () => {
-  for (const user of [users.a, users.b]) {
-    const { client, userId } = await apiClientFor(user)
-    await client.from('businesses').delete().eq('owner_id', userId)
-    await client.from('profiles').update({ preferred_language: 'en' }).eq('user_id', userId)
-  }
+  await cleanupBusinesses(users.a, users.b)
 })
 
 test('dashboard starts empty with real zero counts and quick actions', async ({ page }) => {
@@ -91,7 +66,6 @@ test('full journey: create post → list → edit → ready → schedule → cal
   await page.getByRole('link', { name: 'Create Post', exact: true }).click()
   await expect(page).toHaveURL(/\/dashboard\/create\?type=POST/)
   await expect(page.getByText('Step 2 of 3')).toBeVisible()
-  await expect(page.getByText('AI generation will be available in the next stage.')).toBeVisible()
   await expect(page.getByText(/type:\s*Social Post/i)).toBeVisible()
 
   // Validation: title is required.
@@ -106,8 +80,9 @@ test('full journey: create post → list → edit → ready → schedule → cal
   await page.getByLabel('Language of the content', { exact: true }).selectOption('mr')
   await page.getByRole('button', { name: 'Continue' }).click()
 
-  // Review
+  // Review (details are in a collapsible summary on the generate step)
   await expect(page.getByText('Step 3 of 3')).toBeVisible()
+  await page.getByText('Your details:').click()
   await expect(page.getByText('Basmati rice 5 kg')).toBeVisible()
   await expect(page.getByText('मराठी')).toBeVisible()
   await page.getByRole('button', { name: 'Save as draft' }).click()
