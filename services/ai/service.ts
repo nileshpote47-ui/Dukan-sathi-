@@ -29,6 +29,8 @@ export async function generateMarketingContent(request: AIContentRequest): Promi
       type: request.request.type,
       code: aiError.code,
       reason: aiError.message,
+      // Provider's short error text (no prompt, output or key) to tell overload from misconfiguration.
+      detail: aiError.cause instanceof Error ? aiError.cause.message.slice(0, 300) : undefined,
       ms: Date.now() - started,
     })
     throw aiError
