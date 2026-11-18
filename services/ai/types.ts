@@ -1,28 +1,56 @@
 /**
- * AI service boundary — TYPES ONLY in Phase 1.
+ * AI service boundary — TYPES ONLY (no provider, no API calls) until Phase 3.
  *
- * There is deliberately no provider implementation and no API call here.
- * Phase 3 will add providers (e.g. services/ai/providers/<name>.ts) that implement
- * these interfaces, so the rest of the app never imports an AI vendor SDK directly.
+ * Phase 2 prepares the structured input: lib/marketing/context.ts builds a
+ * MarketingGenerationRequest from the business, its marketing preferences and a
+ * content item. Phase 3 adds providers (services/ai/providers/<name>.ts) that
+ * implement AIProvider, so the rest of the app never imports a vendor SDK.
  */
+import type { ContentType } from '@/lib/config/content'
 import type { LanguageCode } from '@/lib/config/languages'
+import type { ContactMethod, PromotionalStyle, Tone } from '@/lib/config/marketing'
 
-/** What the app knows about a business, passed to any AI capability. */
-export interface BusinessContext {
-  name: string
-  category: string
-  location?: string
-  description?: string
-  tagline?: string
-  language: LanguageCode
+/** Everything the app knows about the business that should shape its marketing. */
+export interface MarketingContext {
+  business: {
+    name: string
+    category: string
+    location?: string
+    description?: string
+    tagline?: string
+    targetCustomers?: string
+    phone?: string
+    whatsapp?: string
+    openingHours?: string
+  }
+  preferences: {
+    language: LanguageCode
+    tone?: Tone
+    callToAction?: string
+    promotionalStyle?: PromotionalStyle
+    contactMethod?: ContactMethod
+  }
 }
 
-export interface TextGenerationRequest {
-  business: BusinessContext
-  /** e.g. 'caption', 'offer', 'whatsapp_message', 'festival_post' */
-  kind: string
-  instructions: string
-  maxLength?: number
+/** One content request, as the owner described it (no generated text). */
+export interface ContentRequest {
+  contentItemId: string
+  type: ContentType
+  title: string
+  language: LanguageCode
+  product?: string
+  offer?: string
+  price?: string
+  description?: string
+  notes?: string
+  callToAction?: string
+  template?: { slug: string; name: string; contentType: ContentType }
+}
+
+/** The complete input a future AI provider receives. */
+export interface MarketingGenerationRequest {
+  context: MarketingContext
+  request: ContentRequest
 }
 
 export interface TextGenerationResult {
@@ -37,5 +65,5 @@ export interface TextGenerationResult {
  */
 export interface AIProvider {
   readonly id: string
-  generateText?(request: TextGenerationRequest): Promise<TextGenerationResult>
+  generateText?(request: MarketingGenerationRequest): Promise<TextGenerationResult>
 }

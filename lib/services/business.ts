@@ -1,8 +1,7 @@
 import 'server-only'
-import type { PostgrestError } from '@supabase/supabase-js'
 import { requireUser } from '@/lib/auth/dal'
-import type { MessageKey } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/server'
+import { dbError, type ServiceResult } from './errors'
 import type { TablesUpdate } from '@/types/database'
 
 /**
@@ -10,17 +9,6 @@ import type { TablesUpdate } from '@/types/database'
  * and filters by it; row level security enforces the same rule in the database.
  * Callers must validate input with the schemas in lib/validation first.
  */
-
-export type ServiceResult = { ok: true } | { ok: false; error: MessageKey }
-
-function dbError(error: PostgrestError): ServiceResult {
-  // Log the details for developers; show users a friendly message only.
-  console.error('[db]', error.code, error.message)
-  if (error.code === '23505') return { ok: false, error: 'errors.businessExists' }
-  if (error.code === '23514' || error.code === '22001') return { ok: false, error: 'errors.validation' }
-  if (error.code === '42501' || error.code === 'PGRST301') return { ok: false, error: 'errors.sessionExpired' }
-  return { ok: false, error: 'errors.saveFailed' }
-}
 
 /** Create the owner's business, or update name/category if it already exists (one per owner). */
 export async function upsertBusinessBasics(values: { business_name: string; business_category: string }): Promise<ServiceResult> {
@@ -53,7 +41,11 @@ export async function updateBusiness(values: TablesUpdate<'businesses'>): Promis
   return { ok: true }
 }
 
-export async function updateProfile(values: { full_name?: string; preferred_language?: string }): Promise<ServiceResult> {
+export async function updateProfile(values: {
+  full_name?: string
+  preferred_language?: string
+  product_update_emails?: boolean
+}): Promise<ServiceResult> {
   const user = await requireUser()
   const supabase = await createClient()
   const { data, error } = await supabase.from('profiles').update(values).eq('user_id', user.id).select('id')

@@ -1,116 +1,144 @@
-import { ArrowRight, BarChart3, FileImage, Megaphone, MessageCircle, PenSquare, type LucideIcon } from 'lucide-react'
+import { ArrowRight, CalendarClock, CheckCircle2, FilePen, Files, Sparkles, Store, type LucideIcon } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { ContentCard } from '@/components/content/content-card'
+import { ContentEmptyState } from '@/components/content/content-empty-state'
+import { QuickActionCard } from '@/components/content/quick-action-card'
 import { PageHeader } from '@/components/layout/page-header'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
+import { QUICK_ACTION_TYPES } from '@/lib/config/content'
 import { LANGUAGES } from '@/lib/config/languages'
+import { getContentCounts, getRecentContent } from '@/lib/data/content'
 import { getTranslator, type MessageKey } from '@/lib/i18n'
 import { formatLocation, profileCompletion } from '@/lib/utils/business'
+import { intlLocale } from '@/lib/utils/datetime'
 import { greetingKey } from '@/lib/utils/greeting'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
-/** Placeholders only: content creation is built in a later phase. */
-const QUICK_ACTIONS: { key: MessageKey; icon: LucideIcon }[] = [
-  { key: 'dashboard.action.post', icon: PenSquare },
-  { key: 'dashboard.action.offer', icon: Megaphone },
-  { key: 'dashboard.action.poster', icon: FileImage },
-  { key: 'dashboard.action.whatsapp', icon: MessageCircle },
-]
-
 export default async function DashboardPage() {
   const { business, profile } = await requireOnboardedBusiness()
+  const [counts, recent] = await Promise.all([getContentCounts(), getRecentContent(5)])
   const t = getTranslator(profile?.preferred_language)
+  const locale = intlLocale(profile?.preferred_language)
   const completion = profileCompletion(business)
   const language = LANGUAGES.find((l) => l.code === profile?.preferred_language)
-  const location = formatLocation(business)
+
+  // Real numbers from the database only.
+  const tiles: { key: MessageKey; value: number; icon: LucideIcon; href: string }[] = [
+    { key: 'dashboard.count.total', value: counts.total, icon: Files, href: '/dashboard/content' },
+    { key: 'dashboard.count.drafts', value: counts.DRAFT, icon: FilePen, href: '/dashboard/content?status=DRAFT' },
+    { key: 'dashboard.count.ready', value: counts.READY, icon: CheckCircle2, href: '/dashboard/content?status=READY' },
+    { key: 'dashboard.count.scheduled', value: counts.SCHEDULED, icon: CalendarClock, href: '/dashboard/calendar' },
+  ]
 
   return (
     <>
-      <PageHeader title={t(greetingKey(), { name: business.business_name })} description={t('dashboard.subtitle')} />
+      <PageHeader title={t(greetingKey(), { name: business.business_name })} description={t('dashboard.welcome')} />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardTitle>{t('dashboard.yourBusiness')}</CardTitle>
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-            <SummaryItem label={t('dashboard.category')} value={t(`category.${business.business_category}` as MessageKey)} />
-            <SummaryItem label={t('dashboard.language')} value={language?.nativeLabel ?? '—'} />
-            <SummaryItem label={t('dashboard.location')} value={location || t('common.notAdded')} />
-            <SummaryItem label={t('dashboard.contact')} value={business.phone ?? t('common.notAdded')} />
-          </dl>
-          {business.brand_tagline && <p className="mt-4 text-muted-foreground italic">“{business.brand_tagline}”</p>}
-          <Link href="/dashboard/business" className={buttonVariants({ variant: 'secondary', className: 'mt-5' })}>
-            {t('dashboard.viewBusiness')}
-            <ArrowRight aria-hidden className="size-4" />
+      {completion < 100 && (
+        <Card className="mb-6 flex flex-col gap-4 border-accent/40 bg-accent-soft sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <CardTitle className="text-base">{t('dashboard.completeBusinessTitle')}</CardTitle>
+            <CardDescription className="mt-1 text-foreground/80">{t('dashboard.completeBusinessBody')}</CardDescription>
+            <Progress value={completion} label={t('dashboard.completion')} className="mt-3 max-w-sm bg-card" />
+            <p className="mt-1 text-sm font-medium">
+              {t('dashboard.completion')}: {completion}%
+            </p>
+          </div>
+          <Link href="/dashboard/business" className={buttonVariants({ className: 'shrink-0' })}>
+            {t('dashboard.goToBusiness')}
           </Link>
         </Card>
+      )}
 
-        <Card>
-          <CardTitle>{t('dashboard.completion')}</CardTitle>
-          <p className="mt-3 text-3xl font-bold">{completion}%</p>
-          <Progress value={completion} label={t('dashboard.completion')} className="mt-3" />
-          {completion < 100 ? (
-            <>
-              <CardDescription className="mt-3">{t('dashboard.completionHint')}</CardDescription>
-              <Link href="/dashboard/business/edit" className={buttonVariants({ className: 'mt-4', fullWidth: true })}>
-                {t('dashboard.completeProfile')}
-              </Link>
-            </>
-          ) : (
-            <CardDescription className="mt-3">{t('dashboard.profileComplete')}</CardDescription>
-          )}
-        </Card>
-      </div>
-
-      <section className="mt-8" aria-labelledby="quick-actions">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="quick-actions" className="text-lg font-semibold">
-            {t('dashboard.quickActions')}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t('dashboard.quickActionsHint')}</p>
-        </div>
-        <ul className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {QUICK_ACTIONS.map(({ key, icon: Icon }) => (
-            <li key={key}>
-              {/* Disabled on purpose: no fake functionality in Phase 1. */}
-              <div
-                aria-disabled="true"
-                className="flex min-h-28 flex-col justify-between gap-3 rounded-2xl border border-dashed border-border bg-card p-4 text-muted-foreground"
-              >
-                <Icon aria-hidden className="size-6" />
-                <span>
-                  <span className="block font-medium text-foreground">{t(key)}</span>
-                  <span className="text-xs">{t('common.comingSoon')}</span>
-                </span>
-              </div>
+      <section aria-labelledby="quick-actions">
+        <h2 id="quick-actions" className="text-lg font-semibold">
+          {t('dashboard.quickActions')}
+        </h2>
+        <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Sparkles aria-hidden className="size-4" />
+          {t('ai.notice')}
+        </p>
+        <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+          {QUICK_ACTION_TYPES.map((type) => (
+            <li key={type} className={type === 'WHATSAPP' ? 'col-span-2 md:col-span-1' : undefined}>
+              <QuickActionCard type={type} t={t} />
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="mt-8">
-        <Card className="flex items-start gap-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-            <BarChart3 aria-hidden className="size-5 text-muted-foreground" />
-          </span>
-          <div>
-            <CardTitle className="text-base">{t('dashboard.insights')}</CardTitle>
-            <CardDescription className="mt-1">{t('dashboard.insightsEmpty')}</CardDescription>
+      <section aria-labelledby="overview" className="mt-8">
+        <h2 id="overview" className="text-lg font-semibold">
+          {t('dashboard.overview')}
+        </h2>
+        <ul className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {tiles.map(({ key, value, icon: Icon, href }) => (
+            <li key={key}>
+              <Link
+                href={href}
+                className="flex flex-col gap-1 rounded-2xl border border-border bg-card p-4 transition hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Icon aria-hidden className="size-4" />
+                  {t(key)}
+                </span>
+                <span className="text-3xl font-bold">{value}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="recent" className="mt-8">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 id="recent" className="text-lg font-semibold">
+            {t('dashboard.recent')}
+          </h2>
+          {recent.length > 0 && (
+            <Link href="/dashboard/content" className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-primary hover:underline">
+              {t('dashboard.viewAll')}
+              <ArrowRight aria-hidden className="size-4" />
+            </Link>
+          )}
+        </div>
+        {recent.length === 0 ? (
+          <div className="mt-3 rounded-2xl border border-border bg-card">
+            <ContentEmptyState t={t} filtered={false} />
           </div>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-3">
+            {recent.map((item) => (
+              <li key={item.id}>
+                <ContentCard item={item} t={t} locale={locale} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-8">
+        <Card className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+            <Store aria-hidden className="size-6" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base">{business.business_name}</CardTitle>
+            <CardDescription className="mt-0.5">
+              {[t(`category.${business.business_category}` as MessageKey), formatLocation(business), language?.nativeLabel]
+                .filter(Boolean)
+                .join(' · ')}
+            </CardDescription>
+          </div>
+          <Link href="/dashboard/business" className={buttonVariants({ variant: 'secondary', className: 'shrink-0' })}>
+            {t('dashboard.viewBusiness')}
+          </Link>
         </Card>
       </section>
     </>
-  )
-}
-
-function SummaryItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 font-medium break-words">{value}</dd>
-    </div>
   )
 }

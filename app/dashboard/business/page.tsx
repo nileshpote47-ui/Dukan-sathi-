@@ -60,6 +60,16 @@ export default async function BusinessPage() {
     { title: 'business.section.preferences', rows: [['field.language', language?.nativeLabel ?? null]] },
   ]
 
+  const contentLanguage = LANGUAGES.find((l) => l.code === b.content_language)
+  const marketingRows: [MessageKey, string | null][] = [
+    ['marketing.contentLanguage', contentLanguage?.nativeLabel ?? null],
+    ['marketing.tone', b.tone ? t(`tone.${b.tone}` as MessageKey) : null],
+    ['marketing.targetCustomers', b.target_customers],
+    ['marketing.preferredCta', b.preferred_cta],
+    ['marketing.promotionalStyle', b.promotional_style ? t(`promotionalStyle.${b.promotional_style}` as MessageKey) : null],
+    ['marketing.contactMethod', b.preferred_contact_method ? t(`contactMethod.${b.preferred_contact_method}` as MessageKey) : null],
+  ]
+
   return (
     <>
       <PageHeader
@@ -102,6 +112,26 @@ export default async function BusinessPage() {
             </dl>
           </Card>
         ))}
+        <Card className="lg:col-span-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>{t('marketing.title')}</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">{t('marketing.subtitle')}</p>
+            </div>
+            <Link href="/dashboard/business/marketing" className={buttonVariants({ variant: 'secondary', className: 'shrink-0' })}>
+              <Pencil aria-hidden className="size-4" />
+              {t('marketing.edit')}
+            </Link>
+          </div>
+          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+            {marketingRows.map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <dt className="text-sm text-muted-foreground">{t(label)}</dt>
+                <dd className={value ? 'break-words' : 'text-muted-foreground'}>{value ?? t('marketing.notSet')}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
       </div>
     </>
   )
