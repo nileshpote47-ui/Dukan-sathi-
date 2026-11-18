@@ -49,7 +49,7 @@ interface AIProvider {
 - Adding OpenAI later: `providers/openai.ts` implementing `AIProvider` (reuse `buildPrompt`, `outputJsonSchema`, `normalizeAIOutput`) + one `case` in `provider.ts` + `AI_PROVIDERS` entry. Nothing in the workflow changes.
 
 ## Configured provider
-**Google Gemini** (Gemini Developer API) with `@google/genai` 3.x, default model `gemini-3.8-flash` (override with `AI_MODEL`). Integration verified against the SDK's bundled documentation/types:
+**Google Gemini** (Gemini Developer API) with `@google/genai` 3.x, default model `gemini-3.5-flash` (override with `AI_MODEL`). Integration verified against the SDK's bundled documentation/types:
 - `ai.models.generateContent({ model, contents, config })` with `systemInstruction`, `responseMimeType: 'application/json'` and `responseJsonSchema` (structured output per content type).
 - `httpOptions.retryOptions.attempts = 1`: the SDK retries up to 5 times by default; disabled because each call may cost money (the owner can press Regenerate).
 - `httpOptions.timeout = 45 s`; `thinkingConfig.thinkingLevel = LOW` for Gemini 3 models (default high thinking made short copy slow enough to hit the deadline); temperature 0.7 (1.0 when regenerating for more variety); `maxOutputTokens 2048`.
@@ -59,7 +59,7 @@ interface AIProvider {
 | Variable | Purpose |
 |---|---|
 | `AI_PROVIDER` | `gemini` or `mock`. Unset → AI disabled ("not configured" message, button hidden) |
-| `AI_MODEL` | Optional model id (default `gemini-3.8-flash`) |
+| `AI_MODEL` | Optional model id (default `gemini-3.5-flash`) |
 | `GEMINI_API_KEY` | Secret. Never `NEXT_PUBLIC_`, never logged or returned |
 | `AI_MOCK_DELAY_MS`, `AI_MOCK_SCENARIO` | Tests only |
 
@@ -126,12 +126,23 @@ No automatic retries; Regenerate/Try Again are user-controlled.
 | Unit (Vitest) | 77 / 77 — context, prompts (all languages/tones/types/templates, factuality rules, quoting), output normalization (malformed/empty/incomplete/oversized), mock provider (all types, languages, regeneration, 6 failure modes), Gemini provider with a fake client (structured-output config, no retries, blocked/empty/malformed replies, error mapping), provider config, service, input validation incl. stripping client `business_id` |
 | Database (pgTAP) | `ai.test.sql` 8 / 8 (copy saved by owner, object-only, size limit, tone check, no cross-user read/write, archived read-only) + Phase 1 24 / 24 + Phase 2 31 / 31 |
 | End-to-end (Playwright, mock provider, phone viewport, real Supabase) | 6 Phase 3 tests (full journey in Marathi with template + Local tone → generate → edit → regenerate → undo → regenerate → edit → save → list → open → verify; per-type structure for REEL/WHATSAPP/OFFER in Hindi/English; safe errors + Try Again; edit page does not overwrite saved copy until Save; each user's own business; no AI calls on page loads) + 15 Phase 1/2 regression |
-| Real provider | See "Real-world checks" |
+| Real provider (Gemini, production) | 3 / 3 real-world cases — see below |
 
 ## Real-world checks (real Gemini)
-Results are recorded in PROJECT_PHASES.md after running the three cases from the specification on the deployed app: grocery (Marathi, Local), mobile shop (Hindi, Energetic), salon (English, Premium).
+Run on the deployed app (https://dukan-sathi-nine.vercel.app) through the real UI on a phone viewport, one generation per case, 2026-11-18, model `gemini-3.5-flash` with thinking level LOW.
+
+| Case | Language / tone | Time | Result |
+|---|---|---|---|
+| Shree Ganesh Kirana (grocery), "Fresh basmati rice", offer "Special weekend offer" | Marathi / Local | 9.0 s | Pass — natural Marathi in Devanagari; mentions only the owner's weekend offer (no amount or discount invented); CTA to visit the shop; hashtags from name/place |
+| Sai Mobile Point (mobile shop), "New smartphone", no offer | Hindi / Energetic | 3.0 s | Pass — Hindi in Devanagari; no brand, model, price, specification or EMI invented |
+| Glow Salon (salon), "Hair styling", no offer | English / Premium | 4.4 s | Pass — polished Indian English; no price, discount or result guarantee invented |
+
+Sample (grocery headline): "या वीकेंडला आणा ताजी बास्मती तांदूळ!"
+
+**Model note.** The first runs used `gemini-3.8-flash`. Google returned `503 UNAVAILABLE` ("This model is currently experiencing high demand") and `504 DEADLINE_EXCEEDED` on every attempt (5 calls). The app handled each one correctly: a friendly message, Try Again, no automatic retry, and the provider's short error text logged without the prompt, output or key. Setting thinking level LOW alone did not help. With `AI_MODEL=gemini-3.5-flash` (now also the code default), all cases succeeded in 3–9 s. The model can be changed with `AI_MODEL` without a code change.
 
 ## Known limitations
+- Provider availability: a model can be overloaded on Google's side (seen with `gemini-3.8-flash`); the owner then sees "temporarily unavailable" and can retry. Vercel functions currently run in `iad1` although `bom1` is configured (Phase 8 hardening).
 - One business = one owner; no per-user rate limiting or credits yet (Phase 5). Duplicate clicks are prevented in the UI only.
 - AI quality depends on the model; the owner must review before using (the UI says so).
 - Regeneration keeps one previous version (undo), not a full history.

@@ -224,12 +224,12 @@ describe('Gemini provider (fake client — no real API call)', () => {
       text: JSON.stringify({ opening: 'नमस्कार!', message: 'ताजा बासमती तांदूळ.', call_to_action: 'आजच भेट द्या' }),
       candidates: [{ finishReason: 'STOP' }],
     }))
-    const provider = new GeminiProvider('gemini-3.8-flash', { client })
+    const provider = new GeminiProvider('gemini-3.5-flash', { client })
     const out = await provider.generateContent(request('WHATSAPP'))
     expect(out).toEqual({ headline: 'नमस्कार!', primary_text: 'ताजा बासमती तांदूळ.', call_to_action: 'आजच भेट द्या' })
 
     const params = client.models.generateContent.mock.calls[0][0]
-    expect(params.model).toBe('gemini-3.8-flash')
+    expect(params.model).toBe('gemini-3.5-flash')
     expect(params.config).toMatchObject({
       responseMimeType: 'application/json',
       thinkingConfig: { thinkingLevel: 'LOW' },
@@ -284,7 +284,7 @@ describe('provider configuration and service', () => {
     process.env.AI_PROVIDER = 'gemini'
     expect(getAIConfig()).toBeNull()
     process.env.GEMINI_API_KEY = 'test-key'
-    expect(getAIConfig()).toEqual({ provider: 'gemini', model: 'gemini-3.8-flash' })
+    expect(getAIConfig()).toEqual({ provider: 'gemini', model: 'gemini-3.5-flash' })
     process.env.AI_MODEL = 'gemini-custom'
     expect(getAIConfig()?.model).toBe('gemini-custom')
   })

@@ -31,7 +31,7 @@ Server-only (AI, Phase 3):
 | Name | Purpose |
 |---|---|
 | `AI_PROVIDER` | `gemini` (production) or `mock` (tests). Unset = AI disabled |
-| `AI_MODEL` | Optional, default `gemini-3.8-flash` |
+| `AI_MODEL` | Optional, default `gemini-3.5-flash` |
 | `GEMINI_API_KEY` | Secret from [Google AI Studio](https://aistudio.google.com/apikey). In Vercel, mark it **Sensitive** |
 
 Never put a secret or service-role key in a `NEXT_PUBLIC_` variable. Automated tests use `AI_PROVIDER=mock` and never call a paid API (e2e: start the app with `AI_PROVIDER=mock npm start`).

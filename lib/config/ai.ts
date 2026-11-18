@@ -4,8 +4,8 @@ import type { MessageKey } from '@/lib/i18n'
 export const AI_PROVIDERS = ['gemini', 'mock'] as const
 export type AIProviderId = (typeof AI_PROVIDERS)[number]
 
-/** Used when AI_MODEL is not set. Matches the model in the @google/genai docs at the time of writing. */
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash'
+/** Used when AI_MODEL is not set. Verified with real requests in Phase 3 (gemini-3.8-flash returned 503/504 under high demand). */
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash'
 
 /** One generation request may not run longer than this (no automatic retries). */
 export const AI_TIMEOUT_MS = 45_000

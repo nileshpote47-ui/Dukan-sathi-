@@ -7,12 +7,70 @@ Never mark a future phase complete. Never repeat a completed phase.
 |---|---|---|
 | 1 | Foundation | **COMPLETED** |
 | 2 | Core Dashboard & Content Workflow | **COMPLETED** |
-| 3 | AI Content Engine | **READY** |
-| 4 | Media / Reel / Video Engine | NOT STARTED |
+| 3 | AI Content Engine | **COMPLETED** |
+| 4 | Media / Reel / Video Engine | **READY** |
 | 5 | Subscriptions, Credits & Billing | NOT STARTED |
 | 6 | Social / WhatsApp / Publishing | NOT STARTED |
 | 7 | Analytics, Admin & Business Intelligence | NOT STARTED |
 | 8 | Production Hardening & Launch | NOT STARTED |
+
+---
+
+## PHASE 3 — AI CONTENT ENGINE
+**Status: COMPLETED** (2026-11-18). Details: [docs/PHASE_3.md](docs/PHASE_3.md).
+
+### Completed features
+- Provider abstraction (`services/ai/`): `AIProvider` interface, Google Gemini provider (`@google/genai`, structured JSON output, thinking level LOW, 45 s timeout, no automatic retries), deterministic mock provider with failure simulation (refused in production)
+- Single server-side entry point `generateMarketingContent()`; prompts only in `services/ai/prompts.ts` with factuality rules (no invented prices, discounts, specifications, contacts, guarantees); owner text quoted as data
+- Per-type structured output (POST, OFFER, POSTER, WHATSAPP, REEL, FESTIVAL, OTHER) validated and normalized (`services/ai/output.ts`)
+- Generation in English, Marathi and Hindi with 6 tones, templates and business context/preferences
+- Create flow "Generate and review": generate, edit every field, regenerate with suggestions or own instructions, restore previous version, save as draft
+- Edit page: generate from saved details without overwriting saved copy until Save; detail page: read-only AI copy with Copy text
+- Duplicate-click protection; generation only on explicit user action; friendly errors with Try Again
+
+### Files created
+- `services/ai/{types,output,prompts,provider,service}.ts`, `services/ai/providers/{gemini,mock}.ts`
+- `lib/config/ai.ts`, `app/dashboard/content/ai-actions.ts`, `app/dashboard/content/[id]/edit/edit-ai-copy.tsx`
+- `components/ai/{ai-content-panel,ai-copy-view,copy-text-button}.tsx`, `components/ai/ai-field-label.ts`
+- `supabase/migrations/20261118185844_ai_generated_copy.sql`, `supabase/tests/database/ai.test.sql`
+- `tests/unit/ai.test.ts`, `tests/e2e/ai.spec.ts`, `docs/PHASE_3.md`
+
+### Files modified
+- `lib/marketing/context.ts` (`buildAIContentRequest`), `lib/validation/content.ts` (tone, generated copy, `aiGenerateSchema`), `lib/services/content.ts` (copy + server-set AI metadata), `types/database.ts`
+- Create flow/page, edit and detail pages, `components/content/{content-form,content-type-card}.tsx` (tone select; re-selecting a preselected type fixed), dashboard hint
+- `lib/i18n/messages/*`, `vitest.config.mts`, `tests/e2e/{helpers,content.spec}.ts`, `.env.example`, `README.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md`, `tests/e2e/README.md`
+
+### Database migrations
+- `20261118185844_ai_generated_copy.sql`: `content_items` gains `tone`, `generated_copy jsonb` (object, ≤ 12 KB), `ai_provider`, `ai_model`, `ai_generated_at`
+
+### Database tables
+- No new tables; `content_items` extended. Prompts, instructions and raw responses are not stored.
+
+### RLS policies
+- Unchanged: existing owner-only `content_items` policies cover the new columns (verified by `ai.test.sql`).
+
+### Environment variables
+- Server-only: `AI_PROVIDER` (`gemini`), `AI_MODEL` (`gemini-3.5-flash`), `GEMINI_API_KEY` (Sensitive, set in Vercel by the owner). Tests: `AI_PROVIDER=mock`, `AI_MOCK_DELAY_MS`, `AI_MOCK_SCENARIO`.
+
+### External integrations
+- Google Gemini API (server-side only).
+
+### Tests performed
+- Unit 77/77 · pgTAP ai 8/8 (+ Phase 1 24/24, Phase 2 31/31) · E2E 21/21 with the mock provider · lint · typecheck · build
+- Real Gemini on production: grocery (Marathi, Local), mobile shop (Hindi, Energetic), salon (English, Premium) — 3/3 pass, correct language, no invented prices or specifications
+
+### Known limitations
+- No server-side rate limits or credits yet (Phase 5); duplicate clicks prevented in the UI only
+- One previous version kept for undo; generated copy not searchable
+- Model availability depends on Google (`gemini-3.8-flash` was overloaded during testing)
+- Marathi/Hindi UI translations partial
+
+### Technical debt
+- Vercel functions run in `iad1` although `bom1` is configured
+- Default model id must be revisited when Google retires `gemini-3.5-flash`
+
+### Recommended next phase
+- Phase 4 — Media / Reel / Video Engine (reuse `generated_copy` for posters and reel scripts)
 
 ---
 
