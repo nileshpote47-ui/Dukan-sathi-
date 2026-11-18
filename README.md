@@ -1,64 +1,72 @@
-# Dukan Sathi
+# Dukaan Sathi
 
-An offline-first shop companion for small Indian retail shops (kirana / general stores).
-Manage stock, make bills, keep the udhaar (credit) khata and see today's sales — on a phone or a desktop browser.
+AI-powered marketing assistant for small and local businesses in rural and semi-urban India — *"Your daily marketing assistant for your business."*
 
-## Phase 1 features
+**Current state: Phase 1 (Foundation) complete.** Accounts, business onboarding, a protected dashboard and business profile management. Content creation and AI features arrive in later phases — see [PROJECT_PHASES.md](PROJECT_PHASES.md).
 
-See [`PHASE_1_PROMPT.yaml`](./PHASE_1_PROMPT.yaml) for the full spec.
+## Technology
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres + Auth via `@supabase/ssr`) · Zod · React Hook Form · Lucide · Vitest · Playwright · Vercel.
 
-- **Home** — today's sales, profit, payment split (cash / UPI / udhaar), pending udhaar, low-stock list, recent bills, backup export/import
-- **Bill** — search and add products, edit quantities (decimals allowed, e.g. 1.5 kg), discount, cash / UPI / udhaar, quick-add customer, stock check, share the bill on WhatsApp, bill history
-- **Stock** — add, edit and delete products with selling price, cost price, unit and low-stock alert level; margin shown while editing
-- **Udhaar** — customers sorted by amount owed, per-customer ledger with running balance, record payments, WhatsApp payment reminder
+## Prerequisites
+- Node.js 22+
+- A Supabase project (this repo's is `dukaan-sathi`, region ap-south-1)
+- Optional: Docker + Supabase CLI (included as a dev dependency) for running Supabase locally and `npm run test:db`
 
-Data is stored in the browser's `localStorage` on this device only. Use **Export backup** on the Home screen regularly.
-
-### Offline and install
-
-After the first visit the app loads with no internet: a service worker caches every file of the build.
-On Android/Chrome use **Add to Home screen** / **Install app**; on iPhone use Safari's **Share → Add to Home Screen**.
-Opening the app in two tabs is safe: each tab picks up the other's changes.
-
-## Deploying
-
-Every push to `main` is built, tested and published to GitHub Pages by
-`.github/workflows/deploy.yml` (Settings → Pages → Source must be **GitHub Actions**).
-It can also be run by hand from the Actions tab.
-
-
-`npm run build` produces a static site in `dist/` with relative paths, so it can be hosted anywhere
-(GitHub Pages, Netlify, Vercel, any web server), including from a sub-path. It must be served over HTTPS
-(or `localhost`) for offline mode and installing to work.
-
-## Development
-
+## Local setup
 ```bash
 npm install
-npm run dev      # start the dev server
-npm test         # run the domain logic tests (Vitest)
-npm run build    # type-check and build to dist/
-npm run lint     # oxlint
+cp .env.example .env.local   # then fill in the values below
+npm run dev                  # http://localhost:3000
 ```
 
-CI (`.github/workflows/ci.yml`) runs lint, tests and build on every push and pull request.
+## Environment variables
+| Name | Where to find it | Public? |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → Data API | yes |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys (`sb_publishable_…`) | yes (RLS protects data) |
+| `NEXT_PUBLIC_SITE_URL` | Your app's URL, used in email links | yes |
 
-## Code layout
+No server secrets are needed in Phase 1. Never put a secret or service-role key in a `NEXT_PUBLIC_` variable.
 
-```
-src/
-  lib/
-    types.ts      data model (money is stored as integer paise)
-    money.ts      rupee parsing and en-IN formatting
-    shop.ts       pure business logic: products, billing, udhaar ledger, dashboard, backup
-    shop.test.ts  tests for the above
-    useShop.ts    React state hook + localStorage persistence
-  screens/        Dashboard, Billing, Stock, Customers
-  App.tsx         header and bottom tab navigation
-  main.tsx        entry point, registers the service worker
-sw/service-worker.js   offline caching; vite.config.ts injects the list of built files
-public/          icons and web app manifest
-```
+## Supabase setup
+1. Create a project and copy its URL and publishable key into `.env.local`.
+2. Apply the migrations in `supabase/migrations/`, in order:
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <your-project-ref>
+   npx supabase db push
+   ```
+3. Authentication → URL Configuration: Site URL = your app URL; add `<app-url>/auth/confirm` to Redirect URLs.
+4. Authentication → Emails: configure custom SMTP for real users (the built-in sender is rate-limited), or turn off "Confirm email" for a private beta.
 
-All business rules live in `src/lib/shop.ts` as pure functions, so a backend can replace
-`useShop.ts` in Phase 2 without touching the rules or the screens.
+### Database migration process
+1. Add `supabase/migrations/<timestamp>_<name>.sql` (`npx supabase migration new <name>`).
+2. Apply it (`npx supabase db push`, or locally `npx supabase db reset`).
+3. Regenerate types: `npm run db:types`.
+4. Add pgTAP tests in `supabase/tests/database/` and run them.
+5. Check Supabase → Advisors → Security.
+
+## Commands
+| Command | What it does |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` / `npm start` | Production build / serve it |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | Generate route types + TypeScript check |
+| `npm test` | Unit tests (Vitest) |
+| `npm run test:db` | Database RLS tests (pgTAP, needs local Supabase via Docker) |
+| `npm run test:e2e` | Browser tests (Playwright) — see [tests/e2e/README.md](tests/e2e/README.md) |
+| `npm run check` | lint + typecheck + unit tests + build (same as CI) |
+
+## Deployment (Vercel)
+1. Import the GitHub repository in Vercel (framework: Next.js, defaults are fine).
+2. Add the three environment variables (Production and Preview), with `NEXT_PUBLIC_SITE_URL` set to the Vercel URL.
+3. Deploy, then add the Vercel URL to Supabase's Site URL and Redirect URLs (see above).
+
+Every push to `main` deploys automatically once connected. GitHub Actions CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and build on every push.
+
+## Documentation
+- [CLAUDE.md](CLAUDE.md) — development rules
+- [PROJECT_PHASES.md](PROJECT_PHASES.md) — phase ledger
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture, RLS, localization, AI boundary
+- [docs/PHASE_1.md](docs/PHASE_1.md) — Phase 1 details, tests, limitations
