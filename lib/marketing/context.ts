@@ -2,13 +2,13 @@ import { isContentType } from '@/lib/config/content'
 import { DEFAULT_LANGUAGE, isLanguageCode, type LanguageCode } from '@/lib/config/languages'
 import { CONTACT_METHODS, PROMOTIONAL_STYLES, TONES, type ContactMethod, type PromotionalStyle, type Tone } from '@/lib/config/marketing'
 import { formatLocation } from '@/lib/utils/business'
-import type { MarketingContext, MarketingGenerationRequest } from '@/services/ai/types'
+import type { AIContentRequest, AIContentResponse, MarketingContext } from '@/services/ai/types'
 import type { Tables } from '@/types/database'
 
 /*
- * Pure functions that turn stored data into the structured input for the future
- * AI engine (Phase 3). No network calls. Empty values are left out so a provider
- * never receives blank strings.
+ * The single place that turns stored data (business profile, marketing preferences,
+ * content request, template) into the structured AI input. Pure functions, no network.
+ * Empty values are left out so a provider never receives blank strings.
  */
 
 const clean = (value: string | null | undefined) => {
@@ -49,30 +49,60 @@ export function buildMarketingContext(
   }
 }
 
-export function buildGenerationRequest(
+/** The content request fields (from the create/edit form or a saved content item). */
+export interface ContentRequestInput {
+  id?: string
+  content_type: string
+  title: string
+  product_name?: string | null
+  offer_text?: string | null
+  price?: string | null
+  description?: string | null
+  notes?: string | null
+  call_to_action?: string | null
+  language?: string | null
+  tone?: string | null
+}
+
+export type TemplateInput = Pick<Tables<'content_templates'>, 'slug' | 'name' | 'content_type' | 'default_cta'> &
+  Partial<Pick<Tables<'content_templates'>, 'description'>>
+
+export function buildAIContentRequest(
   context: MarketingContext,
-  item: Tables<'content_items'>,
-  template?: Pick<Tables<'content_templates'>, 'slug' | 'name' | 'content_type' | 'default_cta'> | null,
-): MarketingGenerationRequest {
+  item: ContentRequestInput,
+  template?: TemplateInput | null,
+  options: { instructions?: string | null; previous?: AIContentResponse | null } = {},
+): AIContentRequest {
   if (!isContentType(item.content_type)) throw new Error(`Unknown content type: ${item.content_type}`)
   return {
     context,
     request: {
       contentItemId: item.id,
       type: item.content_type,
-      title: item.title,
-      language: language(item.language, context.preferences.language),
+      title: item.title.trim(),
       product: clean(item.product_name),
       offer: clean(item.offer_text),
       price: clean(item.price),
       description: clean(item.description),
       notes: clean(item.notes),
-      // Most specific call to action wins: content item, then template, then business default.
-      callToAction: clean(item.call_to_action) ?? clean(template?.default_cta) ?? context.preferences.callToAction,
+      // Most specific call to action wins: content item, then template (in the prompt), then business default.
+      callToAction: clean(item.call_to_action) ?? context.preferences.callToAction,
       template:
         template && isContentType(template.content_type)
-          ? { slug: template.slug, name: template.name, contentType: template.content_type }
+          ? {
+              slug: template.slug,
+              name: template.name,
+              description: clean(template.description),
+              defaultCta: clean(template.default_cta),
+              contentType: template.content_type,
+            }
           : undefined,
+    },
+    generation: {
+      language: language(item.language, context.preferences.language),
+      tone: oneOf<Tone>(TONES, item.tone) ?? context.preferences.tone,
+      instructions: clean(options.instructions),
+      previous: options.previous && Object.keys(options.previous).length ? options.previous : undefined,
     },
   }
 }

@@ -7,6 +7,9 @@ import { isEditable } from '@/lib/content/status'
 import { getContentItem, getTemplates } from '@/lib/data/content'
 import { getTranslator } from '@/lib/i18n'
 import type { ContentFormInput } from '@/lib/validation/content'
+import { generatedCopySchema } from '@/services/ai/output'
+import { isAIConfigured } from '@/services/ai/provider'
+import { EditAICopy } from './edit-ai-copy'
 import { EditContentForm } from './edit-content-form'
 
 export const metadata: Metadata = { title: 'Edit content' }
@@ -31,12 +34,24 @@ export default async function EditContentPage({ params }: PageProps<'/dashboard/
     notes: s(item.notes),
     language: item.language as ContentFormInput['language'],
     template_id: s(item.template_id),
+    tone: s(item.tone) as ContentFormInput['tone'],
   }
+  const parsedCopy = generatedCopySchema.safeParse(item.generated_copy ?? undefined)
+  const initialCopy = item.generated_copy && parsedCopy.success ? parsedCopy.data : null
 
   return (
     <>
       <PageHeader title={t('content.editTitle')} description={item.title} />
-      <EditContentForm id={item.id} initialValues={initialValues} templates={templates} category={business.business_category} />
+      <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <EditContentForm id={item.id} initialValues={initialValues} templates={templates} category={business.business_category} />
+        <EditAICopy
+          id={item.id}
+          type={item.content_type as ContentFormInput['content_type']}
+          request={initialValues}
+          initialCopy={initialCopy}
+          aiAvailable={isAIConfigured()}
+        />
+      </div>
     </>
   )
 }

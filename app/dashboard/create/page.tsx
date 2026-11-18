@@ -5,6 +5,7 @@ import { isContentType } from '@/lib/config/content'
 import { DEFAULT_LANGUAGE, isLanguageCode, type LanguageCode } from '@/lib/config/languages'
 import { getTemplates } from '@/lib/data/content'
 import { getTranslator } from '@/lib/i18n'
+import { isAIConfigured } from '@/services/ai/provider'
 import { CreateFlow } from './create-flow'
 
 export const metadata: Metadata = { title: 'Create' }
@@ -27,7 +28,8 @@ export default async function CreatePage({ searchParams }: PageProps<'/dashboard
         initialType={initialType}
         templates={templates}
         category={business.business_category}
-        defaults={{ language: language ?? DEFAULT_LANGUAGE, callToAction: business.preferred_cta ?? '' }}
+        defaults={{ language: language ?? DEFAULT_LANGUAGE, callToAction: business.preferred_cta ?? '', tone: business.tone ?? '' }}
+        aiAvailable={isAIConfigured()}
       />
     </>
   )

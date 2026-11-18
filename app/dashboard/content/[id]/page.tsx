@@ -1,4 +1,5 @@
 import { ArrowLeft, CalendarClock, Pencil, Sparkles } from 'lucide-react'
+import { AICopyView } from '@/components/ai/ai-copy-view'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -14,6 +15,9 @@ import { isEditable } from '@/lib/content/status'
 import { getContentItem } from '@/lib/data/content'
 import { getTranslator } from '@/lib/i18n'
 import { formatDateTime, intlLocale } from '@/lib/utils/datetime'
+import type { ContentType } from '@/lib/config/content'
+import type { MessageKey } from '@/lib/i18n'
+import { generatedCopySchema, hasGeneratedCopy } from '@/services/ai/output'
 
 export const metadata: Metadata = { title: 'Content' }
 
@@ -26,6 +30,9 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
   const t = getTranslator(profile?.preferred_language)
   const locale = intlLocale(profile?.preferred_language)
   const status = item.status as ContentStatus
+  const parsedCopy = generatedCopySchema.safeParse(item.generated_copy ?? undefined)
+  const copy = item.generated_copy && parsedCopy.success && hasGeneratedCopy(parsedCopy.data) ? parsedCopy.data : null
+  const providerName = item.ai_provider === 'gemini' ? 'Google Gemini' : item.ai_provider
 
   return (
     <>
@@ -57,18 +64,44 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+        <div className="flex min-w-0 flex-col gap-4">
+        <Card>
+          <CardTitle className="mb-4 flex items-center gap-2 text-base">
+            <Sparkles aria-hidden className="size-4 text-primary" />
+            {t('ai.resultTitle')}
+          </CardTitle>
+          {copy ? (
+            <AICopyView
+              type={item.content_type as ContentType}
+              copy={copy}
+              t={t}
+              generatedLabel={
+                item.ai_generated_at && providerName
+                  ? t('ai.generatedWith', { provider: providerName, date: formatDateTime(item.ai_generated_at, locale) })
+                  : undefined
+              }
+            />
+          ) : (
+            <div className="text-sm">
+              <p className="font-medium">{t('ai.noContentYet')}</p>
+              {isEditable(status) && <p className="mt-1 text-muted-foreground">{t('ai.noContentHint')}</p>}
+            </div>
+          )}
+        </Card>
         <Card>
           <ContentPreview
             values={item}
             templateName={item.template?.name}
             t={t}
             extraRows={[
+              [t('contentField.tone'), item.tone ? t(`tone.${item.tone}` as MessageKey) : t('contentField.toneDefault')],
               [t('content.business'), business.business_name],
               [t('content.created'), formatDateTime(item.created_at, locale)],
               [t('content.updated'), formatDateTime(item.updated_at, locale)],
             ]}
           />
         </Card>
+        </div>
 
         <div className="flex flex-col gap-4">
           <Card>
@@ -83,10 +116,6 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
               <StatusActions id={item.id} status={status} scheduledFor={item.scheduled_for} />
             </div>
           </Card>
-          <p className="flex items-start gap-2 rounded-xl bg-accent-soft p-3 text-sm">
-            <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0" />
-            {t('ai.notice')}
-          </p>
           {status === 'SCHEDULED' && <p className="text-sm text-muted-foreground">{t('publishing.notice')}</p>}
         </div>
       </div>

@@ -1,10 +1,6 @@
 /**
- * AI service boundary — TYPES ONLY (no provider, no API calls) until Phase 3.
- *
- * Phase 2 prepares the structured input: lib/marketing/context.ts builds a
- * MarketingGenerationRequest from the business, its marketing preferences and a
- * content item. Phase 3 adds providers (services/ai/providers/<name>.ts) that
- * implement AIProvider, so the rest of the app never imports a vendor SDK.
+ * AI service boundary. The app depends only on these types; provider SDKs live in
+ * services/ai/providers/* and never leak into pages, actions or components.
  */
 import type { ContentType } from '@/lib/config/content'
 import type { LanguageCode } from '@/lib/config/languages'
@@ -32,38 +28,82 @@ export interface MarketingContext {
   }
 }
 
-/** One content request, as the owner described it (no generated text). */
+/** One content request, as the owner described it. */
 export interface ContentRequest {
-  contentItemId: string
+  contentItemId?: string
   type: ContentType
   title: string
-  language: LanguageCode
   product?: string
   offer?: string
   price?: string
   description?: string
   notes?: string
   callToAction?: string
-  template?: { slug: string; name: string; contentType: ContentType }
+  template?: { slug: string; name: string; description?: string; defaultCta?: string; contentType: ContentType }
 }
 
-/** The complete input a future AI provider receives. */
-export interface MarketingGenerationRequest {
+/** Fields of the normalized AI output. Which ones apply depends on the content type. */
+export const OUTPUT_FIELDS = ['headline', 'primary_text', 'short_text', 'call_to_action', 'hashtags', 'reel_hook', 'reel_script'] as const
+export type OutputField = (typeof OUTPUT_FIELDS)[number]
+
+/** The app's own normalized response — never a provider's raw object. */
+export interface AIContentResponse {
+  headline?: string
+  primary_text?: string
+  short_text?: string
+  call_to_action?: string
+  hashtags?: string[]
+  reel_hook?: string
+  reel_script?: string
+}
+
+/** How to generate: language, tone, optional owner instructions, and the previous version when regenerating. */
+export interface GenerationOptions {
+  language: LanguageCode
+  tone?: Tone
+  instructions?: string
+  previous?: AIContentResponse
+}
+
+/** The complete, structured input every provider receives. */
+export interface AIContentRequest {
   context: MarketingContext
   request: ContentRequest
+  generation: GenerationOptions
 }
 
-export interface TextGenerationResult {
-  text: string
-  /** Provider-reported usage, for future credit accounting (Phase 5). */
-  usage?: { inputUnits: number; outputUnits: number }
-}
-
-/**
- * A provider implements only the capabilities it supports.
- * Image, video and translation capabilities will be added in later phases.
- */
 export interface AIProvider {
   readonly id: string
-  generateText?(request: MarketingGenerationRequest): Promise<TextGenerationResult>
+  readonly model: string
+  /** Returns validated, normalized output or throws AIError. */
+  generateContent(request: AIContentRequest): Promise<AIContentResponse>
+}
+
+export interface AIGenerationResult {
+  content: AIContentResponse
+  provider: string
+  model: string
+}
+
+export type AIErrorCode =
+  | 'not_configured'
+  | 'invalid_request'
+  | 'timeout'
+  | 'unavailable'
+  | 'rate_limited'
+  | 'blocked'
+  | 'invalid_response'
+  | 'empty_response'
+  | 'unknown'
+
+/** Safe, provider-independent error. The message is for logs only, never for users. */
+export class AIError extends Error {
+  constructor(
+    readonly code: AIErrorCode,
+    message: string,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options)
+    this.name = 'AIError'
+  }
 }

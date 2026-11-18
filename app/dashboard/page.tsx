@@ -61,7 +61,7 @@ export default async function DashboardPage() {
         </h2>
         <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
           <Sparkles aria-hidden className="size-4" />
-          {t('ai.notice')}
+          {t('dashboard.aiHint')}
         </p>
         <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           {QUICK_ACTION_TYPES.map((type) => (

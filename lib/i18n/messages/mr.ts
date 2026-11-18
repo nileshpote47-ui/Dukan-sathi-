@@ -77,4 +77,13 @@ export const mr: Partial<Messages> = {
   'calendar.title': 'कॅलेंडर',
   'settings.title': 'सेटिंग्ज',
   'marketing.title': 'मार्केटिंग प्राधान्ये',
+  'ai.generate': 'AI ने तयार करा',
+  'ai.generating': 'तयार होत आहे…',
+  'ai.resultTitle': 'AI ने तयार केलेला मजकूर',
+  'ai.resultBadge': 'AI ने तयार केलेले',
+  'ai.editContent': 'मजकूर बदला',
+  'ai.regenerate': 'पुन्हा तयार करा',
+  'ai.tryAgain': 'पुन्हा प्रयत्न करा',
+  'ai.failedTitle': 'तयार करता आले नाही',
+  'contentField.tone': 'शैली',
 }

@@ -10,6 +10,7 @@ import { FormError } from '@/components/ui/states'
 import { exampleGroupFor } from '@/lib/config/category-examples'
 import { CONTENT_TYPES } from '@/lib/config/content'
 import { LANGUAGES } from '@/lib/config/languages'
+import { TONES } from '@/lib/config/marketing'
 import type { ContentTemplate } from '@/lib/data/content'
 import type { MessageKey } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n/provider'
@@ -104,6 +105,7 @@ export function ContentForm({
   const description = bind('description')
   const notes = bind('notes')
   const language = bind('language')
+  const tone = bind('tone')
   const typeField = bind('content_type')
 
   return (
@@ -132,6 +134,17 @@ export function ContentForm({
           {LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>
               {l.nativeLabel}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+
+      <FormField label={t('contentField.tone')} error={tone.error} optional>
+        <Select {...tone.registration}>
+          <option value="">{t('contentField.toneDefault')}</option>
+          {TONES.map((value) => (
+            <option key={value} value={value}>
+              {t(`tone.${value}` as MessageKey)}
             </option>
           ))}
         </Select>

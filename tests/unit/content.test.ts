@@ -5,7 +5,7 @@ import { CONTENT_STATUSES, CONTENT_TYPES, QUICK_ACTION_TYPES, STATUS_TRANSITIONS
 import { CONTACT_METHODS, PROMOTIONAL_STYLES, TONES } from '@/lib/config/marketing'
 import { canTransition, hasPromotableDetails, isEditable, statusChangeProblem } from '@/lib/content/status'
 import { en } from '@/lib/i18n/messages/en'
-import { buildGenerationRequest, buildMarketingContext } from '@/lib/marketing/context'
+import { buildAIContentRequest, buildMarketingContext } from '@/lib/marketing/context'
 import {
   addMonths,
   istDateKey,
@@ -201,9 +201,9 @@ describe('marketing context (AI-ready input)', () => {
     expect(context.business.whatsapp).toBeUndefined()
   })
 
-  it('builds a generation request; CTA falls back template → business', () => {
+  it('builds an AI request; content CTA falls back to the business preference', () => {
     const context = buildMarketingContext(business, { preferred_language: 'en' })
-    const withTemplate = buildGenerationRequest(context, item, {
+    const withTemplate = buildAIContentRequest(context, item, {
       slug: 'special-offer',
       name: 'Special Offer',
       content_type: 'OFFER',
@@ -211,13 +211,13 @@ describe('marketing context (AI-ready input)', () => {
     })
     expect(withTemplate.request).toMatchObject({
       type: 'OFFER',
-      language: 'mr',
       product: 'Basmati rice',
-      callToAction: 'Grab this offer now',
-      template: { slug: 'special-offer', contentType: 'OFFER' },
+      callToAction: 'Visit our shop', // business preference (item has none)
+      template: { slug: 'special-offer', contentType: 'OFFER', defaultCta: 'Grab this offer now' },
     })
+    expect(withTemplate.generation.language).toBe('mr')
+    expect(withTemplate.generation.tone).toBe('friendly')
     expect(withTemplate.request.notes).toBeUndefined()
-    expect(buildGenerationRequest(context, item).request.callToAction).toBe('Visit our shop')
   })
 })
 

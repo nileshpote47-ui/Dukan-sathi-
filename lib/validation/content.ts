@@ -1,7 +1,16 @@
 import { z } from 'zod'
 import { CONTENT_STATUSES, CONTENT_TYPES, FILTERABLE_STATUSES } from '@/lib/config/content'
+import { AI_INSTRUCTIONS_MAX } from '@/lib/config/ai'
 import { CONTACT_METHODS, PROMOTIONAL_STYLES, TONES } from '@/lib/config/marketing'
+import { generatedCopySchema } from '@/services/ai/output'
 import { language, msg, optionalText, requiredText } from './fields'
+
+/** Optional select: '' means "not set". */
+const optionalChoice = <T extends readonly [string, ...string[]]>(values: T) =>
+  z
+    .union([z.literal(''), z.enum(values, msg('validation.choice'))])
+    .optional()
+    .transform((v) => (v ? v : null))
 
 /** Fields the owner fills in for a content request. Field names match database columns. */
 export const contentFormSchema = z.object({
@@ -18,7 +27,18 @@ export const contentFormSchema = z.object({
     .union([z.literal(''), z.uuid(msg('validation.template'))])
     .optional()
     .transform((v) => v || null),
+  tone: optionalChoice(TONES),
+  /** AI-generated copy as edited by the owner (Phase 3). null/omitted = none. */
+  generated_copy: generatedCopySchema.nullable().optional(),
 })
+
+/** Input for "Generate with AI": the content request + optional instructions and previous version. */
+export const aiGenerateSchema = contentFormSchema.omit({ generated_copy: true }).extend({
+  instructions: optionalText(AI_INSTRUCTIONS_MAX),
+  previous: generatedCopySchema.nullable().optional(),
+})
+
+export type AIGenerateInput = z.input<typeof aiGenerateSchema>
 
 export type ContentFormInput = z.input<typeof contentFormSchema>
 export type ContentFormOutput = z.output<typeof contentFormSchema>
@@ -31,13 +51,6 @@ export const statusChangeSchema = z.object({
   /** datetime-local value in IST, required when scheduling. */
   scheduledFor: z.string().max(20).optional(),
 })
-
-/** Optional select: '' means "not set". */
-const optionalChoice = <T extends readonly [string, ...string[]]>(values: T) =>
-  z
-    .union([z.literal(''), z.enum(values, msg('validation.choice'))])
-    .optional()
-    .transform((v) => (v ? v : null))
 
 export const marketingPreferencesSchema = z.object({
   content_language: optionalChoice(['en', 'mr', 'hi'] as const),

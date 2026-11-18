@@ -26,7 +26,7 @@ export function EditContentForm({
   const toast = useToast()
   const router = useRouter()
   return (
-    <Card className="mx-auto max-w-2xl">
+    <Card>
       <ContentForm
         initialValues={initialValues}
         templates={templates}
