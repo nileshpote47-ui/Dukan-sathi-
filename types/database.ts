@@ -139,6 +139,11 @@ export type Database = {
           template_id: string | null
           title: string
           updated_at: string
+          tone: string | null
+          generated_copy: Json | null
+          ai_provider: string | null
+          ai_model: string | null
+          ai_generated_at: string | null
         }
         Insert: {
           business_id: string
@@ -159,6 +164,11 @@ export type Database = {
           template_id?: string | null
           title: string
           updated_at?: string
+          tone?: string | null
+          generated_copy?: Json | null
+          ai_provider?: string | null
+          ai_model?: string | null
+          ai_generated_at?: string | null
         }
         Update: {
           business_id?: string
@@ -179,6 +189,11 @@ export type Database = {
           template_id?: string | null
           title?: string
           updated_at?: string
+          tone?: string | null
+          generated_copy?: Json | null
+          ai_provider?: string | null
+          ai_model?: string | null
+          ai_generated_at?: string | null
         }
         Relationships: [
           {
