@@ -8,7 +8,7 @@ export type AIProviderId = (typeof AI_PROVIDERS)[number]
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash'
 
 /** One generation request may not run longer than this (no automatic retries). */
-export const AI_TIMEOUT_MS = 30_000
+export const AI_TIMEOUT_MS = 45_000
 
 /** Owner's extra instructions ("Make it shorter") — kept short to bound prompt size and cost. */
 export const AI_INSTRUCTIONS_MAX = 300

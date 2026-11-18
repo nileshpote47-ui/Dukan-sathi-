@@ -224,15 +224,16 @@ describe('Gemini provider (fake client — no real API call)', () => {
       text: JSON.stringify({ opening: 'नमस्कार!', message: 'ताजा बासमती तांदूळ.', call_to_action: 'आजच भेट द्या' }),
       candidates: [{ finishReason: 'STOP' }],
     }))
-    const provider = new GeminiProvider('gemini-test', { client })
+    const provider = new GeminiProvider('gemini-3.8-flash', { client })
     const out = await provider.generateContent(request('WHATSAPP'))
     expect(out).toEqual({ headline: 'नमस्कार!', primary_text: 'ताजा बासमती तांदूळ.', call_to_action: 'आजच भेट द्या' })
 
     const params = client.models.generateContent.mock.calls[0][0]
-    expect(params.model).toBe('gemini-test')
+    expect(params.model).toBe('gemini-3.8-flash')
     expect(params.config).toMatchObject({
       responseMimeType: 'application/json',
-      httpOptions: { retryOptions: { attempts: 1 } },
+      thinkingConfig: { thinkingLevel: 'LOW' },
+      httpOptions: { timeout: 45_000, retryOptions: { attempts: 1 } },
     })
     expect(params.config!.responseJsonSchema).toEqual(outputJsonSchema('WHATSAPP'))
     expect(String(params.config!.systemInstruction)).toMatch(/Never invent/)

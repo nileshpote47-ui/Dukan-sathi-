@@ -137,7 +137,7 @@ UI (create flow / edit page) → Server Action generateWithAI
   → buildMarketingContext + buildAIContentRequest (lib/marketing/context.ts)
   → generateMarketingContent (services/ai/service.ts: size limit, one call, metadata logs)
   → getAIProvider (AI_PROVIDER / AI_MODEL / GEMINI_API_KEY, server-only)
-  → GeminiProvider (structured JSON output, no auto-retries, 30 s timeout) | MockProvider (tests)
+  → GeminiProvider (structured JSON output, no auto-retries, 45 s timeout) | MockProvider (tests)
   → normalizeAIOutput (per-type spec) → AIContentResponse → editable panel → saved to content_items.generated_copy
 ```
 

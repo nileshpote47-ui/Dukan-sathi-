@@ -1,4 +1,4 @@
-import { ApiError, FinishReason, GoogleGenAI } from '@google/genai'
+import { ApiError, FinishReason, GoogleGenAI, ThinkingLevel } from '@google/genai'
 import { AI_TIMEOUT_MS } from '@/lib/config/ai'
 import { normalizeAIOutput, outputJsonSchema } from '../output'
 import { buildPrompt } from '../prompts'
@@ -59,6 +59,9 @@ export class GeminiProvider implements AIProvider {
           // A little more variety when the owner asks for another version.
           temperature: request.generation.previous ? 1.0 : 0.7,
           maxOutputTokens: 2048,
+          // Short marketing copy does not need deep reasoning; default (high) thinking made
+          // requests slow enough to hit the deadline. Gemini 3 models take thinkingLevel.
+          ...(this.model.startsWith('gemini-3') ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : {}),
           httpOptions: {
             timeout: AI_TIMEOUT_MS,
             // Each call may cost money: no automatic retries (the owner can press Regenerate).

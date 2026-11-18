@@ -52,7 +52,7 @@ interface AIProvider {
 **Google Gemini** (Gemini Developer API) with `@google/genai` 3.x, default model `gemini-3.8-flash` (override with `AI_MODEL`). Integration verified against the SDK's bundled documentation/types:
 - `ai.models.generateContent({ model, contents, config })` with `systemInstruction`, `responseMimeType: 'application/json'` and `responseJsonSchema` (structured output per content type).
 - `httpOptions.retryOptions.attempts = 1`: the SDK retries up to 5 times by default; disabled because each call may cost money (the owner can press Regenerate).
-- `httpOptions.timeout = 30 s`; temperature 0.7 (1.0 when regenerating for more variety); `maxOutputTokens 2048`.
+- `httpOptions.timeout = 45 s`; `thinkingConfig.thinkingLevel = LOW` for Gemini 3 models (default high thinking made short copy slow enough to hit the deadline); temperature 0.7 (1.0 when regenerating for more variety); `maxOutputTokens 2048`.
 - Blocked responses (`SAFETY`, `PROHIBITED_CONTENT`, …), empty text and non-JSON are turned into `AIError`s.
 
 ## Environment variables (server-only)
