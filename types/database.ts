@@ -44,6 +44,12 @@ export type Database = {
           village: string | null
           website_url: string | null
           whatsapp_number: string | null
+          content_language: string | null
+          tone: string | null
+          target_customers: string | null
+          preferred_cta: string | null
+          promotional_style: string | null
+          preferred_contact_method: string | null
         }
         Insert: {
           address_line?: string | null
@@ -71,6 +77,12 @@ export type Database = {
           village?: string | null
           website_url?: string | null
           whatsapp_number?: string | null
+          content_language?: string | null
+          tone?: string | null
+          target_customers?: string | null
+          preferred_cta?: string | null
+          promotional_style?: string | null
+          preferred_contact_method?: string | null
         }
         Update: {
           address_line?: string | null
@@ -98,6 +110,135 @@ export type Database = {
           village?: string | null
           website_url?: string | null
           whatsapp_number?: string | null
+          content_language?: string | null
+          tone?: string | null
+          target_customers?: string | null
+          preferred_cta?: string | null
+          promotional_style?: string | null
+          preferred_contact_method?: string | null
+        }
+        Relationships: []
+      }
+      content_items: {
+        Row: {
+          business_id: string
+          call_to_action: string | null
+          content_type: string
+          created_at: string
+          description: string | null
+          id: string
+          language: string
+          notes: string | null
+          offer_text: string | null
+          owner_id: string
+          price: string | null
+          product_name: string | null
+          scheduled_for: string | null
+          search_text: string | null
+          status: string
+          template_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          call_to_action?: string | null
+          content_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          notes?: string | null
+          offer_text?: string | null
+          owner_id?: string
+          price?: string | null
+          product_name?: string | null
+          scheduled_for?: string | null
+          search_text?: string | null
+          status?: string
+          template_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          call_to_action?: string | null
+          content_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          notes?: string | null
+          offer_text?: string | null
+          owner_id?: string
+          price?: string | null
+          product_name?: string | null
+          scheduled_for?: string | null
+          search_text?: string | null
+          status?: string
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_items_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "content_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "content_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_templates: {
+        Row: {
+          business_categories: string[]
+          content_type: string
+          created_at: string
+          default_cta: string | null
+          description: string
+          id: string
+          is_active: boolean
+          languages: string[]
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          business_categories?: string[]
+          content_type: string
+          created_at?: string
+          default_cta?: string | null
+          description: string
+          id?: string
+          is_active?: boolean
+          languages?: string[]
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          business_categories?: string[]
+          content_type?: string
+          created_at?: string
+          default_cta?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean
+          languages?: string[]
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -108,6 +249,7 @@ export type Database = {
           id: string
           phone: string | null
           preferred_language: string
+          product_update_emails: boolean
           updated_at: string
           user_id: string
         }
@@ -117,6 +259,7 @@ export type Database = {
           id?: string
           phone?: string | null
           preferred_language?: string
+          product_update_emails?: boolean
           updated_at?: string
           user_id: string
         }
@@ -126,6 +269,7 @@ export type Database = {
           id?: string
           phone?: string | null
           preferred_language?: string
+          product_update_emails?: boolean
           updated_at?: string
           user_id?: string
         }
