@@ -1,0 +1,62 @@
+import type { Messages } from './en'
+
+/** Hindi — partial in Phase 1. Missing keys fall back to English. */
+export const hi: Partial<Messages> = {
+  'app.tagline': 'आपके व्यवसाय के लिए रोज़ का मार्केटिंग सहायक।',
+
+  'common.save': 'सेव करें',
+  'common.saving': 'सेव हो रहा है…',
+  'common.cancel': 'रद्द करें',
+  'common.edit': 'बदलें',
+  'common.back': 'पीछे',
+  'common.next': 'आगे',
+  'common.finish': 'पूरा करें',
+  'common.skip': 'अभी छोड़ें',
+  'common.optional': 'वैकल्पिक',
+  'common.loading': 'लोड हो रहा है…',
+  'common.tryAgain': 'फिर से कोशिश करें',
+  'common.notAdded': 'अभी जोड़ा नहीं गया',
+  'common.comingSoon': 'जल्द आ रहा है',
+  'common.noDataYet': 'अभी कोई डेटा नहीं',
+  'common.more': 'और',
+
+  'auth.logout': 'लॉग आउट',
+
+  'nav.dashboard': 'डैशबोर्ड',
+  'nav.create': 'बनाएं',
+  'nav.content': 'कंटेंट',
+  'nav.calendar': 'कैलेंडर',
+  'nav.business': 'मेरा व्यवसाय',
+  'nav.analytics': 'एनालिटिक्स',
+  'nav.settings': 'सेटिंग्स',
+
+  'greeting.morning': 'सुप्रभात, {name}',
+  'greeting.afternoon': 'नमस्ते, {name}',
+  'greeting.evening': 'शुभ संध्या, {name}',
+  'dashboard.subtitle': 'आइए, आपका व्यवसाय बढ़ाएं।',
+  'dashboard.yourBusiness': 'आपका व्यवसाय',
+  'dashboard.completion': 'प्रोफ़ाइल पूर्णता',
+  'dashboard.completeProfile': 'प्रोफ़ाइल पूरी करें',
+  'dashboard.quickActions': 'त्वरित कार्य',
+
+  'business.title': 'मेरा व्यवसाय',
+  'business.edit': 'जानकारी बदलें',
+  'business.saved': 'व्यवसाय की जानकारी सेव हो गई।',
+
+  'onboarding.title': 'अपना व्यवसाय सेट करें',
+  'onboarding.stepOf': 'चरण {current} / {total}',
+  'onboarding.step.name': 'व्यवसाय का नाम',
+  'onboarding.step.category': 'श्रेणी',
+  'onboarding.step.contact': 'संपर्क',
+  'onboarding.step.location': 'पता',
+  'onboarding.step.language': 'भाषा',
+  'onboarding.step.brand': 'ब्रांड जानकारी',
+  'onboarding.step.review': 'जांचें',
+
+  'category.grocery': 'किराना',
+  'category.mobile_shop': 'मोबाइल शॉप',
+  'category.clothing': 'कपड़े',
+  'category.agriculture_agro_input': 'कृषि / कृषि सामग्री',
+  'category.dairy': 'डेयरी',
+  'category.other': 'अन्य',
+}

@@ -1,0 +1,62 @@
+import type { Messages } from './en'
+
+/** Marathi — partial in Phase 1. Missing keys fall back to English. */
+export const mr: Partial<Messages> = {
+  'app.tagline': 'तुमच्या व्यवसायासाठी रोजचा मार्केटिंग सहाय्यक.',
+
+  'common.save': 'जतन करा',
+  'common.saving': 'जतन होत आहे…',
+  'common.cancel': 'रद्द करा',
+  'common.edit': 'बदला',
+  'common.back': 'मागे',
+  'common.next': 'पुढे',
+  'common.finish': 'पूर्ण करा',
+  'common.skip': 'आता वगळा',
+  'common.optional': 'ऐच्छिक',
+  'common.loading': 'लोड होत आहे…',
+  'common.tryAgain': 'पुन्हा प्रयत्न करा',
+  'common.notAdded': 'अजून जोडलेले नाही',
+  'common.comingSoon': 'लवकरच येत आहे',
+  'common.noDataYet': 'अजून माहिती नाही',
+  'common.more': 'अधिक',
+
+  'auth.logout': 'लॉग आउट',
+
+  'nav.dashboard': 'डॅशबोर्ड',
+  'nav.create': 'तयार करा',
+  'nav.content': 'कंटेंट',
+  'nav.calendar': 'कॅलेंडर',
+  'nav.business': 'माझा व्यवसाय',
+  'nav.analytics': 'विश्लेषण',
+  'nav.settings': 'सेटिंग्ज',
+
+  'greeting.morning': 'सुप्रभात, {name}',
+  'greeting.afternoon': 'नमस्कार, {name}',
+  'greeting.evening': 'शुभ संध्याकाळ, {name}',
+  'dashboard.subtitle': 'चला, तुमचा व्यवसाय वाढवूया.',
+  'dashboard.yourBusiness': 'तुमचा व्यवसाय',
+  'dashboard.completion': 'प्रोफाइल पूर्णता',
+  'dashboard.completeProfile': 'प्रोफाइल पूर्ण करा',
+  'dashboard.quickActions': 'झटपट कृती',
+
+  'business.title': 'माझा व्यवसाय',
+  'business.edit': 'माहिती बदला',
+  'business.saved': 'व्यवसायाची माहिती जतन झाली.',
+
+  'onboarding.title': 'तुमचा व्यवसाय सेट करा',
+  'onboarding.stepOf': 'पायरी {current} / {total}',
+  'onboarding.step.name': 'व्यवसायाचे नाव',
+  'onboarding.step.category': 'प्रकार',
+  'onboarding.step.contact': 'संपर्क',
+  'onboarding.step.location': 'पत्ता',
+  'onboarding.step.language': 'भाषा',
+  'onboarding.step.brand': 'ब्रँड माहिती',
+  'onboarding.step.review': 'तपासा',
+
+  'category.grocery': 'किराणा',
+  'category.mobile_shop': 'मोबाईल शॉप',
+  'category.clothing': 'कपडे',
+  'category.agriculture_agro_input': 'शेती / कृषी सेवा केंद्र',
+  'category.dairy': 'दूध डेअरी',
+  'category.other': 'इतर',
+}
