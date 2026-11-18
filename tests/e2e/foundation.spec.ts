@@ -104,8 +104,8 @@ test.describe('with test users', () => {
     await expect(page.getByText('Grocery')).toBeVisible()
     await expect(page.getByText('Shirur, Pune, Maharashtra 412210')).toBeVisible()
     await expect(page.getByText('Profile completion')).toBeVisible()
-    // No fake metrics.
-    await expect(page.getByText(/No data yet/)).toBeVisible()
+    // Real counts only (Phase 2 dashboard): a new business has no content yet.
+    await expect(page.getByRole('region', { name: 'Your content' }).getByRole('link', { name: /Total content\s*0/ })).toBeVisible()
 
     // Onboarding is done: going back there returns to the dashboard.
     await page.goto('/onboarding')
@@ -153,8 +153,8 @@ test.describe('with test users', () => {
     // The header shows the new name too.
     await expect(page.getByRole('banner').getByText('Shree Ganesh Kirana Stores')).toBeVisible()
 
-    // Coming-soon sections exist but do nothing.
-    await page.getByRole('link', { name: 'Create' }).click()
+    // Sections not built yet (Analytics since Phase 2) show Coming soon and do nothing.
+    await page.goto('/dashboard/analytics')
     await expect(page.getByRole('heading', { name: 'Coming soon' })).toBeVisible()
 
     // Logout from the mobile "More" menu.

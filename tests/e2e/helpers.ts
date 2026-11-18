@@ -14,6 +14,8 @@ export async function login(page: Page, user: { email: string; password: string 
   await page.getByLabel('Email').fill(user.email)
   await page.getByLabel('Password').fill(user.password)
   await page.getByRole('button', { name: 'Log in' }).click()
+  // Wait until sign-in has finished and the app has navigated away from /login.
+  await page.waitForURL((url) => !url.pathname.startsWith('/login'))
 }
 
 /** A Supabase client signed in as a test user: talks to the real API, so RLS applies. */

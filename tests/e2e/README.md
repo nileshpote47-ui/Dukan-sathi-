@@ -1,6 +1,6 @@
 # End-to-end tests
 
-Playwright tests in `foundation.spec.ts` drive the real app in a phone-sized browser and talk to the real Supabase project, so RLS is tested for real.
+Playwright tests in `foundation.spec.ts` (Phase 1) and `content.spec.ts` (Phase 2) drive the real app in a phone-sized browser and talk to the real Supabase project, so RLS is tested for real.
 
 ## Run
 
@@ -19,7 +19,7 @@ Two **confirmed** users who have **no business yet**. Never use real customer ac
 
 Easiest: create them in Supabase → Authentication → Users → "Add user" with "Auto confirm user" ticked, with a display name in user metadata (`{"full_name": "E2E Owner A"}`), or via SQL with a confirmed `email_confirmed_at`.
 
-Reset them before each full run (the journey creates businesses). Run this in the Supabase SQL editor:
+`content.spec.ts` creates and deletes its own businesses and content. Reset the users before each full run anyway (the Phase 1 journey creates businesses). Run this in the Supabase SQL editor:
 
 ```sql
 delete from public.businesses

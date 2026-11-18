@@ -2,7 +2,7 @@
 
 AI-powered marketing assistant for small and local businesses in rural and semi-urban India — *"Your daily marketing assistant for your business."*
 
-**Current state: Phase 1 (Foundation) complete.** Accounts, business onboarding, a protected dashboard and business profile management. Content creation and AI features arrive in later phases — see [PROJECT_PHASES.md](PROJECT_PHASES.md).
+**Current state: Phase 2 (Core Dashboard & Content Workflow) complete.** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates and marketing preferences. AI generation arrives in Phase 3 — see [PROJECT_PHASES.md](PROJECT_PHASES.md).
 
 ## Technology
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres + Auth via `@supabase/ssr`) · Zod · React Hook Form · Lucide · Vitest · Playwright · Vercel.
@@ -54,7 +54,7 @@ No server secrets are needed in Phase 1. Never put a secret or service-role key 
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Generate route types + TypeScript check |
 | `npm test` | Unit tests (Vitest) |
-| `npm run test:db` | Database RLS tests (pgTAP, needs local Supabase via Docker) |
+| `npm run test:db` | Database RLS and lifecycle tests (pgTAP, `supabase/tests/database/`; needs local Supabase via Docker) |
 | `npm run test:e2e` | Browser tests (Playwright) — see [tests/e2e/README.md](tests/e2e/README.md) |
 | `npm run check` | lint + typecheck + unit tests + build (same as CI) |
 
@@ -70,3 +70,4 @@ Every push to `main` deploys automatically once connected. GitHub Actions CI (`.
 - [PROJECT_PHASES.md](PROJECT_PHASES.md) — phase ledger
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture, RLS, localization, AI boundary
 - [docs/PHASE_1.md](docs/PHASE_1.md) — Phase 1 details, tests, limitations
+- [docs/PHASE_2.md](docs/PHASE_2.md) — Phase 2 details: content workflow, lifecycle, templates, AI-ready data

@@ -17,10 +17,12 @@ Next.js 16 differs from older versions: read `node_modules/next/dist/docs/` befo
 
 ## Architecture rules
 - Server Components by default; `'use client'` only for interactivity.
-- Get the user and their data only through `lib/auth/dal.ts`. Every page and Server Action re-checks the session; layouts and `proxy.ts` are not security boundaries.
+- Get the user and their data only through `lib/auth/dal.ts` and `lib/data/*` (which call the DAL and filter by owner). Every page and Server Action re-checks the session; layouts and `proxy.ts` are not security boundaries.
 - Writes go through `lib/services/*`, after validating with the Zod schemas in `lib/validation/*`. Validate on the server even if the client already did.
 - One Supabase client per request (`lib/supabase/server.ts`). No global clients.
-- Config lives in `lib/config/*` (categories, languages, navigation, site). Never hard-code these lists in components.
+- Config lives in `lib/config/*` (categories, languages, navigation, site, content types/statuses/transitions, marketing options). Never hard-code these lists in components.
+- Content status changes must follow `STATUS_TRANSITIONS` (`lib/config/content.ts`), which mirrors the `content_items_guard` database trigger — change both together.
+- Dates are stored as UTC and shown/entered in IST via `lib/utils/datetime.ts`.
 - User-facing text lives in `lib/i18n/messages/*`. English (`en.ts`) is complete; other languages may be partial and fall back to English.
 - AI, payments, WhatsApp, social APIs: only behind interfaces in `services/<area>/`. Never import a vendor SDK into pages or components.
 - No fake functionality, fake metrics or fake integrations. Unbuilt features show "Coming soon".
@@ -35,7 +37,7 @@ Next.js 16 differs from older versions: read `node_modules/next/dist/docs/` befo
 ## Database rules
 - Every schema change is a migration in `supabase/migrations/` (never dashboard-only changes).
 - After a migration: run `npm run db:types`, add/adjust pgTAP tests in `supabase/tests/database/`, and check Supabase security advisors.
-- Lists mirrored in DB check constraints (categories, languages) must match `lib/config/*` — `tests/unit/config-sync.test.ts` enforces this.
+- Lists mirrored in DB check constraints (categories, languages, content types/statuses, marketing options) must match `lib/config/*` — `tests/unit/config-sync.test.ts` enforces this.
 - Use `uuid` keys, `timestamptz`, `snake_case`. Trigger functions: `security definer` only when needed, `set search_path = ''`, and revoke `execute` from `anon`/`authenticated`.
 
 ## Naming

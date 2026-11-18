@@ -80,6 +80,7 @@ export function StatusActions({ id, status, scheduledFor }: { id: string; status
 
       {scheduling && (
         <form
+          noValidate // show our translated messages instead of the browser's
           className="flex flex-col gap-3 rounded-xl border border-border p-3"
           onSubmit={(e) => {
             e.preventDefault()
