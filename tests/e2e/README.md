@@ -1,11 +1,11 @@
 # End-to-end tests
 
-Playwright tests in `foundation.spec.ts` (Phase 1) and `content.spec.ts` (Phase 2) drive the real app in a phone-sized browser and talk to the real Supabase project, so RLS is tested for real.
+Playwright tests in `foundation.spec.ts` (Phase 1), `content.spec.ts` (Phase 2) and `ai.spec.ts` (Phase 3) drive the real app in a phone-sized browser and talk to the real Supabase project, so RLS is tested for real.
 
 ## Run
 
 ```bash
-npm run build && npm start          # in one terminal (or npm run dev)
+npm run build && AI_PROVIDER=mock npm start   # in one terminal; the AI tests need the mock provider
 E2E_USER_A_EMAIL=... E2E_USER_A_PASSWORD=... \
 E2E_USER_B_EMAIL=... E2E_USER_B_PASSWORD=... \
 npm run test:e2e -- --trace off

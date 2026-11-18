@@ -25,12 +25,13 @@ Next.js 16 differs from older versions: read `node_modules/next/dist/docs/` befo
 - Dates are stored as UTC and shown/entered in IST via `lib/utils/datetime.ts`.
 - User-facing text lives in `lib/i18n/messages/*`. English (`en.ts`) is complete; other languages may be partial and fall back to English.
 - AI, payments, WhatsApp, social APIs: only behind interfaces in `services/<area>/`. Never import a vendor SDK into pages or components.
+- AI: call only `generateMarketingContent()` (`services/ai/service.ts`) from server code, after resolving the owner's business server-side. Prompts live only in `services/ai/prompts.ts`; output fields per type only in `OUTPUT_SPEC` (`services/ai/output.ts`). Generate only on explicit user action; no automatic retries; tests use `AI_PROVIDER=mock` (never a paid API).
 - No fake functionality, fake metrics or fake integrations. Unbuilt features show "Coming soon".
 
 ## Security rules
 - RLS on every table in `public`, with explicit policies per operation (`USING` + `WITH CHECK`). No "allow all authenticated" policies.
 - Ownership comes from `auth.uid()`, never from client input or user metadata. Never accept `owner_id`/`user_id` from forms.
-- Never expose a secret or service-role key to the browser. Only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL` may be public.
+- Never expose a secret or service-role key to the browser. Only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL` may be public. `GEMINI_API_KEY` and other AI keys are server-only and must never be logged.
 - Show friendly messages; never show raw SQL/auth errors. Log details server-side.
 - Redirect targets from query strings must pass `safeNextPath()`.
 

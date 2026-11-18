@@ -60,7 +60,8 @@ lib/validation/      Zod schemas (shared by client and server), ActionResult typ
 lib/config/          categories, languages, navigation, site, content types/statuses/transitions, marketing options, category examples
 lib/i18n/            dictionaries, translator, client provider
 lib/utils/           small pure helpers (incl. IST date/calendar helpers)
-services/ai/         AI interfaces only (Phase 3+)
+services/ai/         AI engine: types, output spec, prompts, provider selection, service, providers/{gemini,mock}
+components/ai/       AI panel (generate/review/edit/regenerate), saved-copy view, copy button
 types/database.ts    generated Supabase types
 ```
 
@@ -118,7 +119,7 @@ Tests: `supabase/tests/database/rls.test.sql` and `content.test.sql` (pgTAP), an
 
 - `lib/services/*`: all database writes. Each function resolves the user itself.
 - `lib/data/*`: reads beyond the DAL's basics (content lists, counts, calendar ranges, templates). Same rule: resolve the user, filter by owner, rely on RLS as the final check.
-- `services/ai/types.ts`: `AIProvider`, `TextGenerationRequest`, `BusinessContext`. No implementation and no API calls in Phase 1. Phase 3 adds providers under `services/ai/providers/` and a selector, so pages never import a vendor SDK. The same pattern applies to payments (Phase 5) and messaging / social (Phase 6).
+- `services/ai/*`: the AI engine (Phase 3). Pages and components never import a vendor SDK; Server Actions call `generateMarketingContent()`, which selects the configured `AIProvider` (Gemini or the test mock) and returns the app's normalized `AIContentResponse`. The same pattern applies to payments (Phase 5) and messaging / social (Phase 6).
 
 ## Localization strategy
 
@@ -128,10 +129,20 @@ Tests: `supabase/tests/database/rls.test.sql` and `content.test.sql` (pgTAP), an
 - Signed-out pages use English for now.
 - Adding a language: config entry + dictionary file + registration in `lib/i18n/index.ts` + a migration for the check constraint.
 
-## Future AI integration strategy
+## AI content engine (Phase 3)
 
-Phase 2 prepared the input; Phase 3 adds the engine.
-1. `lib/marketing/context.ts` builds a `MarketingGenerationRequest` (types in `services/ai/types.ts`): business facts + marketing preferences (`MarketingContext`) + the content request (type, product, offer, price, description, notes, CTA, language, template). Pure functions, unit-tested, no network.
-2. Implement `AIProvider` for a vendor in `services/ai/providers/<vendor>.ts` (server-only), with keys in server-only env vars.
-3. Call providers only from Server Actions / Route Handlers, after checking the user (and, from Phase 5, their credits).
-4. Store generated outputs in new tables linked to `content_items`, with the same owner-based RLS.
+```
+UI (create flow / edit page) → Server Action generateWithAI
+  → session + owner's business (server-side) → Zod validation → active template
+  → buildMarketingContext + buildAIContentRequest (lib/marketing/context.ts)
+  → generateMarketingContent (services/ai/service.ts: size limit, one call, metadata logs)
+  → getAIProvider (AI_PROVIDER / AI_MODEL / GEMINI_API_KEY, server-only)
+  → GeminiProvider (structured JSON output, no auto-retries, 30 s timeout) | MockProvider (tests)
+  → normalizeAIOutput (per-type spec) → AIContentResponse → editable panel → saved to content_items.generated_copy
+```
+
+- Prompts are centralized in `services/ai/prompts.ts` (system + business + preferences + request + template + language + tone + format + previous version + owner instructions), with explicit no-fabrication rules; owner text is quoted as data.
+- One table (`OUTPUT_SPEC` in `services/ai/output.ts`) drives the prompt keys, the JSON schema, validation and the UI fields per content type.
+- Storage reuses `content_items` (`generated_copy` jsonb, `tone`, `ai_provider`, `ai_model`, `ai_generated_at`); provider/model/time are set by the server. Prompts and raw responses are not stored.
+- AI runs only on explicit user action; errors map to safe, translated messages; no automatic retries.
+- Details: [docs/PHASE_3.md](PHASE_3.md).

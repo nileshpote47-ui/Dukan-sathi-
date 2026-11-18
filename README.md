@@ -2,7 +2,7 @@
 
 AI-powered marketing assistant for small and local businesses in rural and semi-urban India — *"Your daily marketing assistant for your business."*
 
-**Current state: Phase 2 (Core Dashboard & Content Workflow) complete.** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates and marketing preferences. AI generation arrives in Phase 3 — see [PROJECT_PHASES.md](PROJECT_PHASES.md).
+**Current state: Phase 3 (AI Content Engine) complete.** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates, marketing preferences, and AI-written marketing copy (Google Gemini) in English, Marathi and Hindi. See [PROJECT_PHASES.md](PROJECT_PHASES.md).
 
 ## Technology
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres + Auth via `@supabase/ssr`) · Zod · React Hook Form · Lucide · Vitest · Playwright · Vercel.
@@ -26,7 +26,15 @@ npm run dev                  # http://localhost:3000
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys (`sb_publishable_…`) | yes (RLS protects data) |
 | `NEXT_PUBLIC_SITE_URL` | Your app's URL, used in email links | yes |
 
-No server secrets are needed in Phase 1. Never put a secret or service-role key in a `NEXT_PUBLIC_` variable.
+Server-only (AI, Phase 3):
+
+| Name | Purpose |
+|---|---|
+| `AI_PROVIDER` | `gemini` (production) or `mock` (tests). Unset = AI disabled |
+| `AI_MODEL` | Optional, default `gemini-3.8-flash` |
+| `GEMINI_API_KEY` | Secret from [Google AI Studio](https://aistudio.google.com/apikey). In Vercel, mark it **Sensitive** |
+
+Never put a secret or service-role key in a `NEXT_PUBLIC_` variable. Automated tests use `AI_PROVIDER=mock` and never call a paid API (e2e: start the app with `AI_PROVIDER=mock npm start`).
 
 ## Supabase setup
 1. Create a project and copy its URL and publishable key into `.env.local`.
@@ -60,7 +68,7 @@ No server secrets are needed in Phase 1. Never put a secret or service-role key 
 
 ## Deployment (Vercel)
 1. Import the GitHub repository in Vercel (framework: Next.js, defaults are fine).
-2. Add the three environment variables (Production and Preview), with `NEXT_PUBLIC_SITE_URL` set to the Vercel URL.
+2. Add the environment variables (Production and Preview): the three `NEXT_PUBLIC_*` values, with `NEXT_PUBLIC_SITE_URL` set to the Vercel URL, plus `AI_PROVIDER=gemini` and `GEMINI_API_KEY` (Sensitive).
 3. Deploy, then add the Vercel URL to Supabase's Site URL and Redirect URLs (see above).
 
 Every push to `main` deploys automatically once connected. GitHub Actions CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and build on every push.
@@ -71,3 +79,4 @@ Every push to `main` deploys automatically once connected. GitHub Actions CI (`.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture, RLS, localization, AI boundary
 - [docs/PHASE_1.md](docs/PHASE_1.md) — Phase 1 details, tests, limitations
 - [docs/PHASE_2.md](docs/PHASE_2.md) — Phase 2 details: content workflow, lifecycle, templates, AI-ready data
+- [docs/PHASE_3.md](docs/PHASE_3.md) — Phase 3 details: AI engine, provider, prompts, security, testing
