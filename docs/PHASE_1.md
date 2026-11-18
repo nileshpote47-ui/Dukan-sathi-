@@ -55,14 +55,14 @@ The database tests cover the 8 required cases: anonymous users can't read profil
 Manual-equivalent journey (automated): sign up form validation → login → session (reload + new tab) → onboarding (all 7 steps, validation errors, edit from review) → business creation → dashboard → business edit (invalid then valid values) → logout → protected page redirects. User A can't access user B's business, checked through the real Supabase API. Visual checks at 360px and 1280px: no horizontal scrolling, no console errors.
 
 ## Known limitations
-- **Email sending:** the project uses Supabase's built-in email service, which is rate-limited (a few emails per hour) and for testing only. See "Action required".
+- **Email confirmation is off** (changed 2026-11-18): new users are signed in straight after sign-up; the app handles both modes. Supabase's built-in email sender is rate-limited and for testing only, so turn confirmation back on only after setting up custom SMTP.
 - Logo upload deferred: needs a Storage bucket with owner-scoped policies. `logo_url` is ready.
 - No password reset / change-email screens yet.
 - Marathi and Hindi translations are partial; signed-out pages are English only.
 - One business per account (by design for Phase 1).
 
 ## Action required (human)
-1. **Email for sign-ups** (Supabase → Authentication): either set up custom SMTP (Auth → Emails → SMTP settings; e.g. Resend, Brevo, Amazon SES) for production, or, for a private beta, turn off "Confirm email" (Auth → Sign In / Providers → Email).
+1. ~~Email for sign-ups~~ — done for beta: "Confirm email" turned off (verified with a real sign-up). **Before public launch:** set up custom SMTP (Auth → Emails → SMTP Settings; e.g. Resend, Brevo) and turn "Confirm email" back on.
 2. **URL configuration** (Supabase → Authentication → URL Configuration): set Site URL to the Vercel URL and add `https://<your-app>.vercel.app/auth/confirm` to Redirect URLs (keep `http://localhost:3000/auth/confirm` for development).
 3. **Vercel**: import the GitHub repo and set the three environment variables from `.env.example`.
 

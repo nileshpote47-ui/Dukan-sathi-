@@ -74,7 +74,7 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Security advisors: no findings
 
 ### Known limitations
-- Email confirmation is on, but the project uses Supabase's built-in email sender (a few emails per hour, for testing). Real sign-ups need custom SMTP or confirmation turned off — see docs/PHASE_1.md "Action required".
+- Email confirmation is turned off (2026-11-18) because the project has no custom SMTP yet; anyone can sign up with an address they don't own. Before public launch: add custom SMTP and turn "Confirm email" back on — see docs/PHASE_1.md.
 - Logo upload deferred (`logo_url` column exists; storage not set up).
 - Marathi and Hindi are partial translations.
 - No password reset yet.
