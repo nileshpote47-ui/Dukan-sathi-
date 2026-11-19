@@ -17,6 +17,338 @@ export type Database = {
   }
   public: {
     Tables: {
+      billing_payments: {
+        Row: {
+          amount_paise: number
+          business_id: string | null
+          created_at: string
+          currency: string
+          failure_reason: string | null
+          id: string
+          owner_id: string | null
+          paid_at: string | null
+          payment_type: string
+          plan_id: string | null
+          provider: string
+          provider_invoice_id: string | null
+          provider_order_id: string | null
+          provider_payment_id: string
+          status: string
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_paise: number
+          business_id?: string | null
+          created_at?: string
+          currency: string
+          failure_reason?: string | null
+          id?: string
+          owner_id?: string | null
+          paid_at?: string | null
+          payment_type?: string
+          plan_id?: string | null
+          provider: string
+          provider_invoice_id?: string | null
+          provider_order_id?: string | null
+          provider_payment_id: string
+          status: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_paise?: number
+          business_id?: string | null
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          owner_id?: string | null
+          paid_at?: string | null
+          payment_type?: string
+          plan_id?: string | null
+          provider?: string
+          provider_invoice_id?: string | null
+          provider_order_id?: string | null
+          provider_payment_id?: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_payments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "business_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_plans: {
+        Row: {
+          billing_interval: string
+          created_at: string
+          currency: string
+          description: string
+          id: string
+          is_active: boolean
+          is_price_final: boolean
+          name: string
+          price_paise: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          is_price_final?: boolean
+          name: string
+          price_paise: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          is_price_final?: boolean
+          name?: string
+          price_paise?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+        ]
+      }
+      billing_webhook_events: {
+        Row: {
+          attempts: number
+          business_id: string | null
+          error: string | null
+          event_type: string | null
+          id: string
+          processed_at: string | null
+          provider: string
+          provider_event_id: string
+          provider_subscription_id: string | null
+          received_at: string
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          business_id?: string | null
+          error?: string | null
+          event_type?: string | null
+          id?: string
+          processed_at?: string | null
+          provider: string
+          provider_event_id: string
+          provider_subscription_id?: string | null
+          received_at?: string
+          status: string
+        }
+        Update: {
+          attempts?: number
+          business_id?: string | null
+          error?: string | null
+          event_type?: string | null
+          id?: string
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string
+          provider_subscription_id?: string | null
+          received_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_webhook_events_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_subscriptions: {
+        Row: {
+          business_id: string
+          cancel_at_period_end: boolean
+          cancel_requested_at: string | null
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          ended_at: string | null
+          id: string
+          last_event_at: string | null
+          owner_id: string
+          plan_id: string
+          provider: string
+          provider_subscription_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          cancel_at_period_end?: boolean
+          cancel_requested_at?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          ended_at?: string | null
+          id?: string
+          last_event_at?: string | null
+          owner_id: string
+          plan_id: string
+          provider: string
+          provider_subscription_id: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          cancel_at_period_end?: boolean
+          cancel_requested_at?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          ended_at?: string | null
+          id?: string
+          last_event_at?: string | null
+          owner_id?: string
+          plan_id?: string
+          provider?: string
+          provider_subscription_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_subscriptions_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "business_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_entitlements: {
+        Row: {
+          feature_key: string
+          monthly_limit: number
+          plan_id: string
+        }
+        Insert: {
+          feature_key: string
+          monthly_limit: number
+          plan_id: string
+        }
+        Update: {
+          feature_key?: string
+          monthly_limit?: number
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_entitlements_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_ledger: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          description: string | null
+          feature_key: string
+          id: string
+          owner_id: string
+          period_start: string
+          reference_id: string | null
+          reference_type: string | null
+          state: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          description?: string | null
+          feature_key: string
+          id?: string
+          owner_id: string
+          period_start: string
+          reference_id?: string | null
+          reference_type?: string | null
+          state?: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          feature_key?: string
+          id?: string
+          owner_id?: string
+          period_start?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          state?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_ledger_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           address_line: string | null
@@ -373,7 +705,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      billing_commit_usage: { Args: { p_usage_id: string }; Returns: undefined }
+      billing_mark_cancel_requested: { Args: { p_subscription_id: string }; Returns: undefined }
+      billing_process_webhook: {
+        Args: { p_body: string; p_event_id: string; p_provider: string; p_signature: string }
+        Returns: Json
+      }
+      billing_release_usage: { Args: { p_usage_id: string }; Returns: undefined }
+      billing_reserve_usage: {
+        Args: { p_feature: string; p_reference_id?: string; p_reference_type?: string }
+        Returns: string
+      }
+      billing_usage_summary: {
+        Args: never
+        Returns: {
+          feature_key: string
+          monthly_limit: number
+          period_start: string
+          remaining: number
+          reserved: number
+          used: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
