@@ -123,11 +123,11 @@ describe('content validation', () => {
     expect(parseContentListParams({ q: '  rice ', type: 'OFFER', status: 'PUBLISHED', view: 'grid', page: '3' })).toEqual({
       q: 'rice',
       type: 'OFFER',
-      status: undefined, // Published is not a filter option
+      status: 'PUBLISHED', // a filter option since Phase 6 publishing
       view: 'grid',
       page: 3,
     })
-    expect(parseContentListParams({ type: 'NOPE', page: '-1', view: 'table' })).toEqual({
+    expect(parseContentListParams({ type: 'NOPE', status: 'SENT', page: '-1', view: 'table' })).toEqual({
       q: '',
       type: undefined,
       status: undefined,

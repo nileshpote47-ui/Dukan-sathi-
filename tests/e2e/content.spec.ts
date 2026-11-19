@@ -129,7 +129,7 @@ test('full journey: create post → list → edit → ready → schedule → cal
   await page.getByRole('button', { name: 'Save schedule' }).click()
   await expect(page.getByText('Scheduled', { exact: true })).toBeVisible()
   await expect(page.getByText(/Scheduled for:/)).toBeVisible()
-  await expect(page.getByText(/Publishing automation will be available in a future version/).first()).toBeVisible()
+  await expect(page.getByText(/Scheduling here plans the date in your calendar/).first()).toBeVisible()
 
   // Calendar shows it on the right day and in Upcoming.
   await page.goto(`/dashboard/calendar?month=${day.slice(0, 7)}&day=${day}`)

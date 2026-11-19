@@ -159,12 +159,14 @@ test('webhooks: forged rejected, duplicates ignored, renewal extends, cancellati
   // Renewal (subscription.charged), delivered twice: one payment, period extended.
   const nextStart = new Date(sub.current_period_end!)
   const nextEnd = new Date(nextStart.getTime() + 30 * 24 * 60 * 60 * 1000)
-  const renewal = subscriptionEvent('subscription.charged', subId, 'active', nextStart, nextEnd, new Date(now.getTime() + 1000), { id: 'pay_renewal_1', amount: 19900 })
+  // Payment ids are global (unique per provider): a fresh one per run.
+  const renewalPayment = `pay_renewal_${crypto.randomUUID().slice(0, 8)}`
+  const renewal = subscriptionEvent('subscription.charged', subId, 'active', nextStart, nextEnd, new Date(now.getTime() + 1000), { id: renewalPayment, amount: 19900 })
   const eventId = `evt_${crypto.randomUUID()}`
   expect((await sendWebhook(page, 'mock', renewal, { eventId })).status()).toBe(200)
   expect((await sendWebhook(page, 'mock', renewal, { eventId })).status()).toBe(200) // duplicate delivery
   let rows = await billingRows()
-  expect(rows.payments.filter((p) => p.provider_payment_id === 'pay_renewal_1')).toHaveLength(1)
+  expect(rows.payments.filter((p) => p.provider_payment_id === renewalPayment)).toHaveLength(1)
   expect(new Date(rows.subs[0].current_period_end!).getTime()).toBe(Math.floor(nextEnd.getTime() / 1000) * 1000)
 
   // Owner cancels at period end: stays active until then.

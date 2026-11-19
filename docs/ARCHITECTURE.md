@@ -180,3 +180,23 @@ AI / media actions ──► reserve usage (ledger, serialised) → operation �
 - Billing state is written only inside security-definer database functions; owners can only read their own rows. No service-role key is used anywhere.
 - Paid access = an ACTIVE subscription within its period (+1 day); everything else falls back to the Free plan's limits.
 - Details: [docs/PHASE_5.md](PHASE_5.md).
+
+## Social publishing (Phase 6)
+
+```
+Accounts:   /api/social/<connector>/connect → platform consent → /callback (signed state cookie, PKCE)
+            → tokens encrypted (AES-256-GCM, server key) → publishing_connect_account()  [secret-gated]
+            WhatsApp: Embedded Signup (JS SDK) → connectWhatsAppAction → same storage
+Publish:    /dashboard/content/[id]/publish → publishContentAction → createPublication
+            (channel rules, credits, JPEG rendition + signed URL) → publishing_create_job()
+            now → runPublishingJob | scheduled → pg_cron (every minute, only when due) → POST /api/publishing/run
+runPublishingJob: begin_attempt (QUEUED→SENDING once, credit reserved) → Connector.publish (Meta | WhatsApp | Google | mock)
+            → complete_attempt (PUBLISHED + credit used + content PUBLISHED | FAILED / limited retry, credit released)
+Webhooks:   /api/webhooks/meta (X-Hub-Signature-256) → WhatsApp statuses + STOP opt-outs; /deauthorize (signed_request)
+```
+
+- Same trust model as billing: owners only **read** accounts/jobs/attempts/messages; every state change that depends on a platform result runs in a security-definer function that requires the server secret (Vault `publishing_server_secret` = `PUBLISHING_SERVER_SECRET`). No service-role key.
+- Token ciphertext lives in `social_account_credentials` (no API privileges); the decryption key exists only in the server environment.
+- Provider code is isolated in `services/publishing/providers/*` behind the `Connector` interface; limits per channel are in `CHANNEL_RULES` (`lib/config/publishing.ts`).
+- Routes: `/dashboard/publishing` (history by status), `/dashboard/accounts` (+ `/whatsapp` opted-in customers), `/dashboard/content/[id]/publish`.
+- Details: [docs/PHASE_6.md](PHASE_6.md).

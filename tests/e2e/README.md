@@ -33,3 +33,12 @@ where user_id in (select id from auth.users where email in ('<user-a-email>', '<
 ```
 
 Delete the test users afterwards (Authentication → Users) if they were created in production.
+
+## Publishing (Phase 6)
+
+Start the app with mock social providers as well:
+`PUBLISHING_PROVIDER=mock PUBLISHING_SERVER_SECRET=<the Vault value of publishing_server_secret> SOCIAL_TOKEN_ENCRYPTION_KEY=<32 random bytes, base64> META_APP_SECRET=<any test value>`,
+and give the test runner the same `PUBLISHING_SERVER_SECRET` and `META_APP_SECRET`. No real platform is called:
+the mock OAuth dialog redirects straight back, and captions containing `[mock:rate_limit]`, `[mock:expired]`,
+`[mock:permission]`, `[mock:reject]`, `[mock:timeout]` or `[mock:malformed]` choose the provider outcome.
+In mock mode the scheduler endpoint never runs jobs, so a local test server cannot touch real owners' scheduled posts.
