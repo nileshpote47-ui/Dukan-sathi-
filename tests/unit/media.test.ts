@@ -110,6 +110,13 @@ describe('poster layout (template composition)', () => {
     expect(textOps(withBadge.ops).some((o) => o.kind === 'text' && o.lines.join(' ').includes('₹120/kg'))).toBe(true)
   })
 
+  it('wraps a long call to action onto two lines instead of cutting it', () => {
+    const cta = 'Visit Glow Salon in Shirur today to book your appointment.'
+    const result = layoutPoster({ layout: getPosterLayout(BASIC_LAYOUT_SLUG), width: 1080, height: 1080, texts: { ...texts, cta }, hasPhoto: false, measure })
+    const ctaText = result.ops.find((o) => o.kind === 'text' && o.weight === 700)
+    expect(ctaText?.kind === 'text' && ctaText.lines.join(' ')).toBe(cta)
+  })
+
   it('shrinks and clamps very long text instead of overflowing', () => {
     const long = { ...texts, headline: 'Word '.repeat(80), body: 'Long sentence here. '.repeat(60) }
     const result = layoutPoster({ layout: getPosterLayout(BASIC_LAYOUT_SLUG), width: 1080, height: 1080, texts: long, hasPhoto: true, measure })

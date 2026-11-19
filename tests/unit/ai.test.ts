@@ -240,7 +240,8 @@ describe('Gemini provider (fake client — no real API call)', () => {
     expect(params.model).toBe('gemini-3.5-flash')
     expect(params.config).toMatchObject({
       responseMimeType: 'application/json',
-      thinkingConfig: { thinkingLevel: 'LOW' },
+      thinkingConfig: { thinkingLevel: 'MINIMAL' },
+      maxOutputTokens: 1024,
       httpOptions: { timeout: 45_000, retryOptions: { attempts: 1 } },
     })
     expect(params.config!.responseJsonSchema).toEqual(outputJsonSchema('WHATSAPP'))

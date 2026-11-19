@@ -242,7 +242,13 @@ export function layoutPoster(input: {
   let body: Block
   let total: number
   const gap = 2.6 * u
-  const ctaH = texts.cta.trim() ? ctaSize * 2.3 + 3.5 * u : 0
+  // Call to action: a pill button of up to 2 lines (wider lines are clamped with an ellipsis).
+  const ctaTextWidth = maxWidth - ctaSize * 2.4
+  const ctaLines = texts.cta.trim()
+    ? clampLines(wrapText(texts.cta, ctaTextWidth, ctaSize, 700, measure), 2, ctaTextWidth, ctaSize, 700, measure)
+    : []
+  const pillH = ctaLines.length * ctaSize * 1.2 + ctaSize * 1.1
+  const ctaH = ctaLines.length ? pillH + 3.5 * u : 0
   for (;;) {
     headline = textBlock(texts.headline, maxWidth, layout.headlineSize * u * scale, 800, 1.15, 3, measure)
     body = textBlock(texts.body, maxWidth, 4.2 * u * scale, 500, 1.35, 5, measure)
@@ -267,14 +273,12 @@ export function layoutPoster(input: {
     ops.push({ kind: 'text', lines: body.lines, x: anchorX, y, size: body.size, lineHeight: body.lineHeight, weight: 500, color: mutedColor, align })
     y += blockHeight(body)
   }
-  if (texts.cta.trim()) {
+  if (ctaLines.length) {
     y += 3.5 * u
-    const ctaLines = clampLines(wrapText(texts.cta, maxWidth - ctaSize * 2, ctaSize, 700, measure), 1, maxWidth - ctaSize * 2, ctaSize, 700, measure)
-    const ctaW = Math.min(maxWidth, measure(ctaLines[0] ?? '', ctaSize, 700) + ctaSize * 2.4)
+    const ctaW = Math.min(maxWidth, Math.max(...ctaLines.map((l) => measure(l, ctaSize, 700))) + ctaSize * 2.4)
     const ctaX = align === 'center' ? anchorX - ctaW / 2 : textLeft
-    const pillH = ctaSize * 2.3
-    ops.push({ kind: 'rect', x: ctaX, y, w: ctaW, h: pillH, fill: colors.accent, radius: pillH / 2 })
-    ops.push({ kind: 'text', lines: ctaLines, x: ctaX + ctaW / 2, y: y + (pillH - ctaSize * 1.2) / 2, size: ctaSize, lineHeight: 1.2, weight: 700, color: colors.accentText, align: 'center' })
+    ops.push({ kind: 'rect', x: ctaX, y, w: ctaW, h: pillH, fill: colors.accent, radius: Math.min(pillH / 2, ctaSize * 1.15) })
+    ops.push({ kind: 'text', lines: ctaLines, x: ctaX + ctaW / 2, y: y + (pillH - ctaLines.length * ctaSize * 1.2) / 2, size: ctaSize, lineHeight: 1.2, weight: 700, color: colors.accentText, align: 'center' })
   }
 
   // Footer text.

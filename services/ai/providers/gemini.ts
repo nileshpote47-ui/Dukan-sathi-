@@ -17,6 +17,7 @@ export interface GeminiClient {
       text?: string
       candidates?: { finishReason?: string }[]
       promptFeedback?: { blockReason?: string }
+      usageMetadata?: { thoughtsTokenCount?: number; candidatesTokenCount?: number }
     }>
   }
 }
@@ -59,10 +60,11 @@ export class GeminiProvider implements AIProvider {
           responseJsonSchema: outputJsonSchema(request.request.type),
           // A little more variety when the owner asks for another version.
           temperature: request.generation.previous ? 1.0 : 0.7,
-          maxOutputTokens: 2048,
-          // Short marketing copy does not need deep reasoning; default (high) thinking made
-          // requests slow enough to hit the deadline. Gemini 3 models take thinkingLevel.
-          ...(this.model.startsWith('gemini-3') ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : {}),
+          // Bounds time and cost: a runaway reply fails fast instead of running to the deadline.
+          maxOutputTokens: 1024,
+          // Short marketing copy needs no deep reasoning; higher thinking levels made requests
+          // (especially reel scripts) slow enough to hit the deadline. Gemini 3 models take thinkingLevel.
+          ...(this.model.startsWith('gemini-3') ? { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } : {}),
           httpOptions: {
             timeout: AI_TIMEOUT_MS,
             // Each call may cost money: no automatic retries (the owner can press Regenerate).
@@ -74,6 +76,13 @@ export class GeminiProvider implements AIProvider {
       throw toAIError(error)
     }
 
+    // Token counts only (no text), to spot slow or runaway replies in the logs.
+    console.info('[ai] usage', {
+      model: this.model,
+      thoughts: response.usageMetadata?.thoughtsTokenCount ?? 0,
+      output: response.usageMetadata?.candidatesTokenCount ?? 0,
+      finish: response.candidates?.[0]?.finishReason,
+    })
     if (response.promptFeedback?.blockReason) {
       throw new AIError('blocked', `Prompt blocked: ${response.promptFeedback.blockReason}`)
     }
