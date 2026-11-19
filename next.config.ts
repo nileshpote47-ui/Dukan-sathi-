@@ -5,6 +5,13 @@ const nextConfig: NextConfig = {
   // and must render per request. See docs/ARCHITECTURE.md ("Rendering and caching").
   cacheComponents: false,
   poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      // Posters and photos are uploaded through Server Actions. Files are capped at 3.5 MB
+      // (MEDIA_MAX_BYTES) and checked on the server; Vercel allows at most 4.5 MB per request.
+      bodySizeLimit: '4mb',
+    },
+  },
   turbopack: {
     rules: {
       '*.css': {

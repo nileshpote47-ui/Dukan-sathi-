@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarClock, Pencil, Sparkles } from 'lucide-react'
+import { ArrowLeft, CalendarClock, Clapperboard, ImageIcon, Pencil, Sparkles } from 'lucide-react'
 import { AICopyView } from '@/components/ai/ai-copy-view'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -13,6 +13,8 @@ import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import type { ContentStatus } from '@/lib/config/content'
 import { isEditable } from '@/lib/content/status'
 import { getContentItem } from '@/lib/data/content'
+import { listMediaForContent } from '@/lib/data/media'
+import { storyboardSchema } from '@/lib/validation/media'
 import { getTranslator } from '@/lib/i18n'
 import { formatDateTime, intlLocale } from '@/lib/utils/datetime'
 import type { ContentType } from '@/lib/config/content'
@@ -26,6 +28,8 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
   const [{ business, profile }, item] = await Promise.all([requireOnboardedBusiness(), getContentItem(id)])
   // Not found and "belongs to someone else" look the same: no information leaks.
   if (!item) notFound()
+  const media = await listMediaForContent(item.id)
+  const storyboard = item.storyboard ? storyboardSchema.safeParse(item.storyboard) : null
 
   const t = getTranslator(profile?.preferred_language)
   const locale = intlLocale(profile?.preferred_language)
@@ -115,6 +119,41 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
             <div className="mt-3">
               <StatusActions id={item.id} status={status} scheduledFor={item.scheduled_for} />
             </div>
+          </Card>
+          <Card>
+            <CardTitle className="text-base">{t('media.forContent')}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">{t('media.forContentHint')}</p>
+            <div className="mt-3 flex flex-col gap-2">
+              <Link href={`/dashboard/content/${item.id}/poster`} className={buttonVariants({ variant: 'secondary', fullWidth: true })}>
+                <ImageIcon aria-hidden className="size-4" />
+                {t('media.createPoster')}
+              </Link>
+              {item.content_type === 'REEL' && (
+                <Link href={`/dashboard/content/${item.id}/storyboard`} className={buttonVariants({ variant: 'secondary', fullWidth: true })}>
+                  <Clapperboard aria-hidden className="size-4" />
+                  {storyboard?.success ? t('reel.open') : t('reel.create')}
+                </Link>
+              )}
+            </div>
+            {item.content_type === 'REEL' && storyboard?.success && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t('reel.summary', { scenes: storyboard.data.scenes.length, seconds: storyboard.data.total_duration })}
+              </p>
+            )}
+            {media.length > 0 && (
+              <ul className="mt-3 grid grid-cols-3 gap-2" aria-label={t('media.forContent')}>
+                {media.map((asset) => (
+                  <li key={asset.id}>
+                    <Link href={`/dashboard/media/${asset.id}`} className="block aspect-square overflow-hidden rounded-lg border bg-muted">
+                      {asset.url && (
+                        // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not optimisable
+                        <img src={asset.url} alt={t(asset.asset_type === 'POSTER' ? 'media.type.POSTER' : 'media.type.IMAGE')} loading="lazy" className="size-full object-cover" />
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
           {status === 'SCHEDULED' && <p className="text-sm text-muted-foreground">{t('publishing.notice')}</p>}
         </div>

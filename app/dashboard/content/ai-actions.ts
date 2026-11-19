@@ -3,14 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import { getTemplates } from '@/lib/data/content'
-import type { MessageKey } from '@/lib/i18n'
+import { AI_ERROR_MESSAGES } from '@/lib/ai/error-messages'
 import { buildAIContentRequest, buildMarketingContext } from '@/lib/marketing/context'
 import { saveGeneratedCopy } from '@/lib/services/content'
 import { aiGenerateSchema, contentIdSchema } from '@/lib/validation/content'
 import { validationFailure, type ActionResult } from '@/lib/validation/result'
 import { generatedCopySchema } from '@/services/ai/output'
 import { generateMarketingContent } from '@/services/ai/service'
-import { AIError, type AIContentResponse, type AIErrorCode } from '@/services/ai/types'
+import { AIError, type AIContentResponse } from '@/services/ai/types'
 import { z } from 'zod'
 
 /*
@@ -19,18 +19,6 @@ import { z } from 'zod'
  * marketing context → one AI call → validated, normalized output.
  * Nothing is saved here; the owner reviews/edits and then saves explicitly.
  */
-
-const ERROR_MESSAGES: Record<AIErrorCode, MessageKey> = {
-  not_configured: 'ai.error.notConfigured',
-  invalid_request: 'ai.error.invalid',
-  rate_limited: 'ai.error.rateLimited',
-  blocked: 'ai.error.blocked',
-  timeout: 'ai.error.failed',
-  unavailable: 'ai.error.failed',
-  invalid_response: 'ai.error.failed',
-  empty_response: 'ai.error.failed',
-  unknown: 'ai.error.failed',
-}
 
 export async function generateWithAI(input: unknown): Promise<ActionResult<{ content: AIContentResponse }>> {
   // 1–2. Authenticated user and their own, onboarded business (redirects otherwise).
@@ -61,7 +49,7 @@ export async function generateWithAI(input: unknown): Promise<ActionResult<{ con
     return { ok: true, data: { content: result.content } }
   } catch (error) {
     const code = error instanceof AIError ? error.code : 'unknown'
-    return { ok: false, error: ERROR_MESSAGES[code] }
+    return { ok: false, error: AI_ERROR_MESSAGES[code] }
   }
 }
 

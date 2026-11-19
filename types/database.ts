@@ -136,6 +136,7 @@ export type Database = {
           scheduled_for: string | null
           search_text: string | null
           status: string
+          storyboard: Json | null
           template_id: string | null
           title: string
           updated_at: string
@@ -161,6 +162,7 @@ export type Database = {
           scheduled_for?: string | null
           search_text?: string | null
           status?: string
+          storyboard?: Json | null
           template_id?: string | null
           title: string
           updated_at?: string
@@ -186,6 +188,7 @@ export type Database = {
           scheduled_for?: string | null
           search_text?: string | null
           status?: string
+          storyboard?: Json | null
           template_id?: string | null
           title?: string
           updated_at?: string
@@ -256,6 +259,81 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      media_assets: {
+        Row: {
+          asset_type: string
+          business_id: string
+          content_item_id: string | null
+          created_at: string
+          file_size: number | null
+          height: number | null
+          id: string
+          metadata: Json
+          mime_type: string | null
+          model: string | null
+          owner_id: string
+          provider: string | null
+          source_type: string
+          status: string
+          storage_path: string | null
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          asset_type: string
+          business_id: string
+          content_item_id?: string | null
+          created_at?: string
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          model?: string | null
+          owner_id?: string
+          provider?: string | null
+          source_type: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          asset_type?: string
+          business_id?: string
+          content_item_id?: string | null
+          created_at?: string
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          model?: string | null
+          owner_id?: string
+          provider?: string | null
+          source_type?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_assets_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "media_assets_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

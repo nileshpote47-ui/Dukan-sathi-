@@ -21,7 +21,8 @@ export interface GeminiClient {
   }
 }
 
-const BLOCKED_REASONS = new Set<string>([
+/** Finish reasons that mean the provider refused to answer. Shared with the image provider. */
+export const BLOCKED_FINISH_REASONS = new Set<string>([
   FinishReason.SAFETY,
   FinishReason.RECITATION,
   FinishReason.BLOCKLIST,
@@ -77,7 +78,7 @@ export class GeminiProvider implements AIProvider {
       throw new AIError('blocked', `Prompt blocked: ${response.promptFeedback.blockReason}`)
     }
     const finishReason = response.candidates?.[0]?.finishReason
-    if (finishReason && BLOCKED_REASONS.has(finishReason)) {
+    if (finishReason && BLOCKED_FINISH_REASONS.has(finishReason)) {
       throw new AIError('blocked', `Response blocked: ${finishReason}`)
     }
     if (!response.text?.trim()) {
