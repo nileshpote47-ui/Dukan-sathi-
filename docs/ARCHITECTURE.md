@@ -214,3 +214,22 @@ Webhooks:   /api/webhooks/meta (X-Hub-Signature-256) → WhatsApp statuses + STO
 - External engagement numbers are only those the Meta API returns with the permissions already granted; nothing is estimated.
 - Admins are granted with SQL only; admin functions are read-only and audited.
 - Details: [docs/PHASE_7.md](PHASE_7.md).
+
+## Production hardening (Phase 8)
+
+```
+request ─► proxy.ts (session refresh, signed-out redirect) ─► page / Server Action / route
+              │                                                  │
+              │                     lib/security/rate-limit.ts ──┤ allowRequest(action) → rate_limit_hit()  [burst limit per user]
+              │                     lib/billing/usage.ts ────────┤ reserveUsage() → monthly plan limit
+              │                                                  ▼
+              │                     lib/observability/log.ts  (one redacted JSON line per event)
+              ▼
+instrumentation.ts onRequestError ─► "[unhandled]" log line with digest (shown to users as "Reference")
+GET /api/health ─► app + database check (200 / 503)
+```
+
+- Functions run in Mumbai (`vercel.json` → `bom1`), next to the database (`ap-south-1`).
+- Error boundaries (`app/error.tsx`, `app/global-error.tsx`, dashboard, onboarding) use `retry()` so "Try again" fetches the page again.
+- Public SEO files: `app/robots.ts`, `app/sitemap.ts`, `app/icon.svg`, Open Graph metadata in `app/layout.tsx`.
+- Details: [DEPLOYMENT.md](DEPLOYMENT.md), [SECURITY.md](SECURITY.md), [OPERATIONS.md](OPERATIONS.md), [PHASE_8.md](PHASE_8.md).

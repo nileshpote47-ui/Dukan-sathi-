@@ -2,7 +2,7 @@
 
 AI-powered marketing assistant for small and local businesses in rural and semi-urban India — *"Your daily marketing assistant for your business."*
 
-**Current state: Phase 7 (Analytics, Admin & Business Intelligence) complete.** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates, marketing preferences, AI-written marketing copy (Google Gemini) in English, Marathi and Hindi, template posters and social creatives, reel storyboards with preview, a private media library, Free/Starter/Growth plans with monthly usage limits and Razorpay subscriptions (test mode), and publishing to Facebook, Instagram, WhatsApp (opted-in customers) and Google Business Profile — now or scheduled, analytics with real publishing and platform engagement numbers, and an audited read-only admin area. See [PROJECT_PHASES.md](PROJECT_PHASES.md).
+**Current state: all eight planned phases complete (Phase 8: production hardening & launch).** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates, marketing preferences, AI-written marketing copy (Google Gemini) in English, Marathi and Hindi, template posters and social creatives, reel storyboards with preview, a private media library, Free/Starter/Growth plans with monthly usage limits and Razorpay subscriptions (test mode), and publishing to Facebook, Instagram, WhatsApp (opted-in customers) and Google Business Profile — now or scheduled, analytics with real publishing and platform engagement numbers, and an audited read-only admin area — hardened for production (burst limits, structured logs, error monitoring, health check). Remaining launch steps are provider and plan settings owned by the business: see the [launch checklist](docs/DEPLOYMENT.md#launch-checklist) and [PROJECT_PHASES.md](PROJECT_PHASES.md).
 
 ## Technology
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres + Auth via `@supabase/ssr`) · Zod · React Hook Form · Lucide · Vitest · Playwright · Vercel.
@@ -86,6 +86,9 @@ Never put a secret or service-role key in a `NEXT_PUBLIC_` variable. Automated t
 1. Import the GitHub repository in Vercel (framework: Next.js, defaults are fine).
 2. Add the environment variables (Production and Preview): the three `NEXT_PUBLIC_*` values, with `NEXT_PUBLIC_SITE_URL` set to the Vercel URL, plus `AI_PROVIDER=gemini` and `GEMINI_API_KEY` (Sensitive).
 3. Deploy, then add the Vercel URL to Supabase's Site URL and Redirect URLs (see above).
+4. Check `https://<app>/api/health` returns `{"status":"ok"}`.
+
+Full guide (every variable, OAuth/webhook URLs, Razorpay and Meta go-live, backups, rollback, launch checklist): [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 Every push to `main` deploys automatically once connected. GitHub Actions CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and build on every push.
 
@@ -93,9 +96,14 @@ Every push to `main` deploys automatically once connected. GitHub Actions CI (`.
 - [CLAUDE.md](CLAUDE.md) — development rules
 - [PROJECT_PHASES.md](PROJECT_PHASES.md) — phase ledger
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture, RLS, localization, AI boundary
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — production setup, environment, providers, backups, rollback, launch checklist
+- [docs/SECURITY.md](docs/SECURITY.md) — authentication, authorization, RLS, secrets, webhooks, uploads, admin
+- [docs/OPERATIONS.md](docs/OPERATIONS.md) — runbook: failed jobs, webhooks, billing, AI/media, reconnecting accounts
 - [docs/PHASE_1.md](docs/PHASE_1.md) — Phase 1 details, tests, limitations
 - [docs/PHASE_2.md](docs/PHASE_2.md) — Phase 2 details: content workflow, lifecycle, templates, AI-ready data
 - [docs/PHASE_3.md](docs/PHASE_3.md) — Phase 3 details: AI engine, provider, prompts, security, testing
 - [docs/PHASE_4.md](docs/PHASE_4.md) — Phase 4 details: media storage, posters, templates, reel storyboards, providers, security, testing
 - [docs/PHASE_5.md](docs/PHASE_5.md) — Phase 5 details: plans, entitlements, credit ledger, Razorpay subscriptions, webhooks, security, testing
 - [docs/PHASE_6.md](docs/PHASE_6.md) — Phase 6 details: connected accounts, provider adapters, OAuth, token security, publishing jobs, scheduler, WhatsApp compliance, webhooks, setup per channel
+- [docs/PHASE_7.md](docs/PHASE_7.md) — Phase 7 details: analytics, metric definitions, provider metrics, admin authorization, audit log
+- [docs/PHASE_8.md](docs/PHASE_8.md) — Phase 8 details: production hardening, review findings, tests, launch status

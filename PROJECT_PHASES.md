@@ -12,7 +12,51 @@ Never mark a future phase complete. Never repeat a completed phase.
 | 5 | Subscriptions, Credits & Billing | **COMPLETED** |
 | 6 | Social / WhatsApp / Publishing | **COMPLETED** |
 | 7 | Analytics, Admin & Business Intelligence | **COMPLETED** |
-| 8 | Production Hardening & Launch | **READY** |
+| 8 | Production Hardening & Launch | **COMPLETED** |
+
+**Product status: PRODUCTION_READY** (code, infrastructure, security, operations). **Roadmap: ALL_PLANNED_PHASES_COMPLETED.** Taking paying customers needs the owner-side launch steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#launch-checklist) (Supabase Pro, SMTP + email confirmation, Razorpay live, Meta App Review).
+
+---
+
+## PHASE 8 — PRODUCTION HARDENING & LAUNCH
+**Status: COMPLETED** (2026-11-19). Details: [docs/PHASE_8.md](docs/PHASE_8.md). Guides: [DEPLOYMENT](docs/DEPLOYMENT.md), [SECURITY](docs/SECURITY.md), [OPERATIONS](docs/OPERATIONS.md).
+
+### Completed work
+- Security review of auth, authorization, RLS, storage, secrets, webhooks, uploads, admin; no P0/P1 found. Removed test `mock_webhook_secret` from production Vault; recorded an unrecorded migration; HSTS
+- Structured, redacted server logs (`lib/observability/log.ts`) across all server modules; error monitoring via `instrumentation.ts` (`[unhandled]` + digest shown to users as "Reference")
+- `GET /api/health` (app + database)
+- Per-user burst limits for AI text/pictures, reels, poster exports, publishing and social connections (`rate_limit_hit()`), in front of the Phase 5 monthly limits
+- Error boundaries use `retry()`; root `error.tsx` and `global-error.tsx`
+- Vercel functions moved to Mumbai (`bom1`) next to the database
+- Launch UX: landing copy no longer says "coming soon"; favicon, Open Graph, canonical URLs, robots.txt, sitemap.xml; `lang` on dashboard content
+- Docs: DEPLOYMENT, SECURITY, OPERATIONS, PHASE_8; README, ARCHITECTURE, e2e README
+
+### Files created
+- `lib/observability/log.ts`, `instrumentation.ts`, `app/api/health/route.ts`, `lib/security/rate-limit.ts`, `lib/config/rate-limits.ts`, `app/error.tsx`, `app/global-error.tsx`, `app/robots.ts`, `app/sitemap.ts`, `app/icon.svg`, `vercel.json`
+- `supabase/migrations/20261119164803_rate_limits.sql`, `supabase/tests/database/rate_limits.test.sql`, `tests/unit/hardening.test.ts`, `tests/e2e/hardening.spec.ts`
+- `docs/PHASE_8.md`, `docs/DEPLOYMENT.md`, `docs/SECURITY.md`, `docs/OPERATIONS.md`
+
+### Files modified
+- 25 server modules (logger), `lib/billing/usage.ts`, `lib/services/publishing.ts`, social connect route (burst limits), `components/layout/route-error.tsx`, error boundaries, `components/ui/states.tsx`, `app/layout.tsx`, `app/page.tsx`, `app/pricing/page.tsx`, `app/dashboard/layout.tsx`, accounts page, `lib/config/site.ts`, `next.config.ts`, i18n (en/mr/hi), `types/database.ts`, `tests/unit/billing.test.ts`, docs
+
+### Database migrations
+- `20261119164803_rate_limits.sql` — `rate_limit_counters` (RLS on, no API access), `rate_limit_hit()` (definer, `auth.uid()` only, anon revoked)
+- History fix: `20261119003500_media_assets_business_owner_index` recorded (had been applied via SQL editor)
+
+### Environment variables
+- None new. `vercel.json` sets the function region. Production Vault no longer contains `mock_webhook_secret`
+
+### Tests performed
+- Unit 199/199 · pgTAP rate limits 13/13 · E2E 49/49 (6 hardening + 43 regression, mock providers) · lint · typecheck · build · `npm audit` 0 · advisors · production smoke checks (see docs/PHASE_8.md)
+
+### Known limitations
+- Supabase Free plan (no restorable backups, can pause) — upgrade to Pro before real customers; email confirmation off until custom SMTP; Razorpay test mode; Meta app in development mode; AI pictures, WhatsApp and Google not configured; no CSP yet; fresh-environment migration replay not run here (no Docker)
+
+### Technical debt
+- Patch-level dependency updates deferred until after launch; analytics computed on demand (no rollups); admin pages English-first
+
+### Recommended next step
+- No further phases are planned. Complete the owner-side launch checklist in docs/DEPLOYMENT.md, then monitor `/api/health`, `/admin/system` and Vercel logs.
 
 ---
 
