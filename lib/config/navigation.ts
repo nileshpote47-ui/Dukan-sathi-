@@ -35,5 +35,5 @@ export const DASHBOARD_NAV: NavItem[] = [
   { href: '/dashboard/business', labelKey: 'nav.business', icon: Store, comingSoon: false, mobile: false },
   { href: '/dashboard/billing', labelKey: 'nav.billing', icon: CreditCard, comingSoon: false, mobile: false },
   { href: '/dashboard/settings', labelKey: 'nav.settings', icon: Settings, comingSoon: false, mobile: false },
-  { href: '/dashboard/analytics', labelKey: 'nav.analytics', icon: BarChart3, comingSoon: true, mobile: false },
+  { href: '/dashboard/analytics', labelKey: 'nav.analytics', icon: BarChart3, comingSoon: false, mobile: false },
 ]

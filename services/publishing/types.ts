@@ -115,6 +115,18 @@ export interface Connector {
   revoke?(credentials: StoredCredentials): Promise<void>
   publish(request: PublishRequest): Promise<PublishResult>
   listWhatsAppTemplates?(target: PublishTarget, credentials: StoredCredentials): Promise<WhatsAppTemplate[]>
+  /**
+   * Engagement numbers the platform reports for published posts (Phase 7), keyed by external
+   * post id. Only metrics the connected permissions can read; absent = not available.
+   */
+  getContentMetrics?(target: PublishTarget, credentials: StoredCredentials, externalIds: string[]): Promise<Record<string, ContentMetricsResult>>
+}
+
+export const METRIC_STATUSES = ['OK', 'UNSUPPORTED', 'PERMISSION_DENIED', 'RATE_LIMITED', 'NOT_FOUND', 'ERROR'] as const
+export type MetricStatus = (typeof METRIC_STATUSES)[number]
+export interface ContentMetricsResult {
+  status: MetricStatus
+  metrics: Record<string, number>
 }
 
 export class PublishingProviderError extends Error {

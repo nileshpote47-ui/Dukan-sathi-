@@ -56,7 +56,7 @@ async function ownerContext() {
 }
 
 /** Decrypted credentials of one of the owner's accounts (server memory only). */
-async function accountCredentials(accountId: string): Promise<{ credentials: StoredCredentials; channel: Channel; provider: string; externalId: string; parentId: string | null } | null> {
+export async function accountCredentials(accountId: string): Promise<{ credentials: StoredCredentials; channel: Channel; provider: string; externalId: string; parentId: string | null } | null> {
   const secret = serverSecret()
   if (!secret) return null
   const supabase = await createClient()

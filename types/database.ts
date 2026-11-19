@@ -999,6 +999,41 @@ export type Database = {
           },
         ]
       }
+      publishing_metrics: {
+        Row: {
+          channel: string
+          fetched_at: string
+          job_id: string
+          metrics: Json
+          owner_id: string
+          status: string
+        }
+        Insert: {
+          channel: string
+          fetched_at?: string
+          job_id: string
+          metrics?: Json
+          owner_id: string
+          status: string
+        }
+        Update: {
+          channel?: string
+          fetched_at?: string
+          job_id?: string
+          metrics?: Json
+          owner_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publishing_metrics_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "publishing_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1037,6 +1072,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_business_detail: { Args: { p_business_id: string }; Returns: Json }
+      admin_is_admin: { Args: never; Returns: boolean }
+      admin_list_businesses: {
+        Args: { p_category: string | null; p_limit: number; p_offset: number; p_plan: string | null; p_search: string | null }
+        Returns: Json
+      }
+      admin_list_users: { Args: { p_limit: number; p_offset: number; p_search: string | null }; Returns: Json }
+      admin_overview: { Args: { p_from: string; p_to: string }; Returns: Json }
+      admin_publishing: {
+        Args: { p_channel: string | null; p_limit: number; p_offset: number; p_status: string | null }
+        Returns: Json
+      }
+      admin_subscriptions: { Args: { p_limit: number; p_offset: number; p_status: string | null }; Returns: Json }
+      admin_system: { Args: { p_hours: number }; Returns: Json }
+      admin_usage: { Args: { p_from: string; p_to: string }; Returns: Json }
+      admin_user_detail: { Args: { p_user_id: string }; Returns: Json }
+      analytics_business_overview: { Args: { p_from: string; p_to: string }; Returns: Json }
+      publishing_save_metrics: { Args: { p_rows: Json; p_secret: string }; Returns: number }
       billing_commit_usage: { Args: { p_usage_id: string }; Returns: undefined }
       billing_mark_cancel_requested: { Args: { p_subscription_id: string }; Returns: undefined }
       billing_process_webhook: {

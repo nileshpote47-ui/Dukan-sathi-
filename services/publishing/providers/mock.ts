@@ -1,7 +1,7 @@
 import 'server-only'
 import { randomBytes } from 'node:crypto'
 import { CONNECTOR_SCOPES, type ConnectorId } from '@/lib/config/publishing'
-import type { ConnectedAccount, Connector, PublishRequest, PublishResult, StoredCredentials, WhatsAppTemplate } from '../types'
+import type { ConnectedAccount, Connector, ContentMetricsResult, PublishRequest, PublishResult, PublishTarget, StoredCredentials, WhatsAppTemplate } from '../types'
 import { PublishingProviderError } from '../types'
 
 /*
@@ -63,6 +63,18 @@ export class MockConnector implements Connector {
         credentials: credentials(),
       },
     ]
+  }
+
+  /** Deterministic numbers per post id (tests); WhatsApp/Google/YouTube have no engagement API here. */
+  async getContentMetrics(target: PublishTarget, _credentials: StoredCredentials, externalIds: string[]): Promise<Record<string, ContentMetricsResult>> {
+    const seed = (id: string) => [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 997, 7)
+    return Object.fromEntries(
+      externalIds.map((id) => {
+        if (target.channel === 'INSTAGRAM') return [id, { status: 'OK', metrics: { likes: seed(id) % 50, comments: seed(id) % 7 } }]
+        if (target.channel === 'FACEBOOK') return [id, { status: 'OK', metrics: { reactions: seed(id) % 40, comments: seed(id) % 5, shares: seed(id) % 3 } }]
+        return [id, { status: 'UNSUPPORTED', metrics: {} }]
+      }),
+    )
   }
 
   async listWhatsAppTemplates() {

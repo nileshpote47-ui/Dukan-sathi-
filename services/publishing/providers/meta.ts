@@ -2,7 +2,7 @@ import 'server-only'
 import { CONNECTOR_SCOPES, META_GRAPH_VERSION } from '@/lib/config/publishing'
 import { env } from '../env'
 import { HttpTimeoutError, requestJson } from '../http'
-import type { ConnectedAccount, Connector, PublishRequest, PublishResult } from '../types'
+import type { ConnectedAccount, Connector, ContentMetricsResult, MetricStatus, PublishRequest, PublishResult, PublishTarget, StoredCredentials } from '../types'
 import { PublishingProviderError } from '../types'
 import { appSecretProof, graphError, mapGraphError } from './meta-shared'
 
@@ -116,6 +116,45 @@ export class MetaConnector implements Connector {
     return accounts
   }
 
+  /**
+   * Engagement for published posts with the permissions already granted (no insights scopes):
+   * Instagram media like_count + comments_count (instagram_basic); Facebook Page post shares,
+   * comments and reactions totals (pages_read_engagement). One multi-id Graph call per account
+   * (≤ 50 ids). Reach, impressions and views need insights permissions and are not requested.
+   */
+  async getContentMetrics(target: PublishTarget, credentials: StoredCredentials, externalIds: string[]): Promise<Record<string, ContentMetricsResult>> {
+    const ids = [...new Set(externalIds)].slice(0, 50)
+    if (!ids.length) return {}
+    const instagram = target.channel === 'INSTAGRAM'
+    const fields = instagram ? 'like_count,comments_count' : 'shares,comments.summary(true).limit(0),reactions.summary(total_count).limit(0)'
+    const all = (status: MetricStatus) => Object.fromEntries(ids.map((id) => [id, { status, metrics: {} }]))
+    let res
+    try {
+      res = await this.graph<Record<string, Record<string, unknown>>>('', credentials.accessToken, { params: { ids: ids.join(','), fields } })
+    } catch {
+      return all('ERROR')
+    }
+    if (!res.ok || !res.data || typeof res.data !== 'object') {
+      const mapped = mapGraphError(graphError(res.data), res.status)
+      const status: MetricStatus =
+        mapped.code === 'RATE_LIMITED' ? 'RATE_LIMITED'
+        : mapped.code === 'PERMISSION_DENIED' || mapped.code === 'AUTHORIZATION_EXPIRED' ? 'PERMISSION_DENIED'
+        : mapped.code === 'INVALID_CONTENT' ? 'NOT_FOUND'
+        : 'ERROR'
+      return all(status)
+    }
+    const out: Record<string, ContentMetricsResult> = {}
+    for (const id of ids) {
+      const row = res.data[id]
+      if (!row || typeof row !== 'object') {
+        out[id] = { status: 'NOT_FOUND', metrics: {} }
+        continue
+      }
+      out[id] = { status: 'OK', metrics: instagram ? instagramMetrics(row) : facebookMetrics(row) }
+    }
+    return out
+  }
+
   async publish(request: PublishRequest): Promise<PublishResult> {
     try {
       return request.target.channel === 'INSTAGRAM' ? await this.publishInstagram(request) : await this.publishFacebook(request)
@@ -212,4 +251,28 @@ export class MetaConnector implements Connector {
     const link = await this.graph<{ permalink?: string }>(mediaId, token, { params: { fields: 'permalink' } }).catch(() => null)
     return { ok: true, externalId: mediaId, externalUrl: link?.data?.permalink ?? null, providerRef: containerId }
   }
+}
+
+const count = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : null)
+
+/** Only numbers the API actually returned (a missing field stays missing — never guessed). */
+export function instagramMetrics(row: Record<string, unknown>): Record<string, number> {
+  const out: Record<string, number> = {}
+  const likes = count(row.like_count)
+  const comments = count(row.comments_count)
+  if (likes !== null) out.likes = likes
+  if (comments !== null) out.comments = comments
+  return out
+}
+
+export function facebookMetrics(row: Record<string, unknown>): Record<string, number> {
+  const out: Record<string, number> = {}
+  const total = (edge: unknown) => count((edge as { summary?: { total_count?: unknown } } | undefined)?.summary?.total_count)
+  const reactions = total(row.reactions)
+  const comments = total(row.comments)
+  const shares = count((row.shares as { count?: unknown } | undefined)?.count)
+  if (reactions !== null) out.reactions = reactions
+  if (comments !== null) out.comments = comments
+  if (shares !== null) out.shares = shares
+  return out
 }
