@@ -11,8 +11,60 @@ Never mark a future phase complete. Never repeat a completed phase.
 | 4 | Media / Reel / Video Engine | **COMPLETED** |
 | 5 | Subscriptions, Credits & Billing | **COMPLETED** |
 | 6 | Social / WhatsApp / Publishing | **COMPLETED** |
-| 7 | Analytics, Admin & Business Intelligence | **READY** |
-| 8 | Production Hardening & Launch | NOT STARTED |
+| 7 | Analytics, Admin & Business Intelligence | **COMPLETED** |
+| 8 | Production Hardening & Launch | **READY** |
+
+---
+
+## PHASE 7 — ANALYTICS, ADMIN & BUSINESS INTELLIGENCE
+**Status: COMPLETED** (2026-11-19). Details: [docs/PHASE_7.md](docs/PHASE_7.md).
+
+### Completed features
+- Owner analytics at `/dashboard/analytics`: overview tiles (content created, published, upcoming, publishing success, AI content, connected channels) with previous-period comparison (no % when the previous period is empty), daily/weekly activity charts with table view, breakdowns by type, status, language and channel, publishing stats, scheduler delay, recent failures, WhatsApp delivery/read, AI and media usage, plan usage this month
+- Date presets Today / 7 / 30 / 90 days / This month / Last month / Custom, all in India time; invalid custom ranges explained
+- Deterministic insights (no AI), stating the numbers they use
+- Platform engagement (Facebook reactions/comments/shares, Instagram likes/comments) through `Connector.getContentMetrics`, refreshed only on request (cooldown, batched per account); "no data" kept distinct from zero
+- CSV exports (content, publishing, usage) of the owner's own data, formula-safe
+- Admin area `/admin` (overview, businesses + detail, users + detail, subscriptions, usage, publishing, system health): explicit SQL grant, server-side checks in pages and database, read-only, every view audited
+- en complete; mr/hi analytics texts; admin English-first
+
+### Files created
+- `lib/analytics/{range,types,insights,series,csv}.ts`, `lib/data/{analytics,admin}.ts`, `lib/auth/admin.ts`, `lib/services/analytics.ts`
+- `components/analytics/{charts,range-picker,refresh-engagement-button}.tsx`, `components/admin/ui.tsx`
+- `app/dashboard/analytics/{page,actions}.ts(x)`, `app/dashboard/analytics/export/route.ts`, `app/admin/layout.tsx` and pages (`page`, `businesses`, `businesses/[id]`, `users`, `users/[id]`, `subscriptions`, `usage`, `publishing`, `system`)
+- 2 migrations, `supabase/tests/database/analytics.test.sql`, `tests/unit/analytics.test.ts`, `tests/e2e/analytics.spec.ts`, `docs/PHASE_7.md`
+
+### Files modified
+- `services/publishing/{types,providers/meta,providers/mock}.ts` (metrics adapter), `lib/services/publishing.ts` (shared credential helper), `lib/config/navigation.ts` (Analytics live), settings page (admin link for admins), `app/globals.css` (chart tokens), i18n, `types/database.ts`, `tests/unit/config-sync.test.ts`, docs
+
+### Database migrations
+- `20261119144232_analytics_owner.sql` — `admin_users`, `admin_audit_logs`, `publishing_metrics`, indexes, `analytics_business_overview()` (invoker), `publishing_save_metrics()` (server secret)
+- `20261119144416_admin_foundation.sql` — `admin_is_admin()`, internal `admin_authorize()`, nine read-only audited `admin_*` functions
+
+### Database tables
+- New: `admin_users`, `admin_audit_logs`, `publishing_metrics`
+
+### RLS policies
+- Owners read their own `publishing_metrics`; `admin_users` and `admin_audit_logs` have no API access (admin functions only); owner analytics runs as the owner under existing RLS
+
+### Environment variables
+- None new
+
+### External integrations
+- Meta Graph API (existing permissions) for engagement counts
+
+### Tests performed
+- Unit 191/191 · pgTAP analytics 31/31 · E2E 43/43 with mock providers (4 analytics/admin + 39 regression) · lint · typecheck · build · advisors
+- Live production data verified through the analytics and admin functions
+
+### Known limitations
+- No reach/impressions/views (insights permissions not requested); no Google Business Profile / YouTube metrics; usage history starts with Phase 5 metering; admin access granted via SQL; admin pages English-first
+
+### Technical debt
+- Analytics computed on demand (no rollups); revisit with real volume
+
+### Recommended next phase
+- Phase 8 — Production Hardening & Launch
 
 ---
 

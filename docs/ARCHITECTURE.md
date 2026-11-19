@@ -200,3 +200,17 @@ Webhooks:   /api/webhooks/meta (X-Hub-Signature-256) → WhatsApp statuses + STO
 - Provider code is isolated in `services/publishing/providers/*` behind the `Connector` interface; limits per channel are in `CHANNEL_RULES` (`lib/config/publishing.ts`).
 - Routes: `/dashboard/publishing` (history by status), `/dashboard/accounts` (+ `/whatsapp` opted-in customers), `/dashboard/content/[id]/publish`.
 - Details: [docs/PHASE_6.md](PHASE_6.md).
+
+## Analytics & admin (Phase 7)
+
+```
+/dashboard/analytics → analytics_business_overview(from, to)  SECURITY INVOKER: RLS limits it to the owner
+                     → billing_usage_summary() (Phase 5)      → buildInsights() (deterministic rules)
+"Refresh numbers"    → Connector.getContentMetrics (one call per account) → publishing_save_metrics() [server secret]
+/admin/*             → requireAdmin() → admin_* SECURITY DEFINER functions: check admin_users + write admin_audit_logs
+```
+
+- Days are India days everywhere (`lib/analytics/range.ts` and the database use Asia/Kolkata); ranges are `[from, to)` and never extend past today.
+- External engagement numbers are only those the Meta API returns with the permissions already granted; nothing is estimated.
+- Admins are granted with SQL only; admin functions are read-only and audited.
+- Details: [docs/PHASE_7.md](PHASE_7.md).

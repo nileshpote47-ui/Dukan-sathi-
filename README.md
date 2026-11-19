@@ -2,7 +2,7 @@
 
 AI-powered marketing assistant for small and local businesses in rural and semi-urban India — *"Your daily marketing assistant for your business."*
 
-**Current state: Phase 6 (Social / WhatsApp / Publishing) complete.** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates, marketing preferences, AI-written marketing copy (Google Gemini) in English, Marathi and Hindi, template posters and social creatives, reel storyboards with preview, a private media library, Free/Starter/Growth plans with monthly usage limits and Razorpay subscriptions (test mode), and publishing to Facebook, Instagram, WhatsApp (opted-in customers) and Google Business Profile — now or scheduled. See [PROJECT_PHASES.md](PROJECT_PHASES.md).
+**Current state: Phase 7 (Analytics, Admin & Business Intelligence) complete.** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates, marketing preferences, AI-written marketing copy (Google Gemini) in English, Marathi and Hindi, template posters and social creatives, reel storyboards with preview, a private media library, Free/Starter/Growth plans with monthly usage limits and Razorpay subscriptions (test mode), and publishing to Facebook, Instagram, WhatsApp (opted-in customers) and Google Business Profile — now or scheduled, analytics with real publishing and platform engagement numbers, and an audited read-only admin area. See [PROJECT_PHASES.md](PROJECT_PHASES.md).
 
 ## Technology
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres + Auth via `@supabase/ssr`) · Zod · React Hook Form · Lucide · Vitest · Playwright · Vercel.
