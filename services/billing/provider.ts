@@ -13,10 +13,13 @@ import { BillingError, type BillingProvider } from './types'
  * Secrets are never sent to the browser or logged.
  */
 
+/** Env values trimmed: a pasted key with a stray space or newline would fail authentication. */
+const env = (name: string) => process.env[name]?.trim() || undefined
+
 export function getBillingProviderId(): BillingProviderId | null {
   const id = process.env.BILLING_PROVIDER?.trim().toLowerCase()
   if (!id || !(BILLING_PROVIDERS as readonly string[]).includes(id)) return null
-  if (id === 'razorpay') return process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET ? 'razorpay' : null
+  if (id === 'razorpay') return env('RAZORPAY_KEY_ID') && env('RAZORPAY_KEY_SECRET') ? 'razorpay' : null
   // The test provider must never serve real users.
   if (process.env.VERCEL_ENV === 'production') return null
   return process.env.BILLING_MOCK_WEBHOOK_SECRET ? 'mock' : null
@@ -26,12 +29,14 @@ export const isBillingConfigured = () => getBillingProviderId() !== null
 
 /** A provider by id (also used for existing subscriptions, which remember their provider). */
 export function getBillingProvider(id: BillingProviderId | null = getBillingProviderId()): BillingProvider {
-  if (id === 'razorpay' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  const keyId = env('RAZORPAY_KEY_ID')
+  const keySecret = env('RAZORPAY_KEY_SECRET')
+  if (id === 'razorpay' && keyId && keySecret) {
     return new RazorpayProvider({
-      keyId: process.env.RAZORPAY_KEY_ID,
-      keySecret: process.env.RAZORPAY_KEY_SECRET,
-      webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || undefined,
-      planIds: { starter: process.env.RAZORPAY_PLAN_STARTER?.trim(), growth: process.env.RAZORPAY_PLAN_GROWTH?.trim() },
+      keyId,
+      keySecret,
+      webhookSecret: env('RAZORPAY_WEBHOOK_SECRET'),
+      planIds: { starter: env('RAZORPAY_PLAN_STARTER'), growth: env('RAZORPAY_PLAN_GROWTH') },
     })
   }
   if (id === 'mock' && process.env.VERCEL_ENV !== 'production' && process.env.BILLING_MOCK_WEBHOOK_SECRET) {
