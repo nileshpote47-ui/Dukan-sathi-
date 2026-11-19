@@ -153,9 +153,9 @@ test.describe('with test users', () => {
     // The header shows the new name too.
     await expect(page.getByRole('banner').getByText('Shree Ganesh Kirana Stores')).toBeVisible()
 
-    // Sections not built yet (Analytics since Phase 2) show Coming soon and do nothing.
+    // Analytics is live since Phase 7.
     await page.goto('/dashboard/analytics')
-    await expect(page.getByRole('heading', { name: 'Coming soon' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Analytics', level: 1 })).toBeVisible()
 
     // Logout from the mobile "More" menu.
     await page.getByRole('button', { name: 'More' }).click()

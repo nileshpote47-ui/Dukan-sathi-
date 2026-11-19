@@ -42,3 +42,9 @@ and give the test runner the same `PUBLISHING_SERVER_SECRET` and `META_APP_SECRE
 the mock OAuth dialog redirects straight back, and captions containing `[mock:rate_limit]`, `[mock:expired]`,
 `[mock:permission]`, `[mock:reject]`, `[mock:timeout]` or `[mock:malformed]` choose the provider outcome.
 In mock mode the scheduler endpoint never runs jobs, so a local test server cannot touch real owners' scheduled posts.
+
+## Analytics & admin (Phase 7)
+
+`tests/e2e/analytics.spec.ts` runs with the publishing mock setup above. The admin test also needs `E2E_ADMIN=1` and test user A temporarily listed as an admin:
+`insert into public.admin_users (user_id, note) select id, 'TEMPORARY e2e admin' from auth.users where email = '<E2E_USER_A_EMAIL>';`
+Remove it afterwards: `delete from public.admin_users where note like 'TEMPORARY e2e admin%';`

@@ -28,6 +28,7 @@ import {
   WHATSAPP_MESSAGE_STATUSES,
 } from '@/lib/config/publishing'
 import { en } from '@/lib/i18n/messages/en'
+import { METRIC_STATUSES } from '@/services/publishing/types'
 
 const migrationsDir = join(__dirname, '../../supabase/migrations')
 const migrationFiles = readdirSync(migrationsDir).sort()
@@ -140,6 +141,13 @@ describe('config matches the database', () => {
     expect(tableCheck('whatsapp_contacts', 'opt_in_source')).toEqual([...OPT_IN_SOURCES])
     // The database's retry rule mirrors isRetryableError().
     expect(publishing).toContain("p_error_code not in ('INVALID_MEDIA', 'INVALID_CONTENT', 'SCHEDULING_ERROR')")
+  })
+
+  it('engagement snapshot statuses (analytics)', () => {
+    const migration = read(migrationFiles.filter((f) => f.endsWith('_analytics_owner.sql')))
+    const block = migration.slice(migration.indexOf('create table public.publishing_metrics ('))
+    const found = /\bstatus text\b[^,]*?check \(status in \(([^)]*)\)/.exec(block)
+    expect([...found![1].matchAll(/'([^']+)'/g)].map((m) => m[1])).toEqual([...METRIC_STATUSES])
   })
 
   it('every category has an English label', () => {

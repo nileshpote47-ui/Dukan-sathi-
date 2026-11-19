@@ -253,5 +253,5 @@ test('phone layout: no sideways scrolling on Phase 2 pages', async ({ page }) =>
   }
   await page.getByRole('button', { name: 'More' }).click()
   await expect(page.getByRole('dialog').getByRole('link', { name: 'Settings' })).toBeVisible()
-  await expect(page.getByRole('dialog').getByRole('link', { name: /Analytics/ })).toContainText('Coming soon')
+  await expect(page.getByRole('dialog').getByRole('link', { name: /Analytics/ })).not.toContainText('Coming soon')
 })
