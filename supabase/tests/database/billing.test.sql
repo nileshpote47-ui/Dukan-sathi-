@@ -40,17 +40,17 @@ select name, event_id, body from (values
       'subscription', jsonb_build_object('entity', jsonb_build_object('id', 'sub_A1', 'status', 'active',
         'current_start', extract(epoch from now() + interval '30 days')::bigint, 'current_end', extract(epoch from now() + interval '60 days')::bigint,
         'notes', jsonb_build_object('business_id', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'plan_slug', 'starter'))),
-      'payment', jsonb_build_object('entity', jsonb_build_object('id', 'pay_2', 'amount', 19900, 'currency', 'INR', 'status', 'captured')))))::text),
+      'payment', jsonb_build_object('entity', jsonb_build_object('id', 'pay_2', 'amount', 19900, 'currency', 'INR', 'status', 'captured'))))::text),
   ('upgrade', 'evt_3', jsonb_build_object('event', 'subscription.activated', 'created_at', extract(epoch from now() + interval '31 days')::bigint,
     'payload', jsonb_build_object('subscription', jsonb_build_object('entity', jsonb_build_object('id', 'sub_A2', 'status', 'active',
       'current_start', extract(epoch from now() + interval '31 days')::bigint, 'current_end', extract(epoch from now() + interval '61 days')::bigint,
-      'notes', jsonb_build_object('business_id', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'plan_slug', 'growth'))))))::text),
+      'notes', jsonb_build_object('business_id', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'plan_slug', 'growth')))))::text),
   ('cancelled', 'evt_4', jsonb_build_object('event', 'subscription.cancelled', 'created_at', extract(epoch from now() + interval '32 days')::bigint,
     'payload', jsonb_build_object('subscription', jsonb_build_object('entity', jsonb_build_object('id', 'sub_A1', 'status', 'cancelled',
-      'notes', '[]'::jsonb)))))::text),
+      'notes', '[]'::jsonb))))::text),
   ('unknown_business', 'evt_5', jsonb_build_object('event', 'subscription.activated', 'created_at', extract(epoch from now())::bigint,
     'payload', jsonb_build_object('subscription', jsonb_build_object('entity', jsonb_build_object('id', 'sub_X', 'status', 'active',
-      'notes', jsonb_build_object('business_id', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'plan_slug', 'growth'))))))::text),
+      'notes', jsonb_build_object('business_id', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'plan_slug', 'growth')))))::text),
   ('other_event', 'evt_6', jsonb_build_object('event', 'payment.captured', 'created_at', extract(epoch from now())::bigint, 'payload', '{}'::jsonb)::text)
 ) as t (name, event_id, body);
 update ev set sig = encode(extensions.hmac(convert_to(body, 'UTF8'), convert_to('test-webhook-secret', 'UTF8'), 'sha256'), 'hex');
