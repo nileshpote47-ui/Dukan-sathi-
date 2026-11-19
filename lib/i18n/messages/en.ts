@@ -511,6 +511,8 @@ export const en = {
   'media.status.FAILED': 'Failed',
   'media.noContent': 'Not linked to content',
   'media.backToList': 'Back to media',
+  'media.notFoundTitle': 'Media not found',
+  'media.notFoundBody': 'It may have been deleted, or it belongs to another account.',
   'media.download': 'Download',
   'media.newVersion': 'Make another version',
   'media.delete': 'Delete',

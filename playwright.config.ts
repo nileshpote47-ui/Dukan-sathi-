@@ -22,6 +22,11 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
     trace: 'off',
     screenshot: 'only-on-failure',
+    // Optional: send the browser through an outbound proxy (e.g. a sandbox that only reaches
+    // Supabase storage through one). Off unless E2E_BROWSER_PROXY is set.
+    ...(process.env.E2E_BROWSER_PROXY
+      ? { proxy: { server: process.env.E2E_BROWSER_PROXY, bypass: 'localhost,127.0.0.1' }, ignoreHTTPSErrors: true }
+      : {}),
   },
   projects: [
     // Phones are the main target, so the journey runs at phone size.
