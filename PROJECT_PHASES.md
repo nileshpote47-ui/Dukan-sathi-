@@ -10,9 +10,65 @@ Never mark a future phase complete. Never repeat a completed phase.
 | 3 | AI Content Engine | **COMPLETED** |
 | 4 | Media / Reel / Video Engine | **COMPLETED** |
 | 5 | Subscriptions, Credits & Billing | **COMPLETED** |
-| 6 | Social / WhatsApp / Publishing | **READY** |
-| 7 | Analytics, Admin & Business Intelligence | NOT STARTED |
+| 6 | Social / WhatsApp / Publishing | **COMPLETED** |
+| 7 | Analytics, Admin & Business Intelligence | **READY** |
 | 8 | Production Hardening & Launch | NOT STARTED |
+
+---
+
+## PHASE 6 — SOCIAL / WHATSAPP / PUBLISHING
+**Status: COMPLETED** (2026-11-19). Details: [docs/PHASE_6.md](docs/PHASE_6.md).
+
+### Completed features
+- Connected accounts: Facebook Pages + linked Instagram professional accounts (Facebook Login for Business), WhatsApp Business (Embedded Signup v4), Google Business Profile and YouTube (Google OAuth, PKCE); status, reconnect, disconnect (tokens deleted; Google revoked); Meta deauthorize/data-deletion callback
+- Provider abstraction (`Connector`): Meta (Facebook photo/text posts, Instagram image posts with server JPEG conversion), WhatsApp (approved MARKETING templates via Marketing Messages API to opted-in customers, max 50 per send), Google Business Profile (STANDARD posts with photo + CTA), YouTube (connect only: needs video export), mock provider for tests
+- Publish flow from any Ready content: channel choice, caption from saved AI copy, picture from posters/pictures, live preview, channel validation (`CHANNEL_RULES`), publish now or schedule (India time, 5 min–30 days), explicit confirmation
+- Publishing jobs QUEUED → SENDING → PUBLISHED/FAILED, CANCELLED; exactly-once sending, duplicate protection, limited automatic retry (rate limits), explicit retry, stuck-job handling, attempt history, external post id/link; content becomes PUBLISHED
+- Scheduler: Supabase pg_cron + pg_net → `/api/publishing/run` only when jobs are due (server secret)
+- WhatsApp compliance: opted-in customer list with consent source, STOP replies opt out (signed Meta webhook), opt-in re-checked at send time, per-recipient delivery status
+- Billing: new `social_publishing` entitlement (Free 10 / Starter 60 / Growth 200) on the Phase 5 ledger; failed publishing is never charged
+- Publishing dashboard (Scheduled / Sending / Published / Failed / Cancelled), accounts page, WhatsApp customers page, publish history on content pages; en complete, mr/hi main texts
+
+### Files created
+- `services/publishing/{types,env,crypto,http,connect,registry,runner}.ts`, `services/publishing/providers/{meta,meta-shared,whatsapp,google,mock}.ts`
+- `lib/config/publishing.ts`, `lib/publishing/{compose,prepare-media}.ts`, `lib/data/publishing.ts`, `lib/services/publishing.ts`, `lib/validation/publishing.ts`
+- `app/api/social/[connector]/{connect,callback}/route.ts`, `app/api/publishing/run/route.ts`, `app/api/webhooks/meta/route.ts`, `app/api/webhooks/meta/deauthorize/route.ts`
+- `app/dashboard/publishing/{page,actions}.ts(x)`, `app/dashboard/accounts/{page,actions}.ts(x)`, `app/dashboard/accounts/whatsapp/page.tsx`, `app/dashboard/content/[id]/publish/{page,actions}.ts(x)`
+- `components/publishing/{badges,job-card,job-actions,publish-form,disconnect-account-button,whatsapp-signup-button,contact-form,contact-actions}.tsx`
+- 3 migrations, `supabase/tests/database/publishing.test.sql`, `tests/unit/publishing.test.ts`, `tests/e2e/publishing.spec.ts`, `docs/PHASE_6.md`
+
+### Files modified
+- `lib/config/{billing,content,navigation,site}.ts` (social_publishing feature, PUBLISHED filter/publishable statuses, nav, public webhook/scheduler routes), content detail page (Publish button + history), i18n, `types/database.ts`, `tests/unit/config-sync.test.ts`, `package.json` (sharp), docs (README, ARCHITECTURE, `.env.example`, e2e README), two older tests updated for the new behaviour
+
+### Database migrations
+- `20261119095729_publishing.sql` — 8 tables, RLS, secret-gated functions, social_publishing entitlement + `billing_reserve_for`, content guard (PUBLISHED by the system only), pg_cron/pg_net scheduler
+- `20261119100517_publishing_narrow_grants.sql` — per-role function grants
+- `20261119101107_publishing_whatsapp_recipients.sql` — opt-in re-checked at send time
+
+### Database tables
+- New: `social_accounts`, `social_account_credentials`, `publishing_jobs`, `publishing_job_payloads`, `publishing_attempts`, `whatsapp_contacts`, `whatsapp_messages`, `publishing_webhook_events`
+
+### RLS policies
+- Owners read their own accounts, jobs, attempts, WhatsApp messages; CRUD their own WhatsApp contacts (own business only); credentials, payloads and webhook events have no API access. All job/account state changes only through definer functions requiring the server secret (no service-role key)
+
+### Environment variables
+- `PUBLISHING_SERVER_SECRET` (= Vault `publishing_server_secret`), `SOCIAL_TOKEN_ENCRYPTION_KEY`, `META_APP_ID`, `META_APP_SECRET`, `META_LOGIN_CONFIG_ID` (set in production); `META_WHATSAPP_CONFIG_ID`, `META_WEBHOOK_VERIFY_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (not set yet → "Not set up yet"); Vault `publishing_runner_url`; tests `PUBLISHING_PROVIDER=mock`
+
+### External integrations
+- Meta Graph API v27.0 (Facebook Pages, Instagram, WhatsApp), Google OAuth / YouTube Data API / Business Profile APIs, Supabase pg_cron + pg_net
+
+### Tests performed
+- Unit 168/168 · pgTAP publishing 52/52 · E2E 39/39 with mock providers (7 publishing + 32 regression) · lint · typecheck · build · advisors
+- Live on production: Meta connect (5 Pages + 4 Instagram), Facebook publish now, scheduled Instagram post published by pg_cron with real permalink
+
+### Known limitations
+- Meta app in development mode (other businesses need App Review + Business Verification); WhatsApp needs Tech Provider status + approved templates; Google Business Profile needs API access approval; YouTube/Reels/Facebook video wait for video export; no carousels/stories; prepared pictures kept in the owner's private folder
+
+### Technical debt
+- Vercel functions still run in `iad1`; WhatsApp and Google paths verified only with mocks/unit tests so far
+
+### Recommended next phase
+- Phase 7 — Analytics, Admin & Business Intelligence (publishing history, external post ids and WhatsApp statuses are ready to be analysed)
 
 ---
 

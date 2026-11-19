@@ -2,7 +2,7 @@
 
 AI-powered marketing assistant for small and local businesses in rural and semi-urban India — *"Your daily marketing assistant for your business."*
 
-**Current state: Phase 5 (Subscriptions, Credits & Billing) complete.** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates, marketing preferences, AI-written marketing copy (Google Gemini) in English, Marathi and Hindi, template posters and social creatives, reel storyboards with preview, a private media library, and Free/Starter/Growth plans with monthly usage limits and Razorpay subscriptions (test mode). See [PROJECT_PHASES.md](PROJECT_PHASES.md).
+**Current state: Phase 6 (Social / WhatsApp / Publishing) complete.** Accounts, business onboarding and profile, a marketing dashboard, content drafts with a status lifecycle, scheduling, a calendar, templates, marketing preferences, AI-written marketing copy (Google Gemini) in English, Marathi and Hindi, template posters and social creatives, reel storyboards with preview, a private media library, Free/Starter/Growth plans with monthly usage limits and Razorpay subscriptions (test mode), and publishing to Facebook, Instagram, WhatsApp (opted-in customers) and Google Business Profile — now or scheduled. See [PROJECT_PHASES.md](PROJECT_PHASES.md).
 
 ## Technology
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres + Auth via `@supabase/ssr`) · Zod · React Hook Form · Lucide · Vitest · Playwright · Vercel.
@@ -98,3 +98,4 @@ Every push to `main` deploys automatically once connected. GitHub Actions CI (`.
 - [docs/PHASE_3.md](docs/PHASE_3.md) — Phase 3 details: AI engine, provider, prompts, security, testing
 - [docs/PHASE_4.md](docs/PHASE_4.md) — Phase 4 details: media storage, posters, templates, reel storyboards, providers, security, testing
 - [docs/PHASE_5.md](docs/PHASE_5.md) — Phase 5 details: plans, entitlements, credit ledger, Razorpay subscriptions, webhooks, security, testing
+- [docs/PHASE_6.md](docs/PHASE_6.md) — Phase 6 details: connected accounts, provider adapters, OAuth, token security, publishing jobs, scheduler, WhatsApp compliance, webhooks, setup per channel

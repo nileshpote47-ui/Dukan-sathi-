@@ -121,7 +121,17 @@ RLS: owners **read** their own accounts, jobs, attempts and messages; full CRUD 
 - End-to-end (`tests/e2e/publishing.spec.ts`, mock providers): connect all channels, CSRF/refused OAuth, publish now (Instagram JPEG), duplicates, schedule + cancel, failures/reconnect/retry/auto-retry, WhatsApp opt-in + templates + signed webhooks + STOP, security, disconnect, phone layout.
 - No real platform is called in CI; the mock provider is refused in production and the scheduler does nothing in test mode.
 
-TESTING_RESULTS
+### Results
+| Check | Result |
+|---|---|
+| Unit (`npm test`) | 168/168 (41 publishing) |
+| pgTAP `publishing.test.sql` (remote runner) | 52/52 |
+| E2E (`npm run test:e2e`, mock providers) | 39/39 — 7 publishing + 32 regression (Phases 1–5) |
+| Lint · typecheck · production build | clean |
+| Supabase security advisors | no unprotected tables; secret-gated definer entry points listed as intended (WARN), grants narrowed per role |
+| **Live, production (Meta, development mode)** | Facebook Login for Business: 5 Pages + 4 linked Instagram accounts connected · Facebook photo post published now (real post link) · Instagram post scheduled, sent by pg_cron → `/api/publishing/run` 18 s after its time (`claimed 1 → PUBLISHED 1`, real Instagram permalink) · scheduler rejects calls without the secret (401) · forged Meta webhook rejected |
+
+Not tested live (need further Meta/Google approvals): WhatsApp (Tech Provider + approved templates), Google Business Profile (API access approval), YouTube (no video export yet). These paths are covered by mock e2e and adapter unit tests.
 
 ## Known provider limitations
 - Meta: other businesses can connect only after App Review + Business Verification; a Page may require Page Publishing Authorization before Instagram publishing; 100 API posts per Instagram account per 24 h; Instagram images must be JPEG 4:5–1.91:1 (converted/validated here).
