@@ -7,7 +7,16 @@ export const siteConfig = {
 } as const
 
 /** Routes that do not require a signed-in user. Everything else does. */
-export const PUBLIC_ROUTES = ['/', '/login', '/signup', '/auth/confirm', '/auth/error'] as const
+export const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/signup',
+  '/auth/confirm',
+  '/auth/error',
+  '/pricing',
+  // Payment provider webhooks: called by the provider (no session); verified by signature.
+  '/api/billing/webhooks',
+] as const
 
 /** Signed-in users visiting these are sent to the dashboard. */
 export const AUTH_ROUTES = ['/login', '/signup'] as const

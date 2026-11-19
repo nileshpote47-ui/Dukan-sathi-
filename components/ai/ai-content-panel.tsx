@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { isLimitError } from '@/lib/config/billing'
 import { AlertTriangle, RotateCcw, Sparkles, Undo2 } from 'lucide-react'
 import { useId, useRef, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
@@ -196,7 +198,12 @@ export function AIContentPanel({
             {t('ai.failedTitle')}
           </p>
           <p>{t(error)}</p>
-          {error !== 'ai.error.notConfigured' && lastRequest && (
+          {isLimitError(error) && (
+            <Link href="/dashboard/billing" className="self-start font-semibold underline underline-offset-4">
+              {t('billing.viewPlans')}
+            </Link>
+          )}
+          {error !== 'ai.error.notConfigured' && !isLimitError(error) && lastRequest && (
             <Button variant="secondary" size="sm" className="self-start" onClick={() => run(lastRequest)} disabled={pending}>
               {t('ai.tryAgain')}
             </Button>

@@ -1,6 +1,7 @@
 import {
   BarChart3,
   CalendarDays,
+  CreditCard,
   FileText,
   Images,
   LayoutDashboard,
@@ -28,6 +29,7 @@ export const DASHBOARD_NAV: NavItem[] = [
   { href: '/dashboard/calendar', labelKey: 'nav.calendar', icon: CalendarDays, comingSoon: false, mobile: true },
   { href: '/dashboard/media', labelKey: 'nav.media', icon: Images, comingSoon: false, mobile: false },
   { href: '/dashboard/business', labelKey: 'nav.business', icon: Store, comingSoon: false, mobile: false },
+  { href: '/dashboard/billing', labelKey: 'nav.billing', icon: CreditCard, comingSoon: false, mobile: false },
   { href: '/dashboard/settings', labelKey: 'nav.settings', icon: Settings, comingSoon: false, mobile: false },
   { href: '/dashboard/analytics', labelKey: 'nav.analytics', icon: BarChart3, comingSoon: true, mobile: false },
 ]

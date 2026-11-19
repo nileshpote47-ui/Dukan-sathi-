@@ -9,7 +9,7 @@ import { Card, CardTitle } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
 import { FormField } from '@/components/ui/form-field'
 import { Input, Select, Textarea } from '@/components/ui/input'
-import { FormError } from '@/components/ui/states'
+import { ActionError } from '@/components/billing/action-error'
 import { useToast } from '@/components/ui/toast'
 import { REEL_ASPECT_RATIO, REEL_DURATION, REEL_SCENES, SCENE_DURATION, SCENE_TRANSITIONS, SCENE_TYPES } from '@/lib/config/media'
 import { sumDurations, type Storyboard, type StoryboardScene } from '@/lib/media/storyboard'
@@ -52,7 +52,7 @@ export function StoryboardEditor({ contentId, initial, hasCopy, editable, busine
   const [pictures, setPictures] = useState(initialPictures)
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState<'generate' | 'save' | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<MessageKey | null>(null)
   const [confirmRebuild, setConfirmRebuild] = useState(false)
 
   const urls = Object.fromEntries(pictures.filter((p) => p.url).map((p) => [p.id, p.url!]))
@@ -78,7 +78,7 @@ export function StoryboardEditor({ contentId, initial, hasCopy, editable, busine
       setConfirmRebuild(false)
       const result = await generateStoryboard(contentId)
       if (!result.ok || !result.data) {
-        setError(t(result.ok ? 'errors.saveFailed' : result.error))
+        setError(result.ok ? 'errors.saveFailed' : result.error)
         return
       }
       setStoryboard(result.data.storyboard)
@@ -90,7 +90,7 @@ export function StoryboardEditor({ contentId, initial, hasCopy, editable, busine
       if (!storyboard) return
       const result = await saveStoryboard({ content_id: contentId, storyboard: { ...storyboard, total_duration: total } })
       if (!result.ok) {
-        setError(t(result.error))
+        setError(result.error)
         return
       }
       setDirty(false)
@@ -116,7 +116,7 @@ export function StoryboardEditor({ contentId, initial, hasCopy, editable, busine
         <Clapperboard aria-hidden className="size-8 text-primary" />
         <CardTitle className="text-base">{t('reel.emptyTitle')}</CardTitle>
         <p className="text-sm text-muted-foreground">{hasCopy ? t('reel.emptyHint') : t('reel.noCopyHint')}</p>
-        <FormError message={error} />
+        <ActionError messageKey={error} />
         {hasCopy && editable ? (
           <Button type="button" onClick={onGenerate} loading={busy === 'generate'}>
             {busy === 'generate' ? t('reel.generating') : t('reel.generate')}
@@ -149,7 +149,7 @@ export function StoryboardEditor({ contentId, initial, hasCopy, editable, busine
           </Card>
           {editable && (
             <>
-              <FormError message={error} />
+              <ActionError messageKey={error} />
               <Button type="button" size="lg" fullWidth onClick={onSave} loading={busy === 'save'} disabled={!totalOk || busy !== null}>
                 <Save aria-hidden className="size-4" />
                 {busy === 'save' ? t('common.saving') : t('reel.save')}

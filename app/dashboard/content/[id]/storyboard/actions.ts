@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
+import { withUsage } from '@/lib/billing/usage'
 import { getContentItem } from '@/lib/data/content'
 import { buildStoryboard, hasReelCopy, type Storyboard } from '@/lib/media/storyboard'
 import { ownedPictureIds, saveStoryboard as saveStoryboardService } from '@/lib/services/media'
@@ -25,14 +26,17 @@ export async function generateStoryboard(contentId: unknown): Promise<ActionResu
   const copy = generatedCopySchema.safeParse(item.generated_copy ?? undefined)
   if (!copy.success || !hasReelCopy(copy.data)) return { ok: false, error: 'reel.error.noCopy' }
 
-  const storyboard = buildStoryboard({
-    title: item.title,
-    language: item.language,
-    productName: item.product_name,
-    businessName: business.business_name,
-    copy: copy.data,
+  // Plan limit (Phase 5): each generated storyboard counts as one reel generation.
+  return withUsage('reel_generation', { type: 'content_item', id: item.id }, async () => {
+    const storyboard = buildStoryboard({
+      title: item.title,
+      language: item.language,
+      productName: item.product_name,
+      businessName: business.business_name,
+      copy: copy.data,
+    })
+    return { ok: true, data: { storyboard } }
   })
-  return { ok: true, data: { storyboard } }
 }
 
 export async function saveStoryboard(input: unknown): Promise<ActionResult> {

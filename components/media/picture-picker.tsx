@@ -4,9 +4,10 @@ import { Check, ImageOff, ImagePlus, Sparkles } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { generatePicture, uploadPicture } from '@/app/dashboard/media/actions'
 import { Button } from '@/components/ui/button'
-import { FormError } from '@/components/ui/states'
+import { ActionError } from '@/components/billing/action-error'
 import type { AspectRatio } from '@/lib/config/media'
 import { resizeForUpload } from '@/lib/media/browser-image'
+import type { MessageKey } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils/cn'
 
@@ -38,7 +39,7 @@ export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdd
   const fileRef = useRef<HTMLInputElement>(null)
   const busyRef = useRef(false)
   const [busy, setBusy] = useState<'upload' | 'generate' | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<MessageKey | null>(null)
 
   async function run(kind: 'upload' | 'generate', task: () => Promise<Picture | null>) {
     if (busyRef.current) return
@@ -64,7 +65,7 @@ export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdd
       try {
         blob = await resizeForUpload(file)
       } catch {
-        setError(t('media.error.notImage'))
+        setError('media.error.notImage')
         return null
       }
       const form = new FormData()
@@ -72,7 +73,7 @@ export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdd
       form.set('content_id', contentId)
       const result = await uploadPicture(form)
       if (!result.ok || !result.data) {
-        setError(t(result.ok ? 'errors.saveFailed' : result.error))
+        setError(result.ok ? 'errors.saveFailed' : result.error)
         return null
       }
       return { id: result.data.id, url: result.data.url, ai: false }
@@ -84,7 +85,7 @@ export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdd
     void run('generate', async () => {
       const result = await generatePicture({ content_id: contentId, ...generate })
       if (!result.ok || !result.data) {
-        setError(t(result.ok ? 'errors.saveFailed' : result.error))
+        setError(result.ok ? 'errors.saveFailed' : result.error)
         return null
       }
       return { id: result.data.id, url: result.data.url, ai: true }
@@ -154,7 +155,7 @@ export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdd
         )}
       </div>
       {aiAvailable && <p className="text-xs text-muted-foreground">{t('media.picture.aiHint')}</p>}
-      <FormError message={error} />
+      <ActionError messageKey={error} />
     </div>
   )
 }

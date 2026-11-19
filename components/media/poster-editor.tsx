@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardTitle } from '@/components/ui/card'
 import { FormField } from '@/components/ui/form-field'
 import { Input, Textarea } from '@/components/ui/input'
-import { FormError } from '@/components/ui/states'
+import { ActionError } from '@/components/billing/action-error'
 import { useToast } from '@/components/ui/toast'
 import { ASPECT_RATIO_KEYS, ASPECT_RATIO_LABELS, type AspectRatio } from '@/lib/config/media'
 import { getPosterLayout } from '@/lib/config/poster-templates'
 import { exportCanvas } from '@/lib/media/browser-image'
 import type { PosterTexts } from '@/lib/media/poster-layout'
+import type { MessageKey } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils/cn'
 import { PicturePicker, type Picture } from './picture-picker'
@@ -51,16 +52,16 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
   const [pictures, setPictures] = useState(initialPictures)
   const [picture, setPicture] = useState<Picture | null>(initialPictures.find((p) => p.id === initial.imageId) ?? null)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<MessageKey | null>(null)
 
-  const onImageError = useCallback(() => setError(t('media.error.pictureLoad')), [t])
+  const onImageError = useCallback(() => setError('media.error.pictureLoad'), [])
 
   const setText = (key: keyof PosterTexts, value: string) => setTexts((prev) => ({ ...prev, [key]: value.slice(0, TEXT_LIMITS[key]) }))
 
   async function onSave() {
     if (savingRef.current || !canvasRef.current) return
     if (!texts.headline.trim()) {
-      setError(t('poster.error.headline'))
+      setError('poster.error.headline')
       return
     }
     savingRef.current = true
@@ -73,14 +74,14 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
       form.set('spec', JSON.stringify({ content_id: contentId, template, aspect_ratio: aspectRatio, texts, image_asset_id: picture?.id ?? null }))
       const result = await savePoster(form)
       if (!result.ok || !result.data) {
-        setError(t(result.ok ? 'errors.saveFailed' : result.error))
+        setError(result.ok ? 'errors.saveFailed' : result.error)
         return
       }
       toast.success(t('media.posterSaved'))
       router.push(`/dashboard/media/${result.data.id}`)
     } catch {
       // Export can fail if a picture could not be loaded safely or the poster is too large.
-      setError(t('media.error.export'))
+      setError('media.error.export')
     } finally {
       savingRef.current = false
       setSaving(false)
@@ -110,7 +111,7 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
             </div>
           </Card>
           <div className="mt-3 flex flex-col gap-2">
-            <FormError message={error} />
+            <ActionError messageKey={error} />
             <Button type="button" size="lg" fullWidth onClick={onSave} loading={saving}>
               <Save aria-hidden className="size-4" />
               {saving ? t('common.saving') : t('poster.save')}

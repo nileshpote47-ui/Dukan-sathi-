@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import { getTemplates } from '@/lib/data/content'
 import { AI_ERROR_MESSAGES } from '@/lib/ai/error-messages'
+import { withUsage } from '@/lib/billing/usage'
 import { buildAIContentRequest, buildMarketingContext } from '@/lib/marketing/context'
 import { saveGeneratedCopy } from '@/lib/services/content'
 import { aiGenerateSchema, contentIdSchema } from '@/lib/validation/content'
@@ -43,14 +44,17 @@ export async function generateWithAI(input: unknown): Promise<ActionResult<{ con
     previous: values.previous,
   })
 
-  // 6. One AI call; errors become safe, translated messages.
-  try {
-    const result = await generateMarketingContent(request)
-    return { ok: true, data: { content: result.content } }
-  } catch (error) {
-    const code = error instanceof AIError ? error.code : 'unknown'
-    return { ok: false, error: AI_ERROR_MESSAGES[code] }
-  }
+  // 6. Plan limit (Phase 5): one AI text generation is reserved, then charged only on success.
+  // 7. One AI call; errors become safe, translated messages.
+  return withUsage('ai_text_generation', { type: 'content_type', id: values.content_type }, async () => {
+    try {
+      const result = await generateMarketingContent(request)
+      return { ok: true, data: { content: result.content } }
+    } catch (error) {
+      const code = error instanceof AIError ? error.code : 'unknown'
+      return { ok: false, error: AI_ERROR_MESSAGES[code] }
+    }
+  })
 }
 
 const saveCopySchema = z.object({

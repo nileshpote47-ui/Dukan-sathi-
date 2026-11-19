@@ -12,6 +12,8 @@ import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import { QUICK_ACTION_TYPES } from '@/lib/config/content'
 import { LANGUAGES } from '@/lib/config/languages'
 import { getContentCounts, getRecentContent } from '@/lib/data/content'
+import { getBillingOverview } from '@/lib/data/billing'
+import { UsageList } from '@/components/billing/usage-list'
 import { getTranslator, type MessageKey } from '@/lib/i18n'
 import { formatLocation, profileCompletion } from '@/lib/utils/business'
 import { intlLocale } from '@/lib/utils/datetime'
@@ -21,7 +23,7 @@ export const metadata: Metadata = { title: 'Dashboard' }
 
 export default async function DashboardPage() {
   const { business, profile } = await requireOnboardedBusiness()
-  const [counts, recent] = await Promise.all([getContentCounts(), getRecentContent(5)])
+  const [counts, recent, billing] = await Promise.all([getContentCounts(), getRecentContent(5), getBillingOverview()])
   const t = getTranslator(profile?.preferred_language)
   const locale = intlLocale(profile?.preferred_language)
   const completion = profileCompletion(business)
@@ -119,6 +121,23 @@ export default async function DashboardPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="mt-8" aria-labelledby="plan-title">
+        <Card>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <CardTitle id="plan-title" className="text-base">
+                {t('billing.yourPlan', { plan: billing.currentPlan.name })}
+              </CardTitle>
+              <CardDescription className="mt-0.5">{t(`billing.state.${billing.state}` as MessageKey)}</CardDescription>
+            </div>
+            <Link href="/dashboard/billing" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+              {t('billing.manage')}
+            </Link>
+          </div>
+          <UsageList usage={billing.usage} t={t} compact />
+        </Card>
       </section>
 
       <section className="mt-8">

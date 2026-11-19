@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { AI_ERROR_MESSAGES } from '@/lib/ai/error-messages'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
+import { commitUsage, releaseUsage, reserveUsage, withUsage } from '@/lib/billing/usage'
 import { ASPECT_RATIOS } from '@/lib/config/media'
 import { getPosterLayout } from '@/lib/config/poster-templates'
 import { getContentItem } from '@/lib/data/content'
@@ -86,11 +87,14 @@ export async function savePoster(formData: FormData): Promise<ActionResult<{ id:
   }
 
   const { content_id, ...metadata } = spec.data
-  const result = await storeMedia({ bytes, info: checked.info, assetType: 'POSTER', sourceType: 'TEMPLATE_RENDERED', contentItemId: content_id, metadata })
-  if (!result.ok || !result.data) return result.ok ? { ok: false, error: 'errors.saveFailed' } : result
-  revalidatePath('/dashboard/media')
-  revalidatePath(`/dashboard/content/${content_id}`)
-  return { ok: true, data: { id: result.data.id }, message: 'media.posterSaved' }
+  // Plan limit (Phase 5): a saved poster counts as one media export; not charged if saving fails.
+  return withUsage('media_export', { type: 'content_item', id: content_id }, async () => {
+    const result = await storeMedia({ bytes, info: checked.info, assetType: 'POSTER', sourceType: 'TEMPLATE_RENDERED', contentItemId: content_id, metadata })
+    if (!result.ok || !result.data) return result.ok ? { ok: false, error: 'errors.saveFailed' } : result
+    revalidatePath('/dashboard/media')
+    revalidatePath(`/dashboard/content/${content_id}`)
+    return { ok: true, data: { id: result.data.id }, message: 'media.posterSaved' }
+  })
 }
 
 /** Generate one AI picture for a poster or a reel scene (explicit owner action, one call). */
@@ -113,13 +117,20 @@ export async function generatePicture(input: unknown): Promise<ActionResult<{ id
     visual: values.visual,
   })
 
+  // Plan limit (Phase 5): reserve one AI picture; released below if anything fails.
+  const reservation = await reserveUsage('image_generation', { type: 'content_item', id: item.id })
+  if (!reservation.ok) return { ok: false, error: reservation.error }
+
   const started = await startGeneration({
     contentItemId: item.id,
     provider: config.provider,
     model: config.model,
     metadata: { purpose: values.purpose, aspect_ratio: values.aspect_ratio, template: values.template ?? null },
   })
-  if (!started.ok || !started.data) return started.ok ? { ok: false, error: 'errors.saveFailed' } : started
+  if (!started.ok || !started.data) {
+    await releaseUsage(reservation.id)
+    return started.ok ? { ok: false, error: 'errors.saveFailed' } : started
+  }
   const assetId = started.data.id
 
   let image
@@ -127,12 +138,18 @@ export async function generatePicture(input: unknown): Promise<ActionResult<{ id
     image = await generateMarketingImage({ prompt, aspectRatio: values.aspect_ratio })
   } catch (error) {
     await failGeneration(assetId)
+    await releaseUsage(reservation.id)
     revalidatePath('/dashboard/media')
     return { ok: false, error: AI_ERROR_MESSAGES[error instanceof AIError ? error.code : 'unknown'] }
   }
   const saved = await finishGeneration(assetId, image.bytes, image.info, { provider: image.provider, model: image.model })
   revalidatePath('/dashboard/media')
-  if (!saved.ok) return saved
+  if (!saved.ok) {
+    await releaseUsage(reservation.id)
+    return saved
+  }
+  // The picture exists and is stored: charge it (commit can only fail if the reservation went stale).
+  if (!(await commitUsage(reservation.id))) return { ok: false, error: 'billing.error.usage' }
   const urls = await getAssetUrls([assetId])
   return { ok: true, data: { id: assetId, url: urls[assetId] ?? null } }
 }
