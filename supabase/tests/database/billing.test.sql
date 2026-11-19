@@ -114,7 +114,7 @@ set local role anon;
 select results_eq($$ select public.billing_process_webhook('mock', 'evt_bad', (select body from ev where name = 'activated'), repeat('0', 64)) ->> 'result' $$,
   $$ values ('invalid_signature'::text) $$, 'a wrong signature is rejected');
 select results_eq($$ select public.billing_process_webhook('razorpay', 'evt_1', (select body from ev where name = 'activated'), (select sig from ev where name = 'activated')) ->> 'result' $$,
-  $$ values ('not_configured'::text) $$, 'a provider without a stored secret is not accepted');
+  $$ values ('invalid_signature'::text) $$, 'an event signed with another secret is not accepted');
 select results_eq($$ select public.billing_process_webhook('mock', e.event_id, e.body, e.sig) ->> 'result' from ev e where e.name = 'activated' $$,
   $$ values ('processed'::text) $$, 'a signed activation is processed');
 select results_eq($$ select public.billing_process_webhook('mock', e.event_id, e.body, e.sig) ->> 'result' from ev e where e.name = 'activated' $$,
@@ -139,7 +139,7 @@ select set_config('request.jwt.claims', '{"sub": "11111111-1111-1111-1111-111111
 select results_eq($$ select monthly_limit from public.billing_usage_summary() where feature_key = 'ai_text_generation' $$,
   $$ values (200) $$, 'an upgrade raises this month''s allowance');
 select set_config('request.jwt.claims', '{"sub": "22222222-2222-2222-2222-222222222222", "role": "authenticated"}', true);
-select is_empty($$ select id from public.business_subscriptions union all select id from public.billing_payments $$,
+select is_empty($$ select id from public.business_subscriptions where business_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' union all select id from public.billing_payments where business_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
   'user B cannot read user A''s subscription or payments');
 select throws_ok($$ select public.billing_mark_cancel_requested((select id from public.business_subscriptions limit 1)) $$, 'P0001', null,
   'user B cannot cancel user A''s subscription');
@@ -153,7 +153,7 @@ select results_eq($$ select public.billing_process_webhook('mock', e.event_id, e
 select public.billing_process_webhook('mock', e.event_id, e.body, e.sig) from ev e where e.name = 'cancelled';
 reset role;
 select results_eq(
-  $$ select provider_subscription_id, status from public.business_subscriptions order by provider_subscription_id $$,
+  $$ select provider_subscription_id, status from public.business_subscriptions where business_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' order by provider_subscription_id $$,
   $$ values ('sub_A1'::text, 'CANCELLED'::text), ('sub_A2', 'ACTIVE') $$,
   'renewal extends, cancellation is recorded, the upgraded plan stays active');
 
