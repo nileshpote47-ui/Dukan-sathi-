@@ -3,7 +3,7 @@ import { isChannel, type PublishingErrorCode } from '@/lib/config/publishing'
 import { createClient } from '@/lib/supabase/server'
 import type { Json } from '@/types/database'
 import { decryptCredentials, encryptCredentials } from './crypto'
-import { serverSecret } from './env'
+import { isMockPublishing, serverSecret } from './env'
 import { getPublisher } from './registry'
 import type { PublishResult, StoredCredentials, WhatsAppTemplateParams } from './types'
 import { PublishingProviderError } from './types'
@@ -169,6 +169,8 @@ export async function runPublishingJob(jobId: string): Promise<RunOutcome> {
 export async function runDueJobs(limit: number): Promise<{ claimed: number; outcomes: Record<string, number> }> {
   const secret = serverSecret()
   if (!secret) throw new Error('Publishing is not configured')
+  // A test server (mock providers) must never pick up real owners' scheduled posts.
+  if (isMockPublishing()) return { claimed: 0, outcomes: { skipped_in_test_mode: 1 } }
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('publishing_claim_due', { p_secret: secret, p_limit: limit })
   if (error) {

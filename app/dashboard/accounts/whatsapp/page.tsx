@@ -40,7 +40,7 @@ export default async function WhatsAppContactsPage() {
         </Card>
 
         <Card>
-          <CardTitle className="mb-4 text-base">{t('publishing.contacts.title')}</CardTitle>
+          <CardTitle className="mb-4 text-base">{t('publishing.accounts.waContacts', { n: contacts.filter((c) => !c.opted_out_at).length })}</CardTitle>
           {contacts.length === 0 ? (
             <EmptyState icon={Users} title={t('publishing.contacts.empty')} />
           ) : (
