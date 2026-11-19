@@ -137,7 +137,7 @@ UI (create flow / edit page) → Server Action generateWithAI
   → buildMarketingContext + buildAIContentRequest (lib/marketing/context.ts)
   → generateMarketingContent (services/ai/service.ts: size limit, one call, metadata logs)
   → getAIProvider (AI_PROVIDER / AI_MODEL / GEMINI_API_KEY, server-only)
-  → GeminiProvider (structured JSON output, no auto-retries, 45 s timeout) | MockProvider (tests)
+  → GeminiProvider (structured JSON output, no auto-retries, 45 s timeout, minimal thinking) | MockProvider (tests)
   → normalizeAIOutput (per-type spec) → AIContentResponse → editable panel → saved to content_items.generated_copy
 ```
 
@@ -146,3 +146,21 @@ UI (create flow / edit page) → Server Action generateWithAI
 - Storage reuses `content_items` (`generated_copy` jsonb, `tone`, `ai_provider`, `ai_model`, `ai_generated_at`); provider/model/time are set by the server. Prompts and raw responses are not stored.
 - AI runs only on explicit user action; errors map to safe, translated messages; no automatic retries.
 - Details: [docs/PHASE_3.md](PHASE_3.md).
+
+## Media engine (Phase 4)
+
+```
+Content item + saved AI copy + business profile
+  Poster:  PosterEditor (template = Phase 2 slug, size, texts, picture) → layoutPoster() → <canvas>
+           → savePoster (Server Action: session, ownership, Zod, byte inspection, exact size)
+           → private bucket business-media/<owner_id>/… → media_assets (POSTER, TEMPLATE_RENDERED)
+  Picture: uploadPicture | generatePicture → buildImagePrompt → generateMarketingImage
+           → getMediaProvider (MEDIA_PROVIDER: gemini | mock) → validated bytes → storage + media_assets
+  Reel:    generateStoryboard (buildStoryboard from saved reel copy, no AI call) → StoryboardEditor
+           → ReelPreview (in-browser) → saveStoryboard → content_items.storyboard
+```
+
+- One private bucket with owner-folder storage policies; pages use server-created signed URLs; no public files.
+- `media_assets` RLS mirrors `content_items`; a partial unique index allows one `GENERATING` picture per owner.
+- Providers sit behind `MediaProvider` / `VideoRenderer` (`services/media/`); no vendor SDK in pages or components. Video rendering is not configured ("Coming soon").
+- Details: [docs/PHASE_4.md](PHASE_4.md).

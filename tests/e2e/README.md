@@ -1,15 +1,17 @@
 # End-to-end tests
 
-Playwright tests in `foundation.spec.ts` (Phase 1), `content.spec.ts` (Phase 2) and `ai.spec.ts` (Phase 3) drive the real app in a phone-sized browser and talk to the real Supabase project, so RLS is tested for real.
+Playwright tests in `foundation.spec.ts` (Phase 1), `content.spec.ts` (Phase 2), `ai.spec.ts` (Phase 3) and `media.spec.ts` (Phase 4) drive the real app in a phone-sized browser and talk to the real Supabase project, so RLS is tested for real.
 
 ## Run
 
 ```bash
-npm run build && AI_PROVIDER=mock npm start   # in one terminal; the AI tests need the mock provider
+npm run build && AI_PROVIDER=mock MEDIA_PROVIDER=mock npm start   # in one terminal; AI and media tests need the mock providers
 E2E_USER_A_EMAIL=... E2E_USER_A_PASSWORD=... \
 E2E_USER_B_EMAIL=... E2E_USER_B_PASSWORD=... \
 npm run test:e2e -- --trace off
 ```
+
+If the browser can reach Supabase only through an outbound proxy, also set `E2E_BROWSER_PROXY` (e.g. to `$HTTPS_PROXY`); the media tests load signed image URLs from Supabase Storage.
 
 Without the `E2E_USER_*` variables, only the signed-out tests run. Set `E2E_BASE_URL` to test a deployed site.
 

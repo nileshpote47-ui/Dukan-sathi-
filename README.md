@@ -34,7 +34,14 @@ Server-only (AI, Phase 3):
 | `AI_MODEL` | Optional, default `gemini-3.5-flash` |
 | `GEMINI_API_KEY` | Secret from [Google AI Studio](https://aistudio.google.com/apikey). In Vercel, mark it **Sensitive** |
 
-Never put a secret or service-role key in a `NEXT_PUBLIC_` variable. Automated tests use `AI_PROVIDER=mock` and never call a paid API (e2e: start the app with `AI_PROVIDER=mock npm start`).
+Server-only (media, Phase 4):
+
+| Name | Purpose |
+|---|---|
+| `MEDIA_PROVIDER` | `gemini` (AI pictures, reuses `GEMINI_API_KEY`) or `mock` (tests). Unset = AI pictures off; posters and storyboards still work |
+| `MEDIA_MODEL` | Optional, default `gemini-3.1-flash-image` |
+
+Never put a secret or service-role key in a `NEXT_PUBLIC_` variable. Automated tests use `AI_PROVIDER=mock` and never call a paid API (e2e: start the app with `AI_PROVIDER=mock MEDIA_PROVIDER=mock npm start`).
 
 ## Supabase setup
 1. Create a project and copy its URL and publishable key into `.env.local`.
@@ -80,3 +87,4 @@ Every push to `main` deploys automatically once connected. GitHub Actions CI (`.
 - [docs/PHASE_1.md](docs/PHASE_1.md) — Phase 1 details, tests, limitations
 - [docs/PHASE_2.md](docs/PHASE_2.md) — Phase 2 details: content workflow, lifecycle, templates, AI-ready data
 - [docs/PHASE_3.md](docs/PHASE_3.md) — Phase 3 details: AI engine, provider, prompts, security, testing
+- [docs/PHASE_4.md](docs/PHASE_4.md) — Phase 4 details: media storage, posters, templates, reel storyboards, providers, security, testing
