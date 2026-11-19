@@ -12,6 +12,7 @@ import { getBillingProvider, getBillingProviderId } from '@/services/billing/pro
 import { MockBillingProvider, mockSubscriptionEvent, planFromMockSubscription } from '@/services/billing/providers/mock'
 import { BillingError, type CheckoutSession } from '@/services/billing/types'
 import { processBillingWebhook } from '@/services/billing/webhook'
+import { log } from '@/lib/observability/log'
 
 /*
  * Billing Server Actions. The client may only name a plan; price, currency, plan limits and
@@ -29,10 +30,10 @@ const BILLING_ERRORS: Record<BillingError['code'], MessageKey> = {
 
 function billingFailure(error: unknown, what: string): { ok: false; error: MessageKey } {
   if (error instanceof BillingError) {
-    console.error(`[billing] ${what}`, { code: error.code, message: error.message.slice(0, 300) })
+    log.error(`[billing] ${what}`, { code: error.code, message: error.message.slice(0, 300) })
     return { ok: false, error: BILLING_ERRORS[error.code] }
   }
-  console.error(`[billing] ${what}`, error instanceof Error ? error.message.slice(0, 300) : 'unknown')
+  log.error(`[billing] ${what}`, error instanceof Error ? error.message.slice(0, 300) : 'unknown')
   return { ok: false, error: 'billing.error.provider' }
 }
 
@@ -61,7 +62,7 @@ export async function startCheckout(planSlug: unknown): Promise<ActionResult<Sta
       businessId: business.id,
       ownerId: user.id,
     })
-    console.info('[billing] checkout started', { provider: session.provider, plan: plan.slug })
+    log.info('[billing] checkout started', { provider: session.provider, plan: plan.slug })
     return {
       ok: true,
       data: {
@@ -92,7 +93,7 @@ export async function confirmCheckout(input: unknown): Promise<ActionResult<{ ve
   const providerId = parsed.data.subscriptionId.startsWith('mock_sub_') ? 'mock' : getBillingProviderId()
   try {
     if (!getBillingProvider(providerId).verifyCheckout(parsed.data)) {
-      console.warn('[billing] checkout signature mismatch')
+      log.warn('[billing] checkout signature mismatch')
       return { ok: false, error: 'billing.error.verification' }
     }
   } catch (error) {
@@ -115,7 +116,7 @@ export async function cancelSubscription(): Promise<ActionResult> {
   }
   const supabase = await createClient()
   const { error } = await supabase.rpc('billing_mark_cancel_requested', { p_subscription_id: sub.id })
-  if (error) console.error('[billing] mark cancel failed', { code: error.code })
+  if (error) log.error('[billing] mark cancel failed', { code: error.code })
   revalidatePath('/dashboard/billing')
   return { ok: true, message: 'billing.cancelRequested' }
 }

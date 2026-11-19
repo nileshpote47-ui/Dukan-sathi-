@@ -5,6 +5,7 @@ import { FEATURE_KEYS, type FeatureKey } from '@/lib/config/billing'
 import { displayState, entitlingSubscription } from '@/lib/billing/state'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/types/database'
+import { log } from '@/lib/observability/log'
 
 /*
  * Billing reads. Plans are public reference data; subscriptions, payments and usage are read
@@ -24,7 +25,7 @@ export interface UsageRow {
 }
 
 function fail(what: string, error: { code?: string; message: string }): never {
-  console.error(`[db] ${what}`, error.code, error.message)
+  log.error(`[db] ${what}`, error.code, error.message)
   throw new Error(`Could not load ${what}`)
 }
 

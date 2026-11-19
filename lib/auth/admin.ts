@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from './dal'
+import { log } from '@/lib/observability/log'
 
 /*
  * Admin authorization. Admins are listed in public.admin_users (granted with SQL only). The
@@ -17,7 +18,7 @@ export const isAdmin = cache(async (): Promise<boolean> => {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('admin_is_admin')
   if (error) {
-    console.error('[admin] check', error.code)
+    log.error('[admin] check', error.code)
     return false
   }
   return data === true

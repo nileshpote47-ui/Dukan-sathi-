@@ -3,6 +3,8 @@ import { LIMIT_MESSAGES, type FeatureKey } from '@/lib/config/billing'
 import type { MessageKey } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/server'
 import type { ActionResult } from '@/lib/validation/result'
+import { log } from '@/lib/observability/log'
+import { allowRequest } from '@/lib/security/rate-limit'
 
 /*
  * Usage metering for the Phase 3/4 operations. Flow:
@@ -14,6 +16,8 @@ import type { ActionResult } from '@/lib/validation/result'
 export type Reservation = { ok: true; id: string } | { ok: false; error: MessageKey }
 
 export async function reserveUsage(feature: FeatureKey, reference?: { type: string; id: string }): Promise<Reservation> {
+  // Burst protection (Phase 8) before the monthly plan limit.
+  if (!(await allowRequest(feature))) return { ok: false, error: 'errors.rateLimited' }
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('billing_reserve_usage', {
     p_feature: feature,
@@ -22,7 +26,7 @@ export async function reserveUsage(feature: FeatureKey, reference?: { type: stri
   })
   if (error || !data) {
     if (error?.message.includes('billing:limit_reached')) return { ok: false, error: LIMIT_MESSAGES[feature] }
-    console.error('[billing] reserve failed', { feature, code: error?.code })
+    log.error('[billing] reserve failed', { feature, code: error?.code })
     return { ok: false, error: 'billing.error.usage' }
   }
   return { ok: true, id: data }
@@ -31,14 +35,14 @@ export async function reserveUsage(feature: FeatureKey, reference?: { type: stri
 export async function commitUsage(id: string): Promise<boolean> {
   const supabase = await createClient()
   const { error } = await supabase.rpc('billing_commit_usage', { p_usage_id: id })
-  if (error) console.error('[billing] commit failed', { code: error.code })
+  if (error) log.error('[billing] commit failed', { code: error.code })
   return !error
 }
 
 export async function releaseUsage(id: string): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.rpc('billing_release_usage', { p_usage_id: id })
-  if (error) console.error('[billing] release failed', { code: error.code })
+  if (error) log.error('[billing] release failed', { code: error.code })
 }
 
 /**

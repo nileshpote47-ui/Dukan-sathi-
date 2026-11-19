@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/dal'
 import type { DateRange } from '@/lib/analytics/range'
 import type { BusinessAnalytics, PlanUsageRow } from '@/lib/analytics/types'
 import { createClient } from '@/lib/supabase/server'
+import { log } from '@/lib/observability/log'
 
 /*
  * Owner analytics. analytics_business_overview() runs as the signed-in owner (security
@@ -15,7 +16,7 @@ export async function getBusinessAnalytics(range: DateRange): Promise<BusinessAn
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('analytics_business_overview', { p_from: range.from.toISOString(), p_to: range.to.toISOString() })
   if (error || !data) {
-    console.error('[analytics] overview', error?.code)
+    log.error('[analytics] overview', error?.code)
     throw new Error('Could not load analytics')
   }
   return data as unknown as BusinessAnalytics
@@ -27,7 +28,7 @@ export async function getPlanUsage(): Promise<PlanUsageRow[]> {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('billing_usage_summary')
   if (error) {
-    console.error('[analytics] plan usage', error.code)
+    log.error('[analytics] plan usage', error.code)
     return []
   }
   return (data ?? []) as PlanUsageRow[]

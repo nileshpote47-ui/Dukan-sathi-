@@ -16,6 +16,8 @@ import { isPublishingReady, serverSecret } from '@/services/publishing/env'
 import { getConnector, getPublisher } from '@/services/publishing/registry'
 import { runPublishingJob, type RunOutcome } from '@/services/publishing/runner'
 import { PublishingProviderError, type StoredCredentials, type WhatsAppTemplate } from '@/services/publishing/types'
+import { log } from '@/lib/observability/log'
+import { allowRequest } from '@/lib/security/rate-limit'
 
 /*
  * Publishing writes for the signed-in owner. Inputs are validated (Zod) by the Server Actions;
@@ -44,7 +46,7 @@ const RPC_ERRORS: Record<string, MessageKey> = {
 
 function rpcError(error: { code?: string; message: string }, what: string): MessageKey {
   const known = Object.keys(RPC_ERRORS).find((k) => error.message.includes(k))
-  if (!known) console.error(`[publishing] ${what}`, error.code, error.message.slice(0, 120))
+  if (!known) log.error(`[publishing] ${what}`, error.code, error.message.slice(0, 120))
   return known ? RPC_ERRORS[known] : 'errors.saveFailed'
 }
 
@@ -102,6 +104,7 @@ export async function createPublication(input: PublishInput): Promise<PublishSer
   const secret = serverSecret()
   if (!secret || !isPublishingReady()) return { ok: false, error: 'publishing.error.notConfigured' }
   const { user, business } = ctx
+  if (!(await allowRequest('social_publishing'))) return { ok: false, error: 'errors.rateLimited' }
   const supabase = await createClient()
 
   const item = await getContentItem(input.contentId)
@@ -204,7 +207,7 @@ export async function createPublication(input: PublishInput): Promise<PublishSer
     await removePublishingMedia(prepared?.path, user.id)
     return { ok: false, error: error ? rpcError(error, 'create job') : 'errors.saveFailed' }
   }
-  console.info('[publishing] job created', { job: jobId, channel, mode: input.mode })
+  log.info('[publishing] job created', { job: jobId, channel, mode: input.mode })
 
   if (input.mode === 'schedule') return { ok: true, jobId, outcome: 'SCHEDULED' }
   try {
@@ -230,6 +233,7 @@ export async function retryPublication(jobId: string): Promise<{ ok: true; outco
   const ctx = await ownerContext()
   const secret = serverSecret()
   if (!ctx || !secret) return { ok: false, error: 'publishing.error.notConfigured' }
+  if (!(await allowRequest('social_publishing'))) return { ok: false, error: 'errors.rateLimited' }
   const supabase = await createClient()
   const { data: job } = await supabase.from('publishing_jobs').select('metadata').eq('owner_id', ctx.user.id).eq('id', jobId).maybeSingle()
   if (!job) return { ok: false, error: 'publishing.error.jobNotFound' }
@@ -266,12 +270,13 @@ export async function completeWhatsAppSignup(input: { code: string; wabaId: stri
   if (!ctx || !isPublishingReady()) return { ok: false, error: 'publishing.error.notConfigured' }
   const connector = getConnector('whatsapp')
   if (!connector.isConfigured() || !connector.completeEmbeddedSignup) return { ok: false, error: 'publishing.error.notConfigured' }
+  if (!(await allowRequest('social_connect'))) return { ok: false, error: 'errors.rateLimited' }
   try {
     const accounts = await connector.completeEmbeddedSignup(input)
     const count = await saveConnectedAccounts(accounts)
     return count ? { ok: true, count } : { ok: false, error: 'errors.saveFailed' }
   } catch (error) {
-    console.error('[publishing] whatsapp signup failed', { code: error instanceof PublishingProviderError ? error.code : 'unknown' })
+    log.error('[publishing] whatsapp signup failed', { code: error instanceof PublishingProviderError ? error.code : 'unknown' })
     return { ok: false, error: 'publishing.accounts.connectFailed' }
   }
 }
@@ -292,7 +297,7 @@ export async function addWhatsAppContact(input: ContactInput): Promise<{ ok: tru
   })
   if (error) {
     if (error.code === '23505') return { ok: false, error: 'publishing.contacts.duplicate' }
-    console.error('[publishing] add contact', error.code)
+    log.error('[publishing] add contact', error.code)
     return { ok: false, error: 'errors.saveFailed' }
   }
   return { ok: true }

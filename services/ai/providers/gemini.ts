@@ -3,6 +3,7 @@ import { AI_TIMEOUT_MS } from '@/lib/config/ai'
 import { normalizeAIOutput, outputJsonSchema } from '../output'
 import { buildPrompt } from '../prompts'
 import { AIError, type AIContentRequest, type AIContentResponse, type AIProvider } from '../types'
+import { log } from '@/lib/observability/log'
 
 /**
  * Google Gemini provider (Gemini Developer API, @google/genai).
@@ -77,7 +78,7 @@ export class GeminiProvider implements AIProvider {
     }
 
     // Token counts only (no text), to spot slow or runaway replies in the logs.
-    console.info('[ai] usage', {
+    log.info('[ai] usage', {
       model: this.model,
       thoughts: response.usageMetadata?.thoughtsTokenCount ?? 0,
       output: response.usageMetadata?.candidatesTokenCount ?? 0,

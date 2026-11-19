@@ -2,6 +2,7 @@ import 'server-only'
 import { requireAdmin } from '@/lib/auth/admin'
 import type { DateRange } from '@/lib/analytics/range'
 import { createClient } from '@/lib/supabase/server'
+import { log } from '@/lib/observability/log'
 
 /*
  * Admin reads. Each call re-checks admin access on the server (requireAdmin) and the database
@@ -16,7 +17,7 @@ async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   const supabase = await createClient()
   const { data, error } = await (supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: { code?: string } | null }>)(fn, args)
   if (error) {
-    console.error(`[admin] ${fn}`, error.code)
+    log.error(`[admin] ${fn}`, error.code)
     throw new Error('Could not load admin data')
   }
   return data as T

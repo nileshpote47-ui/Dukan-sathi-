@@ -6,6 +6,7 @@ import { OAUTH_COOKIE, readOAuthState, saveConnectedAccounts } from '@/services/
 import { redirectUriFor, siteUrl } from '@/services/publishing/env'
 import { getConnector } from '@/services/publishing/registry'
 import { PublishingProviderError } from '@/services/publishing/types'
+import { log } from '@/lib/observability/log'
 
 /*
  * GET /api/social/<connector>/callback — the platform redirects here after the owner approved
@@ -43,11 +44,11 @@ export async function GET(request: Request, ctx: RouteContext<'/api/social/[conn
     if (!accounts.length) return done('error=no_accounts')
     const saved = await saveConnectedAccounts(accounts)
     if (!saved) return done('error=failed')
-    console.info('[publishing] connected', { connector, accounts: saved })
+    log.info('[publishing] connected', { connector, accounts: saved })
     return done(`connected=${saved}`)
   } catch (error) {
     const code = error instanceof PublishingProviderError ? error.code : 'UNKNOWN_ERROR'
-    console.error('[publishing] connect callback failed', { connector, code })
+    log.error('[publishing] connect callback failed', { connector, code })
     return done(code === 'PERMISSION_DENIED' ? 'error=denied' : 'error=failed')
   }
 }

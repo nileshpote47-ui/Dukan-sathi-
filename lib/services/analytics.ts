@@ -8,6 +8,7 @@ import { serverSecret } from '@/services/publishing/env'
 import { getPublisher } from '@/services/publishing/registry'
 import type { ContentMetricsResult } from '@/services/publishing/types'
 import { accountCredentials } from './publishing'
+import { log } from '@/lib/observability/log'
 
 /*
  * Explicit "Refresh numbers" for published posts (never on page load). Reads only the owner's
@@ -52,7 +53,7 @@ export async function refreshEngagement(): Promise<RefreshResult> {
     .order('published_at', { ascending: false })
     .limit(50)
   if (error) {
-    console.error('[analytics] refresh read', error.code)
+    log.error('[analytics] refresh read', error.code)
     return { ok: false, error: 'analytics.error.load' }
   }
 
@@ -92,11 +93,11 @@ export async function refreshEngagement(): Promise<RefreshResult> {
   if (rows.length) {
     const { error: saveError } = await supabase.rpc('publishing_save_metrics', { p_secret: secret, p_rows: rows as unknown as Json })
     if (saveError) {
-      console.error('[analytics] refresh save', saveError.code)
+      log.error('[analytics] refresh save', saveError.code)
       return { ok: false, error: 'analytics.error.load' }
     }
   }
   const unavailable = rows.filter((r) => r.status !== 'OK').length
-  console.info('[analytics] engagement refreshed', { posts: rows.length, unavailable })
+  log.info('[analytics] engagement refreshed', { posts: rows.length, unavailable })
   return { ok: true, updated: rows.length - unavailable, unavailable }
 }

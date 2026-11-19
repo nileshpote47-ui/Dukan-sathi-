@@ -1,6 +1,7 @@
 import 'server-only'
 import type { PostgrestError } from '@supabase/supabase-js'
 import type { MessageKey } from '@/lib/i18n'
+import { log } from '@/lib/observability/log'
 
 export type ServiceResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: MessageKey }
 
@@ -9,7 +10,7 @@ export type ServiceResult<T = undefined> = { ok: true; data?: T } | { ok: false;
  * and never shown to users.
  */
 export function dbError(error: PostgrestError): { ok: false; error: MessageKey } {
-  console.error('[db]', error.code, error.message)
+  log.error('[db]', error.code, error.message)
   const text = `${error.message} ${error.details ?? ''}`
   switch (error.code) {
     case '23505':

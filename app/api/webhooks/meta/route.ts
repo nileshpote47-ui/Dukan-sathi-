@@ -4,6 +4,7 @@ import type { Json } from '@/types/database'
 import { safeEqual, sha256Hex } from '@/services/publishing/crypto'
 import { env, serverSecret } from '@/services/publishing/env'
 import { parseWhatsAppWebhook, verifyHubSignature } from '@/services/publishing/providers/meta-shared'
+import { log } from '@/lib/observability/log'
 
 /*
  * Meta webhooks (WhatsApp Business Account: message statuses and customer STOP replies).
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   const raw = await request.text()
   if (raw.length > MAX_BODY_BYTES) return NextResponse.json({ ok: false }, { status: 413 })
   if (!verifyHubSignature(raw, request.headers.get('x-hub-signature-256'), appSecret)) {
-    console.warn('[publishing] meta webhook rejected: invalid signature')
+    log.warn('[publishing] meta webhook rejected: invalid signature')
     return NextResponse.json({ ok: false }, { status: 401 })
   }
 
@@ -56,10 +57,10 @@ export async function POST(request: Request) {
       p_optouts: summary.optOuts as unknown as Json,
     })
     if (error) {
-      console.error('[publishing] meta webhook failed', { code: error.code })
+      log.error('[publishing] meta webhook failed', { code: error.code })
       return NextResponse.json({ ok: false }, { status: 500 })
     }
-    console.info('[publishing] meta webhook', { result: data, statuses: summary.statuses.length, optOuts: summary.optOuts.length })
+    log.info('[publishing] meta webhook', { result: data, statuses: summary.statuses.length, optOuts: summary.optOuts.length })
   }
   return NextResponse.json({ ok: true })
 }

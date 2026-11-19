@@ -299,4 +299,7 @@ export const hi: Partial<Messages> = {
   'analytics.empty.engagement': 'अभी लाइक या कमेंट नहीं हैं। Facebook या Instagram पर प्रकाशित करें, फिर आँकड़े रीफ़्रेश करें।',
   'analytics.empty.usage': 'इन तारीखों में इस्तेमाल की जानकारी नहीं है।',
   'analytics.error.load': 'विश्लेषण लोड नहीं हुआ। फिर कोशिश करें।',
+  'errors.rateLimited': 'बहुत ज़्यादा प्रयास हुए. कृपया कुछ मिनट रुककर फिर से कोशिश करें.',
+  'errors.reference': 'संदर्भ: {code}',
+  'publishing.accounts.error.rate_limited': 'जोड़ने के बहुत ज़्यादा प्रयास हुए. कृपया कुछ मिनट रुककर फिर से कोशिश करें.',
 }

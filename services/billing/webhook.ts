@@ -2,6 +2,7 @@ import 'server-only'
 import type { BillingProviderId } from '@/lib/config/billing'
 import { createClient } from '@/lib/supabase/server'
 import { getBillingProvider } from './provider'
+import { log } from '@/lib/observability/log'
 
 export type WebhookOutcome = 'processed' | 'duplicate' | 'ignored' | 'invalid_signature' | 'invalid_event' | 'not_configured' | 'failed'
 
@@ -37,7 +38,7 @@ export async function processBillingWebhook(input: {
   }
   const nodeCheck = provider ? provider.verifyWebhookSignature(input.rawBody, input.signature) : null
   if (nodeCheck === false) {
-    console.warn('[billing] webhook rejected', { provider: input.provider, reason: 'invalid_signature (server secret)' })
+    log.warn('[billing] webhook rejected', { provider: input.provider, reason: 'invalid_signature (server secret)' })
     return 'invalid_signature'
   }
 
@@ -49,7 +50,7 @@ export async function processBillingWebhook(input: {
     p_signature: input.signature ?? '',
   })
   if (error) {
-    console.error('[billing] webhook db error', { provider: input.provider, code: error.code })
+    log.error('[billing] webhook db error', { provider: input.provider, code: error.code })
     return 'failed'
   }
   const result = (data ?? {}) as { result?: string; cancel?: string[]; status?: string; reason?: string; note?: string }
@@ -57,12 +58,12 @@ export async function processBillingWebhook(input: {
   if (outcome === 'invalid_signature' && nodeCheck === true) {
     // The provider's signature matches the server secret but not the copy in Supabase Vault:
     // the two secrets differ (configuration, not an attack). Fix the Vault secret.
-    console.error('[billing] webhook secret mismatch: Vault secret differs from the server secret', { provider: input.provider })
+    log.error('[billing] webhook secret mismatch: Vault secret differs from the server secret', { provider: input.provider })
   }
   if (outcome === 'not_configured') {
-    console.error('[billing] webhook secret missing in Supabase Vault', { provider: input.provider, name: `${input.provider}_webhook_secret` })
+    log.error('[billing] webhook secret missing in Supabase Vault', { provider: input.provider, name: `${input.provider}_webhook_secret` })
   }
-  console.info('[billing] webhook', { provider: input.provider, outcome, status: result.status, reason: result.reason ?? result.note, ms: Date.now() - started })
+  log.info('[billing] webhook', { provider: input.provider, outcome, status: result.status, reason: result.reason ?? result.note, ms: Date.now() - started })
 
   // Upgrade: the new subscription is active; stop billing the old one at the provider now.
   if (outcome === 'processed' && provider && result.cancel?.length) {
@@ -70,7 +71,7 @@ export async function processBillingWebhook(input: {
       try {
         await provider.cancelSubscription(subscriptionId, { atCycleEnd: false })
       } catch (cancelError) {
-        console.error('[billing] could not cancel superseded subscription', {
+        log.error('[billing] could not cancel superseded subscription', {
           provider: input.provider,
           message: cancelError instanceof Error ? cancelError.message.slice(0, 200) : 'unknown',
         })

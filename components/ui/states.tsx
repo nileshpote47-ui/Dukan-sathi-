@@ -20,7 +20,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 interface StateProps {
   title: string
-  body?: string
+  body?: ReactNode
   icon?: LucideIcon
   action?: ReactNode
   className?: string

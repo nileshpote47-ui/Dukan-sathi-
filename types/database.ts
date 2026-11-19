@@ -1034,6 +1034,12 @@ export type Database = {
           },
         ]
       }
+      rate_limit_counters: {
+        Row: { action: string; hits: number; user_id: string; window_start: string }
+        Insert: { action: string; hits?: number; user_id: string; window_start: string }
+        Update: { action?: string; hits?: number; user_id?: string; window_start?: string }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1197,6 +1203,10 @@ export type Database = {
       publishing_update_credentials: {
         Args: { p_account_id: string; p_ciphertext: string; p_secret: string; p_token_expires_at: string | null }
         Returns: undefined
+      }
+      rate_limit_hit: {
+        Args: { p_action: string; p_limit: number; p_window_seconds: number }
+        Returns: boolean
       }
     }
     Enums: {

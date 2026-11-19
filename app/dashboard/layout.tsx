@@ -4,6 +4,7 @@ import { Logo } from '@/components/layout/logo'
 import { Providers } from '@/components/providers'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import { getMessages } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, isLanguageCode } from '@/lib/config/languages'
 
 /**
  * Protected dashboard shell. requireOnboardedBusiness() verifies the session
@@ -15,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <Providers locale={locale} messages={getMessages(locale)}>
-      <div className="min-h-dvh md:grid md:grid-cols-[17rem_1fr]">
+      <div lang={isLanguageCode(locale) ? locale : DEFAULT_LANGUAGE} className="min-h-dvh md:grid md:grid-cols-[17rem_1fr]">
         <aside className="hidden border-r border-border bg-card p-4 md:sticky md:top-0 md:flex md:h-dvh md:flex-col md:gap-6">
           <Logo href="/dashboard" />
           <Sidebar />

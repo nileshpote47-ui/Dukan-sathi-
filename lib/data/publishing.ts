@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/dal'
 import { PUBLISHING_PAGE_SIZE, type PublishingTab } from '@/lib/config/publishing'
 import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/types/database'
+import { log } from '@/lib/observability/log'
 
 /*
  * Publishing reads. Every query runs as the signed-in owner and filters by owner_id; RLS
@@ -16,7 +17,7 @@ export type PublishingJobView = PublishingJob & { account: Pick<SocialAccount, '
 export type WhatsAppContact = Tables<'whatsapp_contacts'>
 
 const fail = (what: string, error: { code?: string; message: string }) => {
-  console.error(`[publishing] read ${what}`, error.code)
+  log.error(`[publishing] read ${what}`, error.code)
   throw new Error('Could not load publishing data')
 }
 

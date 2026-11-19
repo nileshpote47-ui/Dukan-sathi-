@@ -6,6 +6,7 @@ import type { Json } from '@/types/database'
 import { encryptCredentials, newPkce, randomToken } from './crypto'
 import { serverSecret } from './env'
 import type { ConnectedAccount } from './types'
+import { log } from '@/lib/observability/log'
 
 /*
  * OAuth state for account connection. The state, PKCE verifier, user id and expiry travel in an
@@ -77,7 +78,7 @@ export async function saveConnectedAccounts(accounts: ConnectedAccount[]): Promi
       p_ciphertext: encryptCredentials(account.credentials),
       p_token_expires_at: account.credentials.expiresAt ?? null,
     })
-    if (error) console.error('[publishing] connect failed', { channel: account.channel, code: error.code })
+    if (error) log.error('[publishing] connect failed', { channel: account.channel, code: error.code })
     else saved++
   }
   return saved

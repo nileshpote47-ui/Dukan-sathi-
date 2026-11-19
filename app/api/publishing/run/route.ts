@@ -3,6 +3,7 @@ import { PUBLISHING_LIMITS } from '@/lib/config/publishing'
 import { safeEqual } from '@/services/publishing/crypto'
 import { serverSecret } from '@/services/publishing/env'
 import { runDueJobs } from '@/services/publishing/runner'
+import { log } from '@/lib/observability/log'
 
 /*
  * POST /api/publishing/run — the scheduler. Supabase pg_cron calls it (through pg_net) only when
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   }
   try {
     const result = await runDueJobs(PUBLISHING_LIMITS.runnerBatch)
-    if (result.claimed) console.info('[publishing] runner', result)
+    if (result.claimed) log.info('[publishing] runner', result)
     return NextResponse.json({ ok: true, ...result })
   } catch {
     return NextResponse.json({ ok: false }, { status: 500 })

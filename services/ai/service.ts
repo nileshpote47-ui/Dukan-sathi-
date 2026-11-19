@@ -1,6 +1,7 @@
 import 'server-only'
 import { getAIProvider } from './provider'
 import { AIError, type AIContentRequest, type AIGenerationResult } from './types'
+import { log } from '@/lib/observability/log'
 
 /** Rough upper bound for the prompt (input fields are already length-limited by validation). */
 const MAX_REQUEST_CHARS = 8_000
@@ -19,11 +20,11 @@ export async function generateMarketingContent(request: AIContentRequest): Promi
   const started = Date.now()
   try {
     const content = await provider.generateContent(request)
-    console.info('[ai] ok', { provider: provider.id, model: provider.model, type: request.request.type, ms: Date.now() - started })
+    log.info('[ai] ok', { provider: provider.id, model: provider.model, type: request.request.type, ms: Date.now() - started })
     return { content, provider: provider.id, model: provider.model }
   } catch (error) {
     const aiError = error instanceof AIError ? error : new AIError('unknown', 'Unexpected AI error', { cause: error })
-    console.error('[ai] failed', {
+    log.error('[ai] failed', {
       provider: provider.id,
       model: provider.model,
       type: request.request.type,

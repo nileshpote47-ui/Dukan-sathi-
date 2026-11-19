@@ -5,6 +5,7 @@ import { GENERATION_STALE_MS, MEDIA_BUCKET, MEDIA_EXTENSIONS, MEDIA_PAGE_SIZE, S
 import { createClient } from '@/lib/supabase/server'
 import { mediaIdSchema, type MediaListParams } from '@/lib/validation/media'
 import type { Tables } from '@/types/database'
+import { log } from '@/lib/observability/log'
 
 /*
  * Media reads. Every function verifies the signed-in user and filters by owner_id; RLS
@@ -24,7 +25,7 @@ export type MediaAssetView = MediaAsset & {
 const COLUMNS = '*, content:content_items(id, title)'
 
 function fail(what: string, error: { code?: string; message: string }): never {
-  console.error(`[db] ${what}`, error.code, error.message)
+  log.error(`[db] ${what}`, error.code, error.message)
   throw new Error(`Could not load ${what}`)
 }
 
@@ -40,7 +41,7 @@ async function signPaths(paths: string[]): Promise<Map<string, string>> {
   const supabase = await createClient()
   const { data, error } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrls(paths, SIGNED_URL_TTL_SECONDS)
   if (error) {
-    console.error('[storage] sign', error.message)
+    log.error('[storage] sign', error.message)
     return urls
   }
   for (const entry of data ?? []) if (entry.path && entry.signedUrl) urls.set(entry.path, entry.signedUrl)

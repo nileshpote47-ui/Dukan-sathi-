@@ -3,6 +3,7 @@ import { getBusiness, getCurrentUser } from '@/lib/auth/dal'
 import { isConnectorId } from '@/lib/config/publishing'
 import { createOAuthState, OAUTH_COOKIE } from '@/services/publishing/connect'
 import { isPublishingReady, redirectUriFor, siteUrl } from '@/services/publishing/env'
+import { allowRequest } from '@/lib/security/rate-limit'
 import { getConnector } from '@/services/publishing/registry'
 
 /*
@@ -23,6 +24,8 @@ export async function GET(_request: Request, ctx: RouteContext<'/api/social/[con
 
   const adapter = getConnector(connector)
   if (!isPublishingReady() || !adapter.isConfigured() || !adapter.getAuthorizationUrl) return back('error=not_configured')
+
+  if (!(await allowRequest('social_connect'))) return back('error=rate_limited')
 
   const { cookie, state, challenge, maxAge } = createOAuthState(connector, user.id)
   const url = adapter.getAuthorizationUrl({ state, redirectUri: redirectUriFor(connector), codeChallenge: challenge })

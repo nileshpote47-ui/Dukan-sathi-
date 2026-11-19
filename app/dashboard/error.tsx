@@ -2,6 +2,6 @@
 
 import { RouteError } from '@/components/layout/route-error'
 
-export default function DashboardError(props: { error: Error & { digest?: string }; reset: () => void }) {
+export default function DashboardError(props: { error: unknown; retry?: () => void; reset?: () => void }) {
   return <RouteError {...props} />
 }

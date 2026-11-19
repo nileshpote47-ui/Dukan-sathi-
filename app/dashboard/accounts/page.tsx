@@ -24,7 +24,7 @@ const HINTS: Record<ConnectorId, MessageKey> = {
   google_business_profile: 'publishing.accounts.gbpHint',
 }
 
-const ERRORS = ['denied', 'state', 'no_accounts', 'failed', 'not_configured'] as const
+const ERRORS = ['denied', 'state', 'no_accounts', 'failed', 'not_configured', 'rate_limited'] as const
 
 export default async function AccountsPage({ searchParams }: PageProps<'/dashboard/accounts'>) {
   const [{ profile }, raw] = await Promise.all([requireOnboardedBusiness(), searchParams])

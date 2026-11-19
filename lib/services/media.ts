@@ -6,6 +6,7 @@ import type { Storyboard } from '@/lib/media/storyboard'
 import { createClient } from '@/lib/supabase/server'
 import type { Json } from '@/types/database'
 import { dbError, type ServiceResult } from './errors'
+import { log } from '@/lib/observability/log'
 
 /*
  * Media writes. Callers validate input (lib/validation/media.ts) and file bytes
@@ -21,13 +22,13 @@ const newPath = (ownerId: string, info: ImageInfo) =>
 
 async function upload(supabase: Supabase, path: string, bytes: Uint8Array, info: ImageInfo): Promise<boolean> {
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, bytes, { contentType: info.mimeType, upsert: false })
-  if (error) console.error('[storage] upload', error.message)
+  if (error) log.error('[storage] upload', error.message)
   return !error
 }
 
 async function removeFile(supabase: Supabase, path: string) {
   const { error } = await supabase.storage.from(MEDIA_BUCKET).remove([path])
-  if (error) console.error('[storage] remove', error.message)
+  if (error) log.error('[storage] remove', error.message)
 }
 
 const fileColumns = (path: string, info: ImageInfo) => ({
@@ -150,7 +151,7 @@ export async function failGeneration(id: string) {
   const user = await requireUser()
   const supabase = await createClient()
   const { error } = await supabase.from('media_assets').update({ status: 'FAILED' }).eq('id', id).eq('owner_id', user.id).eq('status', 'GENERATING')
-  if (error) console.error('[db] fail generation', error.code, error.message)
+  if (error) log.error('[db] fail generation', error.code, error.message)
 }
 
 /** Delete an owned asset and its file. */
@@ -177,7 +178,7 @@ export async function ownedPictureIds(ids: string[]): Promise<Set<string>> {
     .eq('status', 'READY')
     .in('id', [...new Set(ids)])
   if (error) {
-    console.error('[db] owned pictures', error.code, error.message)
+    log.error('[db] owned pictures', error.code, error.message)
     return new Set()
   }
   return new Set(data.map((r) => r.id))

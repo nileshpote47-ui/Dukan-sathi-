@@ -5,6 +5,7 @@ import { CONTENT_PAGE_SIZE, type ContentStatus } from '@/lib/config/content'
 import { createClient } from '@/lib/supabase/server'
 import { contentIdSchema, escapeLike, type ContentListParams } from '@/lib/validation/content'
 import type { Tables } from '@/types/database'
+import { log } from '@/lib/observability/log'
 
 /*
  * Content reads. Like lib/auth/dal.ts, every function verifies the signed-in user
@@ -27,7 +28,7 @@ export type ContentSummary = Pick<
 >
 
 function fail(what: string, error: { code?: string; message: string }): never {
-  console.error(`[db] ${what}`, error.code, error.message)
+  log.error(`[db] ${what}`, error.code, error.message)
   throw new Error(`Could not load ${what}`)
 }
 

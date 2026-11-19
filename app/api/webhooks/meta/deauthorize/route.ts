@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { randomToken } from '@/services/publishing/crypto'
 import { env, serverSecret, siteUrl } from '@/services/publishing/env'
 import { parseSignedRequest } from '@/services/publishing/providers/meta-shared'
+import { log } from '@/lib/observability/log'
 
 /*
  * Meta "Deauthorize callback" and "Data deletion request" (App Dashboard › Facebook Login for
@@ -28,10 +29,10 @@ export async function POST(request: Request) {
     p_provider_user_id: payload.user_id,
   })
   if (error) {
-    console.error('[publishing] meta deauthorize failed', { code: error.code })
+    log.error('[publishing] meta deauthorize failed', { code: error.code })
     return NextResponse.json({ ok: false }, { status: 500 })
   }
-  console.info('[publishing] meta deauthorize', { accounts: data })
+  log.info('[publishing] meta deauthorize', { accounts: data })
 
   if (new URL(request.url).searchParams.get('type') === 'deletion') {
     const code = randomToken(12)

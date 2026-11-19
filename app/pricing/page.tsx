@@ -7,7 +7,7 @@ import { getBusiness, getCurrentUser, getProfile } from '@/lib/auth/dal'
 import { getBillingOverview, getPlans } from '@/lib/data/billing'
 import { getTranslator } from '@/lib/i18n'
 
-export const metadata: Metadata = { title: 'Pricing' }
+export const metadata: Metadata = { title: 'Pricing', alternates: { canonical: '/pricing' } }
 
 /** Public pricing page. Plans, prices and limits come from the database. */
 export default async function PricingPage() {

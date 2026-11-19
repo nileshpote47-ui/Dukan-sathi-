@@ -7,6 +7,7 @@ import { isMockPublishing, serverSecret } from './env'
 import { getPublisher } from './registry'
 import type { PublishResult, StoredCredentials, WhatsAppTemplateParams } from './types'
 import { PublishingProviderError } from './types'
+import { log } from '@/lib/observability/log'
 
 /*
  * Runs one publishing job. Used both for "Publish now" (the owner's session) and by the
@@ -45,13 +46,13 @@ export async function runPublishingJob(jobId: string): Promise<RunOutcome> {
 
   const { data, error } = await supabase.rpc('publishing_begin_attempt', { p_secret: secret, p_job_id: jobId })
   if (error) {
-    console.error('[publishing] begin failed', { job: jobId, code: error.code })
+    log.error('[publishing] begin failed', { job: jobId, code: error.code })
     throw new Error('Could not start publishing')
   }
   const begin = data as unknown as BeginResult
   if (begin.result === 'skip') return 'skip'
   if (begin.result === 'failed') {
-    console.info('[publishing] job not sent', { job: jobId, code: begin.error_code })
+    log.info('[publishing] job not sent', { job: jobId, code: begin.error_code })
     return 'FAILED'
   }
 
@@ -78,10 +79,10 @@ export async function runPublishingJob(jobId: string): Promise<RunOutcome> {
     })
     if (completeError) {
       // The job stays SENDING; the scheduler marks it "result unknown" after 10 minutes.
-      console.error('[publishing] complete failed', { job: jobId, code: completeError.code })
+      log.error('[publishing] complete failed', { job: jobId, code: completeError.code })
       throw new Error('Could not record the publishing result')
     }
-    console.info('[publishing] attempt', {
+    log.info('[publishing] attempt', {
       job: jobId,
       channel: account.channel,
       outcome: status,
@@ -174,7 +175,7 @@ export async function runDueJobs(limit: number): Promise<{ claimed: number; outc
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('publishing_claim_due', { p_secret: secret, p_limit: limit })
   if (error) {
-    console.error('[publishing] claim failed', { code: error.code })
+    log.error('[publishing] claim failed', { code: error.code })
     throw new Error('Could not load due jobs')
   }
   const outcomes: Record<string, number> = {}

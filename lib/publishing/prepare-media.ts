@@ -2,6 +2,7 @@ import 'server-only'
 import sharp, { type OutputInfo } from 'sharp'
 import { MEDIA_BUCKET } from '@/lib/config/media'
 import { createClient } from '@/lib/supabase/server'
+import { log } from '@/lib/observability/log'
 
 /*
  * Prepare a picture for publishing (runs with the owner's session):
@@ -55,7 +56,7 @@ export async function preparePublishingMedia(input: {
   const path = `${input.ownerId}/publishing/${globalThis.crypto.randomUUID()}.jpg`
   const { error: uploadError } = await supabase.storage.from(MEDIA_BUCKET).upload(path, jpeg.data, { contentType: 'image/jpeg', upsert: false })
   if (uploadError) {
-    console.error('[publishing] media upload', uploadError.message)
+    log.error('[publishing] media upload', uploadError.message)
     return { ok: false, reason: 'storage' }
   }
   const expiresIn = Math.max(3600, Math.ceil((input.publishAt.getTime() - Date.now()) / 1000) + URL_GRACE_SECONDS)

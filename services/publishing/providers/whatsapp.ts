@@ -6,6 +6,7 @@ import { HttpTimeoutError, requestJson } from '../http'
 import type { ConnectedAccount, Connector, PublishRequest, PublishResult, PublishTarget, StoredCredentials, WhatsAppTemplate } from '../types'
 import { PublishingProviderError } from '../types'
 import { appSecretProof, graphError, mapGraphError } from './meta-shared'
+import { log } from '@/lib/observability/log'
 
 /*
  * WhatsApp Business Platform (official docs: Embedded Signup v4 + onboarding as a Tech
@@ -103,7 +104,7 @@ export class WhatsAppConnector implements Connector {
     const pin = String(randomInt(100000, 1000000))
     const registered = await this.call(`${phoneNumberId}/register`, accessToken, { method: 'POST', json: { messaging_product: 'whatsapp', pin } })
     const credentials: StoredCredentials = { accessToken, expiresAt: null, ...(registered.ok ? { pin } : {}) }
-    if (!registered.ok) console.warn('[publishing] whatsapp register skipped', { code: graphError(registered.data)?.code ?? registered.status })
+    if (!registered.ok) log.warn('[publishing] whatsapp register skipped', { code: graphError(registered.data)?.code ?? registered.status })
 
     return [
       {

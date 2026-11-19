@@ -1,8 +1,11 @@
 import { CheckCircle2 } from 'lucide-react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Logo } from '@/components/layout/logo'
 import { buttonVariants } from '@/components/ui/button'
 import { getTranslator, type MessageKey } from '@/lib/i18n'
+
+export const metadata: Metadata = { alternates: { canonical: '/' } }
 
 const POINTS: MessageKey[] = ['landing.point1', 'landing.point2', 'landing.point3']
 
@@ -40,7 +43,7 @@ export default function HomePage() {
             {t('landing.login')}
           </Link>
         </div>
-        <p className="mt-6 text-sm text-muted-foreground">{t('landing.soon')}</p>
+        <p className="mt-6 text-sm text-muted-foreground">{t('landing.note')}</p>
       </main>
     </div>
   )
