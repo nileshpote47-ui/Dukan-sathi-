@@ -293,7 +293,7 @@ describe('provider configuration and service', () => {
     process.env.AI_PROVIDER = 'gemini'
     expect(getAIConfig()).toBeNull()
     process.env.GEMINI_API_KEY = 'test-key'
-    expect(getAIConfig()).toEqual({ provider: 'gemini', model: 'gemini-3.5-flash' })
+    expect(getAIConfig()).toEqual({ provider: 'gemini', model: 'gemini-3.5-flash-lite' })
     process.env.AI_MODEL = 'gemini-custom'
     expect(getAIConfig()?.model).toBe('gemini-custom')
   })

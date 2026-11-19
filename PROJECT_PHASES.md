@@ -8,11 +8,69 @@ Never mark a future phase complete. Never repeat a completed phase.
 | 1 | Foundation | **COMPLETED** |
 | 2 | Core Dashboard & Content Workflow | **COMPLETED** |
 | 3 | AI Content Engine | **COMPLETED** |
-| 4 | Media / Reel / Video Engine | **READY** |
-| 5 | Subscriptions, Credits & Billing | NOT STARTED |
+| 4 | Media / Reel / Video Engine | **COMPLETED** |
+| 5 | Subscriptions, Credits & Billing | **READY** |
 | 6 | Social / WhatsApp / Publishing | NOT STARTED |
 | 7 | Analytics, Admin & Business Intelligence | NOT STARTED |
 | 8 | Production Hardening & Launch | NOT STARTED |
+
+---
+
+## PHASE 4 — MEDIA / REEL / VIDEO ENGINE
+**Status: COMPLETED** (2026-11-19). Details: [docs/PHASE_4.md](docs/PHASE_4.md).
+
+### Completed features
+- Media asset foundation (`media_assets`) and private storage (`business-media` bucket, owner folders, signed URLs, server-side file inspection)
+- Poster / social creative workflow from any content item: visual template (the 7 Phase 2 templates + Simple), sizes 1:1 / 4:5 (default) / 9:16 / 16:9, editable texts from saved AI copy and the business profile (badge only from the owner's price/offer), optional picture, live canvas preview (Devanagari-correct), save, download, make another version
+- Image generation provider abstraction (`MediaProvider`: Gemini image + mock), explicit-only, one generation at a time per owner (database lock), no retries; visual-only prompts (no text/prices/logos in pictures)
+- Reel storyboard from saved Phase 3 reel copy (no extra AI call): 3–8 timed scenes (TEXT/PRODUCT/IMAGE/BRAND/CTA…), edit text/voice-over/visual/type/transition, ±1 s durations (total 8–60 s), reorder/add/remove, assign pictures, 9:16 in-browser preview, save
+- Video renderer interface (`VideoRenderer`); video export shows "Coming soon" — no paid video API
+- Media library (filter, open, download, delete), media detail, "Posters & media" on content pages, Media in navigation
+- Generation status GENERATING / READY / FAILED (never READY on failure; stale generations marked FAILED)
+
+### Files created
+- `lib/config/{media,poster-templates}.ts`, `lib/media/{poster-layout,poster-defaults,storyboard,image-file,browser-image}.ts`, `lib/data/media.ts`, `lib/services/media.ts`, `lib/validation/media.ts`, `lib/ai/error-messages.ts`
+- `services/media/{types,prompts,provider,service}.ts`, `services/media/providers/{gemini,mock}.ts`
+- `app/dashboard/media/{page,actions}.ts(x)`, `app/dashboard/media/[id]/{page,not-found}.tsx`, `app/dashboard/content/[id]/poster/page.tsx`, `app/dashboard/content/[id]/storyboard/{page,actions}.ts(x)`
+- `components/media/{poster-canvas,poster-editor,picture-picker,storyboard-editor,reel-preview,delete-media-button,upload-picture-button,media-badges}.tsx`
+- 3 migrations, `supabase/tests/database/media.test.sql`, `tests/unit/media.test.ts`, `tests/e2e/media.spec.ts`, `docs/PHASE_4.md`
+
+### Files modified
+- Content detail page (media card), navigation (Media), i18n (en complete; mr/hi key labels), `next.config.ts` (Server Action body 4 MB), `app/globals.css`, `types/database.ts`, `.env.example`, `.gitignore`, `playwright.config.ts` (optional browser proxy), docs (README, ARCHITECTURE, CLAUDE.md, e2e README)
+- Phase 3 compatibility (minimal): `services/ai/output.ts` (maxLength in schema, one-paragraph reel script), `services/ai/prompts.ts` (one-line values), `services/ai/providers/gemini.ts` (thinking MINIMAL, 1024 output tokens, token-count logs, shared blocked reasons), `app/dashboard/content/ai-actions.ts` (shared error messages), default model `gemini-3.5-flash-lite`
+
+### Database migrations
+- `20261118202852_media_engine.sql` — `media_assets` + RLS + guard trigger; `content_items.storyboard` (REEL only, object ≤ 32 KB); bucket + storage policies
+- `20261118203349_media_generation_lock.sql` — one GENERATING asset per owner
+- `20261119003500_media_assets_business_owner_index.sql` — FK index (applied via SQL Editor; idempotent)
+
+### Database tables
+- New: `media_assets`. Extended: `content_items.storyboard`. Storage: `business-media` bucket.
+
+### RLS policies
+- `media_assets`: owner-only select/update/delete; insert only for own business and own content (WITH CHECK on insert/update); no anon access
+- `storage.objects` (`business-media`): owner-folder select/insert/delete; no update; bucket private
+
+### Environment variables
+- Server-only: `MEDIA_PROVIDER` (unset in production = AI pictures off), `MEDIA_MODEL` (default `gemini-3.1-flash-image`); reuses `GEMINI_API_KEY`. Tests: `MEDIA_PROVIDER=mock`, `MEDIA_MOCK_SCENARIO`. Production `AI_MODEL` = `gemini-3.5-flash-lite`.
+
+### External integrations
+- Supabase Storage (private). Gemini image model wired but not enabled in production (not tested live; may need a paid tier).
+
+### Tests performed
+- Unit 107/107 · pgTAP media 22/22 (+ content 31/31, ai 8/8) · E2E 26/26 with mock providers (5 Phase 4 + 21 regression) · lint · typecheck · build · Supabase security advisors clean
+- Real-world on production with real Gemini text: grocery OFFER Marathi → 4:5 poster ✔; mobile shop REEL Hindi → 6-scene storyboard, edited, previewed, saved ✔; salon POST English → 1:1 creative ✔
+
+### Known limitations
+- No video file export yet ("Coming soon"); no logo on posters (profile logo is an external URL); AI pictures off in production
+- Signed URLs expire after 1 hour; files ≤ 3.5 MB; poster fonts depend on the device
+
+### Technical debt
+- Vercel functions still run in `iad1` although `bom1` is configured
+- Gemini model availability varies; models are set by `AI_MODEL` / `MEDIA_MODEL`
+
+### Recommended next phase
+- Phase 5 — Subscriptions, Credits & Billing (credit accounting can wrap `generateMarketingContent` / `generateMarketingImage`)
 
 ---
 
@@ -50,7 +108,7 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Unchanged: existing owner-only `content_items` policies cover the new columns (verified by `ai.test.sql`).
 
 ### Environment variables
-- Server-only: `AI_PROVIDER` (`gemini`), `AI_MODEL` (`gemini-3.5-flash`), `GEMINI_API_KEY` (Sensitive, set in Vercel by the owner). Tests: `AI_PROVIDER=mock`, `AI_MOCK_DELAY_MS`, `AI_MOCK_SCENARIO`.
+- Server-only: `AI_PROVIDER` (`gemini`), `AI_MODEL` (`gemini-3.5-flash-lite` since Phase 4; was `gemini-3.5-flash`), `GEMINI_API_KEY` (Sensitive, set in Vercel by the owner). Tests: `AI_PROVIDER=mock`, `AI_MOCK_DELAY_MS`, `AI_MOCK_SCENARIO`.
 
 ### External integrations
 - Google Gemini API (server-side only).

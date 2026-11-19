@@ -120,13 +120,13 @@ Real reel-script requests to Gemini kept ending in Google's 504 deadline while o
 | Real-world (production, real Gemini text) | See below |
 
 ## Real-world checks
-Run on the deployed app (https://dukan-sathi-nine.vercel.app) through the real UI on a phone viewport, 2026-11-19. Copy was written by real Gemini (`gemini-3.5-flash`) in the Phase 3 flow, saved, then turned into media.
+Run on the deployed app (https://dukan-sathi-nine.vercel.app) through the real UI on a phone viewport, 2026-11-19. Copy was written by real Gemini in the Phase 3 flow (`gemini-3.5-flash` for the grocery and salon cases; `gemini-3.5-flash-lite` for the reel, see below), saved, then turned into media.
 
 | Scenario | Result |
 |---|---|
 | Grocery (Shree Ganesh Kirana), OFFER, Marathi, Local → poster 4:5 → preview → save | **Pass.** Special Offer template preselected, 4:5, 1080 × 1350 PNG saved and downloaded. Marathi rendered correctly (conjuncts and matras). Badge `₹90/kg` = the owner's own price; no other price, discount or claim added. |
 | Salon (Glow Salon), POST, English, Premium → social creative 1:1 → preview → save | **Pass.** 1080 × 1080 PNG saved and downloaded; polished English; no badge (no price given), no invented offer. Found and fixed: a long call to action was cut short on one line; it now wraps to two lines. |
-| Mobile shop (Sai Mobile Point), REEL, Hindi, Energetic → storyboard → 3–8 scenes → edit one → preview | **Storyboard: pass on production** with a hand-written Hindi reel script (clearly not AI): 6 scenes (hook, product, 2 × picture, brand, CTA), 25 s, scene text edited, duration changed, preview played, saved. **Real Gemini reel script: not yet produced** — 3 attempts ended in Google's 504 deadline (~44 s) and 3 in 503 "high demand", while POST/OFFER answered in ~3 s. Minimal Phase 3 fixes were deployed (see above); a successful real REEL generation is still pending. |
+| Mobile shop (Sai Mobile Point), REEL, Hindi, Energetic → storyboard → 3–8 scenes → edit one → preview | **Pass.** Real Gemini (`gemini-3.5-flash-lite`, 1.5 s, 88 output tokens, no thinking) wrote a natural Hindi hook, script and CTA using only the shop name and place — no price, brand, specification or claim invented. Storyboard: 6 scenes (hook, product, 2 × picture, brand, CTA), 26 s; scene text edited; preview played; saved. Before the model change, `gemini-3.5-flash` failed this request 3 × with Google's 504 deadline (~44 s) and 3 × with 503 "high demand" (handled safely: friendly message, no retry). The storyboard step was also verified on production with a hand-written script. |
 
 
 ## Known limitations

@@ -49,7 +49,7 @@ interface AIProvider {
 - Adding OpenAI later: `providers/openai.ts` implementing `AIProvider` (reuse `buildPrompt`, `outputJsonSchema`, `normalizeAIOutput`) + one `case` in `provider.ts` + `AI_PROVIDERS` entry. Nothing in the workflow changes.
 
 ## Configured provider
-**Google Gemini** (Gemini Developer API) with `@google/genai` 3.x, default model `gemini-3.5-flash` (override with `AI_MODEL`). Integration verified against the SDK's bundled documentation/types:
+**Google Gemini** (Gemini Developer API) with `@google/genai` 3.x, default model `gemini-3.5-flash-lite` (override with `AI_MODEL`; see the model note below). Integration verified against the SDK's bundled documentation/types:
 - `ai.models.generateContent({ model, contents, config })` with `systemInstruction`, `responseMimeType: 'application/json'` and `responseJsonSchema` (structured output per content type).
 - `httpOptions.retryOptions.attempts = 1`: the SDK retries up to 5 times by default; disabled because each call may cost money (the owner can press Regenerate).
 - `httpOptions.timeout = 45 s`; `thinkingConfig.thinkingLevel = MINIMAL` for Gemini 3 models (higher levels made short copy — especially reel scripts — slow enough to hit the deadline); temperature 0.7 (1.0 when regenerating for more variety); `maxOutputTokens 1024`; every text field has a `maxLength` in the JSON schema and values are asked for on one line. Token counts (no text) are logged as `[ai] usage`.
@@ -59,7 +59,7 @@ interface AIProvider {
 | Variable | Purpose |
 |---|---|
 | `AI_PROVIDER` | `gemini` or `mock`. Unset → AI disabled ("not configured" message, button hidden) |
-| `AI_MODEL` | Optional model id (default `gemini-3.5-flash`) |
+| `AI_MODEL` | Optional model id (default `gemini-3.5-flash-lite`) |
 | `GEMINI_API_KEY` | Secret. Never `NEXT_PUBLIC_`, never logged or returned |
 | `AI_MOCK_DELAY_MS`, `AI_MOCK_SCENARIO` | Tests only |
 
@@ -139,7 +139,7 @@ Run on the deployed app (https://dukan-sathi-nine.vercel.app) through the real U
 
 Sample (grocery headline): "या वीकेंडला आणा ताजी बास्मती तांदूळ!"
 
-**Model note.** The first runs used `gemini-3.8-flash`. Google returned `503 UNAVAILABLE` ("This model is currently experiencing high demand") and `504 DEADLINE_EXCEEDED` on every attempt (5 calls). The app handled each one correctly: a friendly message, Try Again, no automatic retry, and the provider's short error text logged without the prompt, output or key. Setting thinking level LOW alone did not help. With `AI_MODEL=gemini-3.5-flash` (now also the code default), all cases succeeded in 3–9 s. The model can be changed with `AI_MODEL` without a code change.
+**Model note.** The first runs used `gemini-3.8-flash`. Google returned `503 UNAVAILABLE` ("This model is currently experiencing high demand") and `504 DEADLINE_EXCEEDED` on every attempt (5 calls). The app handled each one correctly: a friendly message, Try Again, no automatic retry, and the provider's short error text logged without the prompt, output or key. Setting thinking level LOW alone did not help. With `AI_MODEL=gemini-3.5-flash`, all cases succeeded in 3–9 s. In Phase 4 testing, `gemini-3.5-flash` then failed reel scripts repeatedly (504 deadline / 503 high demand); `gemini-3.5-flash-lite` with minimal thinking answered the same request in 1.5 s, so it is now the production setting and the code default. The model can be changed with `AI_MODEL` without a code change.
 
 ## Known limitations
 - Provider availability: a model can be overloaded on Google's side (seen with `gemini-3.8-flash`); the owner then sees "temporarily unavailable" and can retry. Vercel functions currently run in `iad1` although `bom1` is configured (Phase 8 hardening).
