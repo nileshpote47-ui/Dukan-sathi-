@@ -13,7 +13,7 @@ npm run test:e2e -- --trace off
 
 If the browser can reach Supabase only through an outbound proxy, also set `E2E_BROWSER_PROXY` (e.g. to `$HTTPS_PROXY`); the media tests load signed image URLs from Supabase Storage.
 
-The billing tests also need `BILLING_MOCK_WEBHOOK_SECRET` in the test environment and the SAME value stored in Supabase Vault as `mock_webhook_secret` while they run (`select vault.create_secret('<random>', 'mock_webhook_secret')`). Afterwards replace it with an unknown random value (`vault.update_secret(id, encode(extensions.gen_random_bytes(32), 'hex'))`) so mock events can never be accepted.
+The billing tests also need `BILLING_MOCK_WEBHOOK_SECRET` in the test environment and the SAME value stored in Supabase Vault as `mock_webhook_secret` while they run (`select vault.create_secret('<random>', 'mock_webhook_secret')`). Afterwards **delete** it (`delete from vault.secrets where name = 'mock_webhook_secret';`): without the secret, mock payment events are refused (`not_configured`), so production never accepts them.
 
 Without the `E2E_USER_*` variables, only the signed-out tests run. Set `E2E_BASE_URL` to test a deployed site.
 
@@ -48,3 +48,7 @@ In mock mode the scheduler endpoint never runs jobs, so a local test server cann
 `tests/e2e/analytics.spec.ts` runs with the publishing mock setup above. The admin test also needs `E2E_ADMIN=1` and test user A temporarily listed as an admin:
 `insert into public.admin_users (user_id, note) select id, 'TEMPORARY e2e admin' from auth.users where email = '<E2E_USER_A_EMAIL>';`
 Remove it afterwards: `delete from public.admin_users where note like 'TEMPORARY e2e admin%';`
+
+## Hardening (Phase 8)
+
+`tests/e2e/hardening.spec.ts`: health check, security headers, robots/sitemap/icon and landing copy, forged webhook and scheduler calls, signed-out access to private pages and APIs, and malformed or foreign IDs (another owner's content cannot be read, changed or deleted). The first five tests need no test users. Burst limits (`lib/config/rate-limits.ts`) are generous enough for the full suite; a whole run stays well below them.

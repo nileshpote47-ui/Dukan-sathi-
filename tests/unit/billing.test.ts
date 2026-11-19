@@ -11,6 +11,8 @@ import { BillingError } from '@/services/billing/types'
 
 const rpc = vi.fn()
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ rpc }) }))
+const allowRequest = vi.fn(async () => true)
+vi.mock('@/lib/security/rate-limit', () => ({ allowRequest: (...args: unknown[]) => allowRequest(...(args as [])) }))
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -213,6 +215,17 @@ describe('provider configuration', () => {
 
 // ---------------------------------------------------------------------------
 describe('usage metering (reserve → run → commit / release)', () => {
+  it('a burst-limited request is refused before any usage is reserved', async () => {
+    const { withUsage } = await import('@/lib/billing/usage')
+    allowRequest.mockResolvedValueOnce(false)
+    rpc.mockClear()
+    const run = vi.fn()
+    expect(await withUsage('ai_text_generation', undefined, run)).toEqual({ ok: false, error: 'errors.rateLimited' })
+    expect(allowRequest).toHaveBeenCalledWith('ai_text_generation')
+    expect(rpc).not.toHaveBeenCalled()
+    expect(run).not.toHaveBeenCalled()
+  })
+
   it('blocks at the limit without running the operation', async () => {
     const { withUsage } = await import('@/lib/billing/usage')
     rpc.mockResolvedValueOnce({ data: null, error: { code: 'P0001', message: 'billing:limit_reached' } })
