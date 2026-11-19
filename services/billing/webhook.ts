@@ -35,8 +35,9 @@ export async function processBillingWebhook(input: {
   } catch {
     // Not configured on this server: the database check below still decides.
   }
-  if (provider && provider.verifyWebhookSignature(input.rawBody, input.signature) === false) {
-    console.warn('[billing] webhook rejected', { provider: input.provider, reason: 'invalid_signature' })
+  const nodeCheck = provider ? provider.verifyWebhookSignature(input.rawBody, input.signature) : null
+  if (nodeCheck === false) {
+    console.warn('[billing] webhook rejected', { provider: input.provider, reason: 'invalid_signature (server secret)' })
     return 'invalid_signature'
   }
 
@@ -53,6 +54,14 @@ export async function processBillingWebhook(input: {
   }
   const result = (data ?? {}) as { result?: string; cancel?: string[]; status?: string; reason?: string; note?: string }
   const outcome = (result.result ?? 'failed') as WebhookOutcome
+  if (outcome === 'invalid_signature' && nodeCheck === true) {
+    // The provider's signature matches the server secret but not the copy in Supabase Vault:
+    // the two secrets differ (configuration, not an attack). Fix the Vault secret.
+    console.error('[billing] webhook secret mismatch: Vault secret differs from the server secret', { provider: input.provider })
+  }
+  if (outcome === 'not_configured') {
+    console.error('[billing] webhook secret missing in Supabase Vault', { provider: input.provider, name: `${input.provider}_webhook_secret` })
+  }
   console.info('[billing] webhook', { provider: input.provider, outcome, status: result.status, reason: result.reason ?? result.note, ms: Date.now() - started })
 
   // Upgrade: the new subscription is active; stop billing the old one at the provider now.
