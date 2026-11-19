@@ -164,3 +164,19 @@ Content item + saved AI copy + business profile
 - `media_assets` RLS mirrors `content_items`; a partial unique index allows one `GENERATING` picture per owner.
 - Providers sit behind `MediaProvider` / `VideoRenderer` (`services/media/`); no vendor SDK in pages or components. Video rendering is not configured ("Coming soon").
 - Details: [docs/PHASE_4.md](PHASE_4.md).
+
+## Billing (Phase 5)
+
+```
+Pricing / Billing page ──(plan slug only)──► startCheckout (Server Action)
+   price + limits from billing_plans/plan_entitlements ──► RazorpayProvider.createSubscription
+   (plan amount verified; notes = business_id + plan_slug) ──► Razorpay Checkout (browser)
+   ──► confirmCheckout: HMAC(payment_id|subscription_id) verified server-side (no state change)
+Razorpay ──► POST /api/billing/webhooks/razorpay ──► billing_process_webhook() (database):
+   HMAC(raw body) with Vault secret → idempotent event log → subscription + payment upsert
+AI / media actions ──► reserve usage (ledger, serialised) → operation → commit | release
+```
+
+- Billing state is written only inside security-definer database functions; owners can only read their own rows. No service-role key is used anywhere.
+- Paid access = an ACTIVE subscription within its period (+1 day); everything else falls back to the Free plan's limits.
+- Details: [docs/PHASE_5.md](PHASE_5.md).
