@@ -36,7 +36,7 @@ test.afterAll(async () => {
 /** Send a webhook exactly as the provider would (raw body + HMAC header + event id). */
 async function sendWebhook(page: Page, provider: 'mock' | 'razorpay', body: string, opts: { eventId?: string; signature?: string } = {}) {
   return page.request.post(`/api/billing/webhooks/${provider}`, {
-    data: body,
+    data: Buffer.from(body, 'utf8'), // raw bytes: Playwright would re-encode an invalid JSON string
     headers: {
       'content-type': 'application/json',
       'x-razorpay-event-id': opts.eventId ?? `evt_${crypto.randomUUID()}`,
@@ -61,8 +61,9 @@ function subscriptionEvent(event: string, subId: string, status: string, start: 
 async function billingRows(user = users.a) {
   const { client } = await apiClientFor(user)
   const [subs, payments] = await Promise.all([
-    client.from('business_subscriptions').select('provider_subscription_id, status, current_period_end, cancel_at_period_end, plan_id'),
-    client.from('billing_payments').select('provider_payment_id, status, amount_paise'),
+    client.from('business_subscriptions').select('provider_subscription_id, status, current_period_end, cancel_at_period_end, plan_id').eq('business_id', ids.aBusiness),
+    // Payment history outlives a deleted business (audit), so look at this run's business only.
+    client.from('billing_payments').select('provider_payment_id, status, amount_paise').eq('business_id', ids.aBusiness),
   ])
   return { subs: subs.data ?? [], payments: payments.data ?? [] }
 }
