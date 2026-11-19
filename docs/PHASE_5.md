@@ -108,7 +108,15 @@ Webhooks (event id), payments (provider payment id), subscriptions (provider sub
 `BILLING_PROVIDER`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_PLAN_STARTER`, `RAZORPAY_PLAN_GROWTH`, optional `RAZORPAY_WEBHOOK_SECRET`; Vault secret `razorpay_webhook_secret`; tests: `BILLING_MOCK_WEBHOOK_SECRET` + Vault `mock_webhook_secret` (temporary). See `.env.example`.
 
 ## Testing
-TESTING_RESULTS
+| Check | Result |
+|---|---|
+| Unit (`npm test`) | 126/126 (18 billing: signatures, mock provider, state, display rules, config) |
+| pgTAP `billing.test.sql` (remote runner) | 36/36 — RLS, no direct writes, reserve/commit/release, limit enforcement, no negative balance, cross-owner isolation, webhook signature, idempotency, out-of-order events, upgrade, renewal, cancellation |
+| E2E (`npm run test:e2e`, mock providers) | 32/32 — 6 billing (pricing, free limit + message, failed payment, paid checkout → webhook → Starter, forged/duplicate/renewal/cancel/expiry webhooks, security) + 26 regression |
+| Lint · typecheck · build | clean |
+| Live, production, Razorpay test mode | Starter checkout (test card) → `subscription.authenticated` / `charged` / `activated` processed (out of order) → ACTIVE until period end, payment ₹199 CAPTURED; cancel at period end keeps access; forged webhook → 401; `/api/billing/webhooks/mock` → 404; pricing page shows ₹0 / ₹199 / ₹499 |
+
+The mock Vault secret is created only for an E2E run and rotated to an unknown random value afterwards.
 
 ## Known limitations
 - Prices are placeholders (approval pending); Razorpay is in **test mode** — going live needs live keys, live plans, a live webhook and its secret in Vault.

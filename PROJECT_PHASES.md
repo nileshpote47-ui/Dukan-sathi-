@@ -9,10 +9,62 @@ Never mark a future phase complete. Never repeat a completed phase.
 | 2 | Core Dashboard & Content Workflow | **COMPLETED** |
 | 3 | AI Content Engine | **COMPLETED** |
 | 4 | Media / Reel / Video Engine | **COMPLETED** |
-| 5 | Subscriptions, Credits & Billing | **READY** |
-| 6 | Social / WhatsApp / Publishing | NOT STARTED |
+| 5 | Subscriptions, Credits & Billing | **COMPLETED** |
+| 6 | Social / WhatsApp / Publishing | **READY** |
 | 7 | Analytics, Admin & Business Intelligence | NOT STARTED |
 | 8 | Production Hardening & Launch | NOT STARTED |
+
+---
+
+## PHASE 5 — SUBSCRIPTIONS, CREDITS & BILLING
+**Status: COMPLETED** (2026-11-19). Details: [docs/PHASE_5.md](docs/PHASE_5.md).
+
+### Completed features
+- Data-driven plans (Free ₹0, Starter ₹199, Growth ₹499 — placeholder prices) and monthly entitlements per feature (`billing_plans`, `plan_entitlements`)
+- Auditable usage ledger (`usage_ledger`: allocation, usage reserve → commit/release, plan-change top-up) enforced server-side on the real operations: AI copy, AI pictures, reel storyboards, saved posters; limit messages with "View plans"
+- Razorpay Subscriptions (monthly auto-renew) behind `BillingProvider` (Razorpay REST + mock); plan amount verified against Razorpay before checkout; checkout signature verified server-side
+- Signed, idempotent webhooks as the only source of subscription/payment state (`billing_process_webhook()`, secret in Supabase Vault); out-of-order events handled; upgrade cancels the superseded subscription; cancel at period end
+- Public pricing page, billing dashboard (plan, status, usage, payment history), "Your plan" card on the dashboard; en complete, mr/hi partial
+
+### Files created
+- `lib/config/billing.ts`, `lib/billing/{state,usage,format}.ts`, `lib/data/billing.ts`
+- `services/billing/{types,signature,provider,webhook}.ts`, `services/billing/providers/{razorpay,mock}.ts`
+- `app/api/billing/webhooks/[provider]/route.ts`, `app/dashboard/billing/{page,actions}.ts(x)`, `app/pricing/page.tsx`
+- `components/billing/{plan-card,checkout-button,cancel-subscription-button,activation-watcher,usage-list,action-error}.tsx`
+- 2 migrations, `supabase/tests/database/billing.test.sql`, `tests/unit/billing.test.ts`, `tests/e2e/billing.spec.ts`, `docs/PHASE_5.md`
+
+### Files modified
+- Metered actions: `app/dashboard/content/ai-actions.ts`, `app/dashboard/media/actions.ts`, `app/dashboard/content/[id]/storyboard/actions.ts`; media components (limit errors); dashboard home (plan card)
+- `lib/config/{site,navigation}.ts`, i18n, `types/database.ts`, `tests/unit/config-sync.test.ts`, `.env.example`, docs (README, ARCHITECTURE, CLAUDE.md, e2e README)
+
+### Database migrations
+- `20261119015138_billing.sql` — billing tables, RLS, seeds, usage + webhook functions, grants
+- `20261119024319_billing_past_due_no_access.sql` — paid access only while ACTIVE
+
+### Database tables
+- New: `billing_plans`, `plan_entitlements`, `business_subscriptions`, `billing_payments`, `usage_ledger`, `billing_webhook_events`
+
+### RLS policies
+- Plans/entitlements: read-only for everyone; subscriptions, payments, ledger: owner read-only; webhook log: no access. All writes only inside narrow `security definer` functions (no service-role key in the app)
+
+### Environment variables
+- `BILLING_PROVIDER`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (Sensitive), `RAZORPAY_PLAN_STARTER`, `RAZORPAY_PLAN_GROWTH`, optional `RAZORPAY_WEBHOOK_SECRET`; Vault `razorpay_webhook_secret`. Tests: `BILLING_PROVIDER=mock`, `BILLING_MOCK_WEBHOOK_SECRET` + temporary Vault `mock_webhook_secret`
+
+### External integrations
+- Razorpay (test mode) on production: subscription checkout, webhooks, cancellation verified live
+
+### Tests performed
+- Unit 126/126 · pgTAP billing 36/36 · E2E 32/32 with mock providers (6 billing + 26 regression) · lint · typecheck · build
+- Live (production, Razorpay test mode): Starter checkout paid → webhooks authenticated/charged/activated processed → ACTIVE, payment CAPTURED; cancel at period end ✔; forged webhook 401; mock endpoint 404 in production
+
+### Known limitations
+- Placeholder prices; Razorpay test mode only; no proration (upgrade = new cycle); limits reset by calendar month (IST); no GST invoices, refunds UI or admin plan editor
+
+### Technical debt
+- Vercel functions still run in `iad1`; supabase advisors list intentional definer entry points
+
+### Recommended next phase
+- Phase 6 — Social / WhatsApp / Publishing (publishing can be metered through `withUsage()`)
 
 ---
 
