@@ -67,7 +67,7 @@ export const OUTPUT_SPEC: Record<ContentType, OutputSpecField[]> = {
       key: 'short_script',
       field: 'reel_script',
       maxLength: 1500,
-      description: 'A short reel script of 3 to 5 lines (what to say or show), for a 15–30 second video.',
+      description: 'A short reel script: 3 to 5 short sentences in one paragraph (what to say or show), for a 15–30 second video.',
       required: true,
     },
     cta,
@@ -94,7 +94,8 @@ export function outputJsonSchema(type: ContentType) {
     properties[spec.key] =
       spec.field === 'hashtags'
         ? { type: 'array', items: { type: 'string' }, maxItems: spec.maxLength, description: spec.description }
-        : { type: 'string', description: spec.description }
+        : // maxLength bounds the reply, so a runaway answer cannot run until the deadline.
+          { type: 'string', maxLength: spec.maxLength, description: spec.description }
   }
   return {
     type: 'object',

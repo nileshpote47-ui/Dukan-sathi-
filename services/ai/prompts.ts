@@ -131,6 +131,7 @@ export function buildPrompt({ context, request, generation }: AIContentRequest):
       '- Return a JSON object with these keys:',
       ...OUTPUT_SPEC[request.type].map((s) => `  - "${s.key}"${s.required ? '' : ' (optional)'}: ${s.description}`),
       '- If a price or offer is given, use it exactly as written. If none is given, do not mention any price, discount or percentage.',
+      '- Write each value as plain text on one line: no line breaks, no bullet points, no repeated spaces.',
     ]),
     generation.previous &&
       block('PREVIOUS VERSION (write a clearly different variation; do not repeat its sentences)', [

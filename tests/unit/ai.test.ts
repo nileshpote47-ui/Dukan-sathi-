@@ -138,6 +138,14 @@ describe('output normalization', () => {
     const schema = outputJsonSchema('WHATSAPP')
     expect(Object.keys(schema.properties)).toEqual(['opening', 'message', 'call_to_action'])
     expect(schema.required).toEqual(['opening', 'message', 'call_to_action'])
+    // Every text field is length-bounded, so a runaway reply cannot run until the deadline.
+    for (const type of ['POST', 'OFFER', 'POSTER', 'WHATSAPP', 'REEL', 'FESTIVAL', 'OTHER'] as const) {
+      for (const [key, prop] of Object.entries(outputJsonSchema(type).properties) as [string, { type: string; maxLength?: number }][]) {
+        if (prop.type === 'string') expect(prop.maxLength, `${type}.${key}`).toBe(OUTPUT_SPEC[type].find((s) => s.key === key)!.maxLength)
+      }
+    }
+    // Reel scripts are asked for as one paragraph (line breaks inside JSON strings can make the model loop).
+    expect(OUTPUT_SPEC.REEL.find((s) => s.key === 'short_script')!.description).toMatch(/one paragraph/)
   })
 
   it('rejects malformed, empty and incomplete output', () => {
