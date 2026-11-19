@@ -115,4 +115,7 @@ export const mr: Partial<Messages> = {
   'billing.limit.ai_text_generation': 'तुमची या महिन्याची AI मजकूर मर्यादा संपली आहे. पुढे मजकूर तयार करण्यासाठी प्लॅन अपग्रेड करा.',
   'billing.viewPlans': 'प्लॅन पहा',
   'billing.state.free': 'मोफत प्लॅन',
+  'billing.feature.social_publishing': 'प्रकाशित पोस्ट',
+  'billing.entitlement.social_publishing': 'महिन्याला {n} पोस्ट किंवा WhatsApp पाठवणी',
+  'billing.limit.social_publishing': 'तुमची या महिन्याची प्रकाशन मर्यादा संपली आहे. आणखी प्रकाशित करण्यासाठी प्लॅन अपग्रेड करा.',
 }

@@ -17,6 +17,16 @@ import {
   PAYMENT_STATUSES,
   SUBSCRIPTION_STATUSES,
 } from '@/lib/config/billing'
+import {
+  ACCOUNT_STATUSES,
+  CHANNELS,
+  JOB_STATUSES,
+  OPT_IN_SOURCES,
+  PUBLISH_MODES,
+  PUBLISHING_ERROR_CODES,
+  SOCIAL_PROVIDERS,
+  WHATSAPP_MESSAGE_STATUSES,
+} from '@/lib/config/publishing'
 import { en } from '@/lib/i18n/messages/en'
 
 const migrationsDir = join(__dirname, '../../supabase/migrations')
@@ -86,20 +96,50 @@ describe('config matches the database', () => {
       if (start < 0 || !found) throw new Error(`No check for ${table}.${column}`)
       return [...found[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
     }
-    expect(tableCheck('plan_entitlements', 'feature_key')).toEqual([...FEATURE_KEYS])
-    expect(tableCheck('usage_ledger', 'feature_key')).toEqual([...FEATURE_KEYS])
+    // Feature keys: the billing migration's original list, extended by later migrations (latest wins).
+    const featureChecks = [...allMigrations.matchAll(/feature_key_check\s+check \(feature_key in \(([^)]*)\)\)/g)]
+    const latestFeatures = (table: string) => {
+      const found = [...allMigrations.matchAll(new RegExp(`${table}_feature_key_check\\s+check \\(feature_key in \\(([^)]*)\\)\\)`, 'g'))].at(-1)
+      return [...(found ?? featureChecks.at(-1))![1].matchAll(/'([^']+)'/g)].map((m) => m[1])
+    }
+    expect(latestFeatures('plan_entitlements')).toEqual([...FEATURE_KEYS])
+    expect(latestFeatures('usage_ledger')).toEqual([...FEATURE_KEYS])
+    expect(tableCheck('plan_entitlements', 'feature_key')).toEqual(FEATURE_KEYS.filter((f) => f !== 'social_publishing'))
     expect(tableCheck('business_subscriptions', 'status')).toEqual([...SUBSCRIPTION_STATUSES])
     expect(tableCheck('business_subscriptions', 'provider')).toEqual([...BILLING_PROVIDERS])
     expect(tableCheck('billing_payments', 'status')).toEqual([...PAYMENT_STATUSES])
     expect(tableCheck('usage_ledger', 'transaction_type')).toEqual([...LEDGER_TRANSACTION_TYPES])
     expect(tableCheck('usage_ledger', 'state')).toEqual([...LEDGER_STATES])
-    // The database functions list the same features.
-    expect(billing).toContain(`p_feature not in (${FEATURE_KEYS.map((f) => `'${f}'`).join(', ')})`)
+    // The latest usage function lists the same features.
+    const featureLists = [...allMigrations.matchAll(/p_feature not in \(([^)]*)\)/g)]
+    expect([...featureLists.at(-1)![1].matchAll(/'([^']+)'/g)].map((m) => m[1])).toEqual([...FEATURE_KEYS])
     // Seeded plans: free + the purchasable plans, each with every feature.
     for (const slug of [FREE_PLAN_SLUG, ...PAID_PLAN_SLUGS]) {
       expect(billing).toMatch(new RegExp(`\\('${slug}', '`))
-      for (const feature of FEATURE_KEYS) expect(billing).toContain(`('${slug}', '${feature}', `)
+      for (const feature of FEATURE_KEYS) expect(allMigrations).toContain(`('${slug}', '${feature}', `)
     }
+  })
+
+  it('publishing lists (per table)', () => {
+    const publishing = read(migrationFiles.filter((f) => f.endsWith('_publishing.sql')))
+    const tableCheck = (table: string, column: string) => {
+      const start = publishing.indexOf(`create table public.${table} (`)
+      const block = publishing.slice(start, publishing.indexOf('\n);', start))
+      const found = new RegExp(`\\b${column} text\\b[^,]*?check \\(${column} in \\(([^)]*)\\)`).exec(block)
+      if (start < 0 || !found) throw new Error(`No check for ${table}.${column}`)
+      return [...found[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
+    }
+    expect(tableCheck('social_accounts', 'channel')).toEqual([...CHANNELS])
+    expect(tableCheck('publishing_jobs', 'channel')).toEqual([...CHANNELS])
+    expect(tableCheck('social_accounts', 'provider')).toEqual([...SOCIAL_PROVIDERS])
+    expect(tableCheck('social_accounts', 'status')).toEqual([...ACCOUNT_STATUSES])
+    expect(tableCheck('publishing_jobs', 'status')).toEqual([...JOB_STATUSES])
+    expect(tableCheck('publishing_jobs', 'publish_mode')).toEqual([...PUBLISH_MODES])
+    expect(tableCheck('publishing_jobs', 'error_code')).toEqual([...PUBLISHING_ERROR_CODES])
+    expect(tableCheck('whatsapp_messages', 'status')).toEqual([...WHATSAPP_MESSAGE_STATUSES])
+    expect(tableCheck('whatsapp_contacts', 'opt_in_source')).toEqual([...OPT_IN_SOURCES])
+    // The database's retry rule mirrors isRetryableError().
+    expect(publishing).toContain("p_error_code not in ('INVALID_MEDIA', 'INVALID_CONTENT', 'SCHEDULING_ERROR')")
   })
 
   it('every category has an English label', () => {

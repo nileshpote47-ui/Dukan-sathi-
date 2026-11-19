@@ -667,6 +667,338 @@ export type Database = {
           },
         ]
       }
+      social_accounts: {
+        Row: {
+          business_id: string
+          channel: string
+          connected_at: string
+          created_at: string
+          external_account_id: string
+          external_account_name: string | null
+          external_parent_id: string | null
+          id: string
+          last_checked_at: string | null
+          last_error_code: string | null
+          metadata: Json
+          owner_id: string
+          provider: string
+          scopes: string[]
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          channel: string
+          connected_at?: string
+          created_at?: string
+          external_account_id: string
+          external_account_name?: string | null
+          external_parent_id?: string | null
+          id?: string
+          last_checked_at?: string | null
+          last_error_code?: string | null
+          metadata?: Json
+          owner_id: string
+          provider: string
+          scopes?: string[]
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          channel?: string
+          connected_at?: string
+          created_at?: string
+          external_account_id?: string
+          external_account_name?: string | null
+          external_parent_id?: string | null
+          id?: string
+          last_checked_at?: string | null
+          last_error_code?: string | null
+          metadata?: Json
+          owner_id?: string
+          provider?: string
+          scopes?: string[]
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_accounts_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      publishing_jobs: {
+        Row: {
+          attempt_count: number
+          business_id: string
+          cancelled_at: string | null
+          caption: string
+          channel: string
+          content_item_id: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          external_post_id: string | null
+          external_url: string | null
+          id: string
+          last_attempt_at: string | null
+          media_asset_id: string | null
+          metadata: Json
+          next_attempt_at: string | null
+          owner_id: string
+          publish_mode: string
+          published_at: string | null
+          scheduled_for: string
+          social_account_id: string | null
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          usage_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          business_id: string
+          cancelled_at?: string | null
+          caption?: string
+          channel: string
+          content_item_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          external_post_id?: string | null
+          external_url?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          media_asset_id?: string | null
+          metadata?: Json
+          next_attempt_at?: string | null
+          owner_id: string
+          publish_mode: string
+          published_at?: string | null
+          scheduled_for?: string
+          social_account_id?: string | null
+          started_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          usage_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          business_id?: string
+          cancelled_at?: string | null
+          caption?: string
+          channel?: string
+          content_item_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          external_post_id?: string | null
+          external_url?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          media_asset_id?: string | null
+          metadata?: Json
+          next_attempt_at?: string | null
+          owner_id?: string
+          publish_mode?: string
+          published_at?: string | null
+          scheduled_for?: string
+          social_account_id?: string | null
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          usage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publishing_jobs_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "publishing_jobs_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publishing_jobs_social_account_id_fkey"
+            columns: ["social_account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publishing_jobs_media_asset_id_fkey"
+            columns: ["media_asset_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publishing_attempts: {
+        Row: {
+          attempt_no: number
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          job_id: string
+          outcome: string
+          owner_id: string
+          provider_ref: string | null
+          started_at: string
+        }
+        Insert: {
+          attempt_no: number
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          job_id: string
+          outcome?: string
+          owner_id: string
+          provider_ref?: string | null
+          started_at?: string
+        }
+        Update: {
+          attempt_no?: number
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          job_id?: string
+          outcome?: string
+          owner_id?: string
+          provider_ref?: string | null
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publishing_attempts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "publishing_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_contacts: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          name: string | null
+          opt_in_at: string
+          opt_in_source: string
+          opted_out_at: string | null
+          opted_out_by: string | null
+          owner_id: string
+          phone_e164: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          name?: string | null
+          opt_in_at?: string
+          opt_in_source: string
+          opted_out_at?: string | null
+          opted_out_by?: string | null
+          owner_id?: string
+          phone_e164: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          name?: string | null
+          opt_in_at?: string
+          opt_in_source?: string
+          opted_out_at?: string | null
+          opted_out_by?: string | null
+          owner_id?: string
+          phone_e164?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_contacts_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          job_id: string
+          owner_id: string
+          status: string
+          updated_at: string
+          wamid: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          job_id: string
+          owner_id: string
+          status: string
+          updated_at?: string
+          wamid?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          job_id?: string
+          owner_id?: string
+          status?: string
+          updated_at?: string
+          wamid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "publishing_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -726,6 +1058,88 @@ export type Database = {
           reserved: number
           used: number
         }[]
+      }
+      publishing_begin_attempt: { Args: { p_job_id: string; p_secret: string }; Returns: Json }
+      publishing_cancel_job: { Args: { p_job_id: string }; Returns: string | null }
+      publishing_claim_due: { Args: { p_limit: number; p_secret: string }; Returns: string[] }
+      publishing_complete_attempt: {
+        Args: {
+          p_account_status: string | null
+          p_attempt_id: string
+          p_error_code: string | null
+          p_error_message: string | null
+          p_external_id: string | null
+          p_external_url: string | null
+          p_messages: Json | null
+          p_metadata: Json | null
+          p_provider_ref: string | null
+          p_retry_in_seconds: number | null
+          p_secret: string
+          p_success: boolean
+        }
+        Returns: string
+      }
+      publishing_connect_account: {
+        Args: {
+          p_channel: string
+          p_ciphertext: string
+          p_external_id: string
+          p_metadata: Json
+          p_name: string
+          p_parent_id: string | null
+          p_provider: string
+          p_scopes: string[]
+          p_secret: string
+          p_token_expires_at: string | null
+        }
+        Returns: string
+      }
+      publishing_create_job: {
+        Args: {
+          p_account_id: string
+          p_allow_repeat: boolean
+          p_caption: string
+          p_content_id: string
+          p_media_asset_id: string | null
+          p_media_path: string | null
+          p_media_url: string | null
+          p_metadata: Json
+          p_payload: Json
+          p_scheduled_for: string | null
+          p_secret: string
+        }
+        Returns: string
+      }
+      publishing_disconnect_account: { Args: { p_account_id: string }; Returns: undefined }
+      publishing_get_credentials: {
+        Args: { p_account_id: string; p_secret: string }
+        Returns: {
+          channel: string
+          ciphertext: string
+          external_account_id: string
+          external_parent_id: string | null
+          metadata: Json
+          provider: string
+          status: string
+          token_expires_at: string | null
+        }[]
+      }
+      publishing_mark_account: {
+        Args: { p_account_id: string; p_error_code: string | null; p_secret: string; p_status: string }
+        Returns: undefined
+      }
+      publishing_process_whatsapp_webhook: {
+        Args: { p_event_hash: string; p_optouts: Json; p_phone_number_id: string; p_secret: string; p_statuses: Json }
+        Returns: string
+      }
+      publishing_retry_job: { Args: { p_job_id: string; p_media_url: string | null; p_secret: string }; Returns: undefined }
+      publishing_revoke_provider_user: {
+        Args: { p_provider: string; p_provider_user_id: string; p_secret: string }
+        Returns: number
+      }
+      publishing_update_credentials: {
+        Args: { p_account_id: string; p_ciphertext: string; p_secret: string; p_token_expires_at: string | null }
+        Returns: undefined
       }
     }
     Enums: {

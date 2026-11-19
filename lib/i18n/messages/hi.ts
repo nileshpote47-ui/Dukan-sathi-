@@ -115,4 +115,7 @@ export const hi: Partial<Messages> = {
   'billing.limit.ai_text_generation': 'आपकी इस महीने की AI कंटेंट सीमा पूरी हो गई है. कंटेंट बनाते रहने के लिए प्लान अपग्रेड करें.',
   'billing.viewPlans': 'प्लान देखें',
   'billing.state.free': 'मुफ़्त प्लान',
+  'billing.feature.social_publishing': 'प्रकाशित पोस्ट',
+  'billing.entitlement.social_publishing': 'हर महीने {n} पोस्ट या WhatsApp भेजना',
+  'billing.limit.social_publishing': 'आपकी इस महीने की प्रकाशन सीमा पूरी हो गई है। और प्रकाशित करने के लिए प्लान अपग्रेड करें।',
 }
