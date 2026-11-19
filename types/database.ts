@@ -1137,6 +1137,10 @@ export type Database = {
         Args: { p_provider: string; p_provider_user_id: string; p_secret: string }
         Returns: number
       }
+      publishing_whatsapp_recipients: {
+        Args: { p_job_id: string; p_secret: string }
+        Returns: { contact_id: string; phone_e164: string }[]
+      }
       publishing_update_credentials: {
         Args: { p_account_id: string; p_ciphertext: string; p_secret: string; p_token_expires_at: string | null }
         Returns: undefined

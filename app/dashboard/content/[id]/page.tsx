@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarClock, Clapperboard, ImageIcon, Pencil, Sparkles } from 'lucide-react'
+import { ArrowLeft, CalendarClock, Clapperboard, ImageIcon, Pencil, Send, Sparkles } from 'lucide-react'
 import { AICopyView } from '@/components/ai/ai-copy-view'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -6,14 +6,16 @@ import { notFound } from 'next/navigation'
 import { ContentStatusBadge, ContentTypeBadge } from '@/components/content/content-badges'
 import { ContentPreview } from '@/components/content/content-preview'
 import { DeleteContentButton } from '@/components/content/delete-content-button'
+import { JobCard } from '@/components/publishing/job-card'
 import { StatusActions } from '@/components/content/status-actions'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardTitle } from '@/components/ui/card'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
-import type { ContentStatus } from '@/lib/config/content'
+import { PUBLISHABLE_STATUSES, type ContentStatus } from '@/lib/config/content'
 import { isEditable } from '@/lib/content/status'
 import { getContentItem } from '@/lib/data/content'
 import { listMediaForContent } from '@/lib/data/media'
+import { listJobsForContent } from '@/lib/data/publishing'
 import { storyboardSchema } from '@/lib/validation/media'
 import { getTranslator } from '@/lib/i18n'
 import { formatDateTime, intlLocale } from '@/lib/utils/datetime'
@@ -28,7 +30,7 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
   const [{ business, profile }, item] = await Promise.all([requireOnboardedBusiness(), getContentItem(id)])
   // Not found and "belongs to someone else" look the same: no information leaks.
   if (!item) notFound()
-  const media = await listMediaForContent(item.id)
+  const [media, jobs] = await Promise.all([listMediaForContent(item.id), listJobsForContent(item.id, 5)])
   const storyboard = item.storyboard ? storyboardSchema.safeParse(item.storyboard) : null
 
   const t = getTranslator(profile?.preferred_language)
@@ -57,8 +59,14 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
           <h1 className="mt-2 text-2xl font-bold tracking-tight break-words sm:text-3xl">{item.title}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          {PUBLISHABLE_STATUSES.includes(status) && (
+            <Link href={`/dashboard/content/${item.id}/publish`} className={buttonVariants()}>
+              <Send aria-hidden className="size-4" />
+              {t('publishing.publishButton')}
+            </Link>
+          )}
           {isEditable(status) && (
-            <Link href={`/dashboard/content/${item.id}/edit`} className={buttonVariants()}>
+            <Link href={`/dashboard/content/${item.id}/edit`} className={buttonVariants({ variant: PUBLISHABLE_STATUSES.includes(status) ? 'secondary' : 'primary' })}>
               <Pencil aria-hidden className="size-4" />
               {t('content.edit')}
             </Link>
@@ -156,6 +164,16 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
             )}
           </Card>
           {status === 'SCHEDULED' && <p className="text-sm text-muted-foreground">{t('publishing.notice')}</p>}
+          <section aria-labelledby="publishing-history" className="flex flex-col gap-3">
+            <h2 id="publishing-history" className="text-base font-semibold">
+              {t('publishing.history')}
+            </h2>
+            {jobs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t('publishing.historyEmpty')}</p>
+            ) : (
+              jobs.map((job) => <JobCard key={job.id} job={job} t={t} locale={locale} showContent={false} />)
+            )}
+          </section>
         </div>
       </div>
     </>

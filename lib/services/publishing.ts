@@ -1,0 +1,321 @@
+import 'server-only'
+import { getBusiness, requireUser } from '@/lib/auth/dal'
+import { LIMIT_MESSAGES } from '@/lib/config/billing'
+import { CHANNEL_CONNECTOR, canPublishToday, isChannel, type Channel } from '@/lib/config/publishing'
+import { getContentItem } from '@/lib/data/content'
+import type { MessageKey } from '@/lib/i18n'
+import { validateDraft, type ValidationIssue } from '@/lib/publishing/compose'
+import { preparePublishingMedia, removePublishingMedia, resignPublishingMedia } from '@/lib/publishing/prepare-media'
+import { createClient } from '@/lib/supabase/server'
+import { istInputToIso } from '@/lib/utils/datetime'
+import { normalizePhone, type ContactInput, type PublishInput } from '@/lib/validation/publishing'
+import type { Json } from '@/types/database'
+import { saveConnectedAccounts } from '@/services/publishing/connect'
+import { decryptCredentials } from '@/services/publishing/crypto'
+import { isPublishingReady, serverSecret } from '@/services/publishing/env'
+import { getConnector, getPublisher } from '@/services/publishing/registry'
+import { runPublishingJob, type RunOutcome } from '@/services/publishing/runner'
+import { PublishingProviderError, type StoredCredentials, type WhatsAppTemplate } from '@/services/publishing/types'
+
+/*
+ * Publishing writes for the signed-in owner. Inputs are validated (Zod) by the Server Actions;
+ * here ownership is resolved from the session, channel rules and credits are checked, and the
+ * database functions make the final decision. Errors are friendly translation keys; details are
+ * logged on the server only.
+ */
+
+export type PublishServiceResult =
+  | { ok: true; jobId: string; outcome: RunOutcome | 'SCHEDULED' }
+  | { ok: false; error: MessageKey; issues?: ValidationIssue[] }
+
+const RPC_ERRORS: Record<string, MessageKey> = {
+  'publishing:duplicate': 'publishing.error.duplicate',
+  'publishing:already_published': 'publishing.error.alreadyPublished',
+  'publishing:content_not_ready': 'publishing.error.contentNotReady',
+  'publishing:content_not_found': 'errors.contentNotFound',
+  'publishing:account_not_found': 'publishing.error.ACCOUNT_NOT_CONNECTED',
+  'publishing:account_not_connected': 'publishing.error.ACCOUNT_NOT_CONNECTED',
+  'publishing:invalid_schedule': 'publishing.error.SCHEDULING_ERROR',
+  'publishing:media_not_found': 'publishing.error.INVALID_MEDIA',
+  'publishing:not_cancellable': 'publishing.error.notCancellable',
+  'publishing:not_retryable': 'publishing.error.notRetryable',
+  'billing:limit_reached': LIMIT_MESSAGES.social_publishing,
+}
+
+function rpcError(error: { code?: string; message: string }, what: string): MessageKey {
+  const known = Object.keys(RPC_ERRORS).find((k) => error.message.includes(k))
+  if (!known) console.error(`[publishing] ${what}`, error.code, error.message.slice(0, 120))
+  return known ? RPC_ERRORS[known] : 'errors.saveFailed'
+}
+
+async function ownerContext() {
+  const user = await requireUser()
+  const business = await getBusiness()
+  if (!business?.onboarding_completed_at) return null
+  return { user, business }
+}
+
+/** Decrypted credentials of one of the owner's accounts (server memory only). */
+async function accountCredentials(accountId: string): Promise<{ credentials: StoredCredentials; channel: Channel; provider: string; externalId: string; parentId: string | null } | null> {
+  const secret = serverSecret()
+  if (!secret) return null
+  const supabase = await createClient()
+  const { data } = await supabase.rpc('publishing_get_credentials', { p_secret: secret, p_account_id: accountId })
+  const row = data?.[0]
+  if (!row || !isChannel(row.channel)) return null
+  try {
+    return { credentials: decryptCredentials(row.ciphertext), channel: row.channel, provider: row.provider, externalId: row.external_account_id, parentId: row.external_parent_id }
+  } catch {
+    return null
+  }
+}
+
+/** Approved WhatsApp marketing templates of a connected number. */
+export async function listTemplatesForAccount(accountId: string): Promise<{ ok: true; templates: WhatsAppTemplate[] } | { ok: false; error: MessageKey }> {
+  const ctx = await ownerContext()
+  if (!ctx || !isPublishingReady()) return { ok: false, error: 'publishing.error.notConfigured' }
+  const account = await accountCredentials(accountId)
+  if (!account || account.channel !== 'WHATSAPP') return { ok: false, error: 'publishing.error.ACCOUNT_NOT_CONNECTED' }
+  try {
+    const publisher = getPublisher('WHATSAPP', account.provider)
+    const templates =
+      (await publisher.listWhatsAppTemplates?.(
+        { accountId, channel: 'WHATSAPP', externalId: account.externalId, parentId: account.parentId, metadata: {} },
+        account.credentials,
+      )) ?? []
+    return { ok: true, templates }
+  } catch (error) {
+    if (error instanceof PublishingProviderError) {
+      if (error.accountStatus) {
+        const supabase = await createClient()
+        await supabase.rpc('publishing_mark_account', { p_secret: serverSecret()!, p_account_id: accountId, p_status: error.accountStatus, p_error_code: error.code })
+      }
+      return { ok: false, error: `publishing.error.${error.code}` as MessageKey }
+    }
+    return { ok: false, error: 'publishing.error.PROVIDER_ERROR' }
+  }
+}
+
+export async function createPublication(input: PublishInput): Promise<PublishServiceResult> {
+  const ctx = await ownerContext()
+  if (!ctx) return { ok: false, error: 'errors.saveFailed' }
+  const secret = serverSecret()
+  if (!secret || !isPublishingReady()) return { ok: false, error: 'publishing.error.notConfigured' }
+  const { user, business } = ctx
+  const supabase = await createClient()
+
+  const item = await getContentItem(input.contentId)
+  if (!item) return { ok: false, error: 'errors.contentNotFound' }
+  if (!['READY', 'SCHEDULED', 'PUBLISHED'].includes(item.status)) return { ok: false, error: 'publishing.error.contentNotReady' }
+
+  const { data: account } = await supabase
+    .from('social_accounts')
+    .select('id, channel, provider, status')
+    .eq('owner_id', user.id)
+    .eq('id', input.accountId)
+    .maybeSingle()
+  if (!account || account.status !== 'CONNECTED' || !isChannel(account.channel)) return { ok: false, error: 'publishing.error.ACCOUNT_NOT_CONNECTED' }
+  const channel = account.channel
+  if (!canPublishToday(channel)) return { ok: false, error: 'publishing.validation.needsVideo' }
+
+  let scheduledFor: Date | null = null
+  if (input.mode === 'schedule') {
+    const iso = input.scheduledFor ? istInputToIso(input.scheduledFor) : null
+    if (!iso) return { ok: false, error: 'publishing.error.SCHEDULING_ERROR' }
+    scheduledFor = new Date(iso)
+  }
+
+  let media: { width: number; height: number; mimeType: string } | null = null
+  if (input.mediaAssetId) {
+    const { data: asset } = await supabase
+      .from('media_assets')
+      .select('width, height, mime_type')
+      .eq('owner_id', user.id)
+      .eq('id', input.mediaAssetId)
+      .eq('status', 'READY')
+      .maybeSingle()
+    if (!asset?.width || !asset.height || !asset.mime_type) return { ok: false, error: 'publishing.error.INVALID_MEDIA' }
+    media = { width: asset.width, height: asset.height, mimeType: asset.mime_type }
+  }
+
+  // WhatsApp: an approved template of this number + opted-in customers of this business only.
+  let template: WhatsAppTemplate | null = null
+  let contactIds: string[] = []
+  if (channel === 'WHATSAPP') {
+    if (!input.whatsapp) return { ok: false, error: 'publishing.validation.chooseTemplate' }
+    const templates = await listTemplatesForAccount(account.id)
+    if (!templates.ok) return { ok: false, error: templates.error }
+    template = templates.templates.find((t) => t.name === input.whatsapp!.templateName && t.language === input.whatsapp!.language) ?? null
+    if (!template) return { ok: false, error: 'publishing.validation.chooseTemplate' }
+    const { data: contacts } = await supabase
+      .from('whatsapp_contacts')
+      .select('id')
+      .eq('owner_id', user.id)
+      .eq('business_id', business.id)
+      .is('opted_out_at', null)
+      .in('id', input.whatsapp.contactIds)
+    contactIds = (contacts ?? []).map((c) => c.id)
+    if (contactIds.length !== new Set(input.whatsapp.contactIds).size) return { ok: false, error: 'publishing.error.recipientsChanged' }
+  }
+
+  const issues = validateDraft({
+    channel,
+    caption: input.caption,
+    media,
+    scheduledFor,
+    whatsapp: template
+      ? { templateChosen: true, params: input.whatsapp!.params, paramCount: template.bodyParamCount, recipients: contactIds.length, needsImage: template.imageHeader }
+      : null,
+  })
+  if (issues.length) return { ok: false, error: 'publishing.error.fixIssues', issues }
+
+  // Picture → JPEG in the owner's folder + signed link valid until the post is due.
+  let prepared = null
+  const needsMedia = input.mediaAssetId && (channel !== 'WHATSAPP' || template?.imageHeader)
+  if (needsMedia) {
+    const result = await preparePublishingMedia({ ownerId: user.id, assetId: input.mediaAssetId!, publishAt: scheduledFor ?? new Date() })
+    if (!result.ok) return { ok: false, error: result.reason === 'storage' ? 'errors.saveFailed' : 'publishing.error.INVALID_MEDIA' }
+    prepared = result.media
+  }
+
+  const { data: jobId, error } = await supabase.rpc('publishing_create_job', {
+    p_secret: secret,
+    p_content_id: item.id,
+    p_account_id: account.id,
+    p_scheduled_for: scheduledFor?.toISOString() ?? null,
+    p_caption: channel === 'WHATSAPP' ? '' : input.caption.trim(),
+    p_media_asset_id: needsMedia ? input.mediaAssetId! : null,
+    p_media_url: prepared?.url ?? null,
+    p_media_path: prepared?.path ?? null,
+    p_payload: {
+      ...(template
+        ? { whatsapp: { name: template.name, language: template.language, bodyParams: input.whatsapp!.params.map((p) => p.trim()), imageHeader: template.imageHeader }, contact_ids: contactIds }
+        : {}),
+      business: { website: business.website_url, phone: business.whatsapp_number || business.phone },
+      language: item.language,
+    } as Json,
+    p_metadata: {
+      ...(prepared ? { media_path: prepared.path, media_width: prepared.width, media_height: prepared.height } : {}),
+      ...(template ? { template: template.name, recipients: contactIds.length } : {}),
+    } as Json,
+    p_allow_repeat: input.allowRepeat ?? false,
+  })
+  if (error || !jobId) {
+    await removePublishingMedia(prepared?.path, user.id)
+    return { ok: false, error: error ? rpcError(error, 'create job') : 'errors.saveFailed' }
+  }
+  console.info('[publishing] job created', { job: jobId, channel, mode: input.mode })
+
+  if (input.mode === 'schedule') return { ok: true, jobId, outcome: 'SCHEDULED' }
+  try {
+    const outcome = await runPublishingJob(jobId)
+    return { ok: true, jobId, outcome }
+  } catch {
+    // The job exists; the scheduler resolves it (or marks it unknown) — the owner sees its status.
+    return { ok: true, jobId, outcome: 'QUEUED' }
+  }
+}
+
+export async function cancelPublication(jobId: string): Promise<{ ok: true } | { ok: false; error: MessageKey }> {
+  const ctx = await ownerContext()
+  if (!ctx) return { ok: false, error: 'errors.saveFailed' }
+  const supabase = await createClient()
+  const { data: path, error } = await supabase.rpc('publishing_cancel_job', { p_job_id: jobId })
+  if (error) return { ok: false, error: rpcError(error, 'cancel') }
+  await removePublishingMedia(path, ctx.user.id)
+  return { ok: true }
+}
+
+export async function retryPublication(jobId: string): Promise<{ ok: true; outcome: RunOutcome } | { ok: false; error: MessageKey }> {
+  const ctx = await ownerContext()
+  const secret = serverSecret()
+  if (!ctx || !secret) return { ok: false, error: 'publishing.error.notConfigured' }
+  const supabase = await createClient()
+  const { data: job } = await supabase.from('publishing_jobs').select('metadata').eq('owner_id', ctx.user.id).eq('id', jobId).maybeSingle()
+  if (!job) return { ok: false, error: 'publishing.error.jobNotFound' }
+  const mediaPath = (job.metadata as { media_path?: unknown } | null)?.media_path
+  // A fresh link for the prepared picture (the old one may have expired).
+  const mediaUrl = typeof mediaPath === 'string' ? await resignPublishingMedia(mediaPath, ctx.user.id, new Date()) : null
+  const { error } = await supabase.rpc('publishing_retry_job', { p_secret: secret, p_job_id: jobId, p_media_url: mediaUrl })
+  if (error) return { ok: false, error: rpcError(error, 'retry') }
+  try {
+    return { ok: true, outcome: await runPublishingJob(jobId) }
+  } catch {
+    return { ok: true, outcome: 'QUEUED' }
+  }
+}
+
+export async function disconnectAccount(accountId: string): Promise<{ ok: true } | { ok: false; error: MessageKey }> {
+  const ctx = await ownerContext()
+  if (!ctx) return { ok: false, error: 'errors.saveFailed' }
+  const supabase = await createClient()
+  // Revoke at the provider where supported (Google); Meta access is removed by the owner in
+  // Facebook settings because one login covers several Pages.
+  const account = await accountCredentials(accountId)
+  if (account && account.provider !== 'mock') {
+    const connector = getConnector(CHANNEL_CONNECTOR[account.channel])
+    await connector.revoke?.(account.credentials).catch(() => undefined)
+  }
+  const { error } = await supabase.rpc('publishing_disconnect_account', { p_account_id: accountId })
+  if (error) return { ok: false, error: error.message.includes('account_not_found') ? 'publishing.error.ACCOUNT_NOT_CONNECTED' : 'errors.saveFailed' }
+  return { ok: true }
+}
+
+export async function completeWhatsAppSignup(input: { code: string; wabaId: string; phoneNumberId: string }): Promise<{ ok: true; count: number } | { ok: false; error: MessageKey }> {
+  const ctx = await ownerContext()
+  if (!ctx || !isPublishingReady()) return { ok: false, error: 'publishing.error.notConfigured' }
+  const connector = getConnector('whatsapp')
+  if (!connector.isConfigured() || !connector.completeEmbeddedSignup) return { ok: false, error: 'publishing.error.notConfigured' }
+  try {
+    const accounts = await connector.completeEmbeddedSignup(input)
+    const count = await saveConnectedAccounts(accounts)
+    return count ? { ok: true, count } : { ok: false, error: 'errors.saveFailed' }
+  } catch (error) {
+    console.error('[publishing] whatsapp signup failed', { code: error instanceof PublishingProviderError ? error.code : 'unknown' })
+    return { ok: false, error: 'publishing.accounts.connectFailed' }
+  }
+}
+
+export async function addWhatsAppContact(input: ContactInput): Promise<{ ok: true } | { ok: false; error: MessageKey }> {
+  const ctx = await ownerContext()
+  if (!ctx) return { ok: false, error: 'errors.saveFailed' }
+  const phone = normalizePhone(input.phone)
+  if (!phone) return { ok: false, error: 'publishing.contacts.invalidPhone' }
+  const supabase = await createClient()
+  const { error } = await supabase.from('whatsapp_contacts').insert({
+    business_id: ctx.business.id,
+    owner_id: ctx.user.id,
+    phone_e164: phone,
+    name: input.name.trim(),
+    opt_in_source: input.optInSource,
+    opt_in_at: new Date().toISOString(),
+  })
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: 'publishing.contacts.duplicate' }
+    console.error('[publishing] add contact', error.code)
+    return { ok: false, error: 'errors.saveFailed' }
+  }
+  return { ok: true }
+}
+
+/** The owner records that a customer no longer wants messages (or removes them). */
+export async function optOutWhatsAppContact(contactId: string): Promise<{ ok: true } | { ok: false; error: MessageKey }> {
+  const ctx = await ownerContext()
+  if (!ctx) return { ok: false, error: 'errors.saveFailed' }
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('whatsapp_contacts')
+    .update({ opted_out_at: new Date().toISOString(), opted_out_by: 'owner' })
+    .eq('owner_id', ctx.user.id)
+    .eq('id', contactId)
+    .is('opted_out_at', null)
+  return error ? { ok: false, error: 'errors.saveFailed' } : { ok: true }
+}
+
+export async function deleteWhatsAppContact(contactId: string): Promise<{ ok: true } | { ok: false; error: MessageKey }> {
+  const ctx = await ownerContext()
+  if (!ctx) return { ok: false, error: 'errors.saveFailed' }
+  const supabase = await createClient()
+  const { error } = await supabase.from('whatsapp_contacts').delete().eq('owner_id', ctx.user.id).eq('id', contactId)
+  return error ? { ok: false, error: 'errors.saveFailed' } : { ok: true }
+}

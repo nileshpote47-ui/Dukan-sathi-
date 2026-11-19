@@ -16,6 +16,9 @@ export const PUBLIC_ROUTES = [
   '/pricing',
   // Payment provider webhooks: called by the provider (no session); verified by signature.
   '/api/billing/webhooks',
+  // Publishing scheduler (pg_cron, server secret) and Meta webhooks (app-secret signature).
+  '/api/publishing/run',
+  '/api/webhooks',
 ] as const
 
 /** Signed-in users visiting these are sent to the dashboard. */
