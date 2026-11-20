@@ -1,4 +1,5 @@
 import { CHANNEL_RULES, PUBLISHING_LIMITS, canPublishToday, type Channel } from '@/lib/config/publishing'
+import { ownerFactLines } from '@/lib/content/owner-facts'
 import type { MessageKey } from '@/lib/i18n'
 import type { AIContentResponse } from '@/services/ai/types'
 
@@ -21,9 +22,16 @@ const clean = (value: string | null | undefined) => value?.trim() || ''
 
 /** A ready-to-edit caption from the saved AI copy, or from the owner's own details when there is none. */
 export function defaultCaption(channel: Channel, item: ContentForCaption, copy: AIContentResponse | null): string {
-  const parts = copy
-    ? [clean(copy.headline), clean(copy.primary_text), clean(copy.short_text), clean(copy.call_to_action)]
-    : [clean(item.product_name) || clean(item.title), clean(item.offer_text), clean(item.price), clean(item.description), clean(item.call_to_action)]
+  let parts: string[]
+  if (copy) {
+    // The owner's product, offer and price always appear exactly as typed: added after the AI
+    // text only when the AI did not already include them (nothing duplicated, nothing invented).
+    const aiText = [clean(copy.headline), clean(copy.primary_text), clean(copy.short_text)].filter(Boolean)
+    const facts = ownerFactLines(item, aiText.join('\n')).join('\n')
+    parts = [...aiText, facts, clean(copy.call_to_action) || clean(item.call_to_action)]
+  } else {
+    parts = [clean(item.product_name) || clean(item.title), clean(item.offer_text), clean(item.price), clean(item.description), clean(item.call_to_action)]
+  }
   let caption = parts.filter(Boolean).join('\n\n')
   // Hashtags help on Instagram/Facebook; Google Business Profile and WhatsApp do not use them.
   if (copy?.hashtags?.length && (channel === 'INSTAGRAM' || channel === 'FACEBOOK')) caption += `\n\n${copy.hashtags.join(' ')}`

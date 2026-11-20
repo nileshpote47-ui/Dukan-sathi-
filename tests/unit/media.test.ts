@@ -147,8 +147,24 @@ describe('poster defaults (only the owner’s data)', () => {
   it('uses the saved AI copy first, then the content request', () => {
     const d = posterDefaults(item, { headline: 'Naya phone aaya', primary_text: 'Aaj hi dekhiye', call_to_action: 'Aaiye' }, business)
     expect(d).toMatchObject({ template: 'basic', aspectRatio: '4:5' })
-    expect(d.texts).toEqual({ headline: 'Naya phone aaya', body: 'Aaj hi dekhiye', badge: '', cta: 'Aaiye', businessName: 'Sai Mobile Point', footer: 'Shirur · 9876543210' })
+    // The owner's product name was not in the AI text, so it leads the body word for word.
+    expect(d.texts).toEqual({ headline: 'Naya phone aaya', body: 'Smartphone\nAaj hi dekhiye', badge: '', cta: 'Aaiye', businessName: 'Sai Mobile Point', footer: 'Shirur · 9876543210' })
     expect(posterDefaults(item, null, business).texts).toMatchObject({ headline: 'New smartphone', body: '', cta: 'Call us' })
+  })
+
+  it('always shows the owner’s product, offer and price word for word, without duplicates', () => {
+    const offer = { ...item, content_type: 'OFFER', product_name: 'Kaju katli', offer_text: 'Buy 1 kg, get 250 g free on every box', price: '₹800/kg' }
+    // AI copy that reworded everything: all three facts come back exactly as typed, before the AI text.
+    const reworded = posterDefaults(offer, { headline: 'Diwali special', primary_text: 'Fresh sweets for your family' }, business).texts
+    expect(reworded.badge).toBe('₹800/kg')
+    expect(reworded.body).toBe('Kaju katli\nBuy 1 kg, get 250 g free on every box\nFresh sweets for your family')
+    // AI copy that already used them (any letter case): nothing is repeated.
+    const faithful = posterDefaults(offer, { headline: 'KAJU KATLI at ₹800/kg', primary_text: 'Buy 1 kg, get 250 g  free on every box. Fresh every day' }, business).texts
+    expect(faithful.body).toBe('Buy 1 kg, get 250 g  free on every box. Fresh every day')
+    // A long AI text is shortened, never the owner's facts.
+    const long = posterDefaults(offer, { headline: 'Sale', primary_text: 'word '.repeat(200) }, business).texts
+    expect(long.body.startsWith('Kaju katli\nBuy 1 kg, get 250 g free on every box\n')).toBe(true)
+    expect(long.body.length).toBeLessThanOrEqual(400)
   })
 
   it('shows a badge only for the owner’s own short price/offer, and picks a matching template', () => {

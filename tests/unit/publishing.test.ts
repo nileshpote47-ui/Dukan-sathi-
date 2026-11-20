@@ -222,7 +222,15 @@ describe('channel validation', () => {
   it('builds captions from saved AI copy (hashtags only where they help) within limits', () => {
     const item = { title: 'Diwali', product_name: 'Sweets', offer_text: '10% off', description: null, call_to_action: null, price: null }
     const copy = { headline: 'Diwali sweets', primary_text: 'Fresh every day.', call_to_action: 'Visit today', hashtags: ['#Diwali', '#Pune'] }
-    expect(defaultCaption('INSTAGRAM', item, copy)).toBe('Diwali sweets\n\nFresh every day.\n\nVisit today\n\n#Diwali #Pune')
+    // The AI copy left out the owner's offer: it is added exactly as typed (product already present).
+    expect(defaultCaption('INSTAGRAM', item, copy)).toBe('Diwali sweets\n\nFresh every day.\n\n🎁 10% off\n\nVisit today\n\n#Diwali #Pune')
+    // Already in the AI text: not repeated.
+    expect(defaultCaption('FACEBOOK', item, { ...copy, primary_text: 'Fresh every day, now 10% OFF.' })).not.toContain('🎁')
+    // Every owner fact missing from the AI text comes back, in a fixed order, and the owner's own CTA is used when the AI gave none.
+    const full = { ...item, product_name: 'Kaju katli', price: '₹800/kg', call_to_action: 'Call 98765' }
+    expect(defaultCaption('FACEBOOK', full, { headline: 'Diwali special', primary_text: 'Fresh sweets.' })).toBe(
+      'Diwali special\n\nFresh sweets.\n\n🛍️ Kaju katli\n🎁 10% off\n💰 ₹800/kg\n\nCall 98765',
+    )
     expect(defaultCaption('GOOGLE_BUSINESS_PROFILE', item, copy)).not.toContain('#Diwali')
     expect(defaultCaption('FACEBOOK', item, null)).toBe('Sweets\n\n10% off')
     expect(defaultCaption('GOOGLE_BUSINESS_PROFILE', { ...item, description: 'x'.repeat(3000) }, null).length).toBe(CHANNEL_RULES.GOOGLE_BUSINESS_PROFILE.maxCaption)
