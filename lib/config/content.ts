@@ -54,8 +54,8 @@ export const PUBLISHABLE_STATUSES: readonly ContentStatus[] = ['READY', 'SCHEDUL
 /** Dashboard quick actions, in display order. Each opens /dashboard/create?type=<TYPE>. */
 export const QUICK_ACTION_TYPES: readonly ContentType[] = ['POST', 'OFFER', 'POSTER', 'REEL', 'WHATSAPP']
 
-/** Dashboard composer: what one sentence can become in a tap (AI text types only). */
-export const QUICK_CREATE_TYPES = ['POST', 'OFFER', 'FESTIVAL', 'WHATSAPP'] as const satisfies readonly ContentType[]
+/** Dashboard composer: what one sentence can become in a tap (each is an AI text type: reel script, poster text, ...). */
+export const QUICK_CREATE_TYPES = ['REEL', 'POSTER', 'WHATSAPP', 'POST', 'OFFER', 'FESTIVAL'] as const satisfies readonly ContentType[]
 export type QuickCreateType = (typeof QUICK_CREATE_TYPES)[number]
 export const QUICK_CREATE_BRIEF_MAX = 600
 

@@ -13,7 +13,7 @@ import { useI18n } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils/cn'
 
 /*
- * Dashboard composer: "What do you want to sell today?". The owner writes one sentence (or taps
+ * Dashboard composer: "What shall we make today: a reel, a poster or a WhatsApp status?". The owner writes one sentence (or taps
  * an example), picks what it becomes and the language, and one tap creates the draft with AI
  * copy. AI runs only on this explicit tap; the server checks plan and burst limits.
  */

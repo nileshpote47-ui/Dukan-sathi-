@@ -100,7 +100,7 @@ test.describe('with test users', () => {
 
     // Dashboard
     await expect(page).toHaveURL(/\/dashboard$/)
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('What do you want to sell today?')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('What shall we make today: a reel, a poster or a WhatsApp status?')
     await expect(page.getByRole('main').getByText('Shree Ganesh Kirana', { exact: true }).first()).toBeVisible()
     await expect(page.getByRole('progressbar', { name: 'Profile completion' })).toBeVisible()
     // Business summary lives on the business card in the menu (phone: "More").

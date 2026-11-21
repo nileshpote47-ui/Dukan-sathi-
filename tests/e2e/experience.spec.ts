@@ -18,9 +18,10 @@ test.afterAll(async () => {
 test('dashboard composer: example sentence → Marathi offer with AI copy, owner words kept', async ({ page }) => {
   const errors = trackPageErrors(page)
   await login(page, users.a)
-  await expect(page.getByRole('heading', { name: 'What do you want to sell today?', level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'What shall we make today: a reel, a poster or a WhatsApp status?', level: 1 })).toBeVisible()
   await expect(page.getByText(/AI posts left this month/)).toBeVisible()
 
+  for (const choice of ['Reel', 'Poster', 'WhatsApp']) await expect(page.getByRole('button', { name: choice, exact: true })).toBeVisible()
   const make = page.getByRole('button', { name: 'Make it' })
   await expect(make).toBeDisabled() // nothing written yet
   await page.getByRole('button', { name: 'Diwali offer' }).click()

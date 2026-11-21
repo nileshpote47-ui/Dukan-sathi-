@@ -1124,7 +1124,7 @@ export const en = {
   'admin.sys.billingWebhookFailures': 'Payment webhook failures',
   'admin.sys.audit': 'Recent admin views (audit log)',
   // UX refresh, stage 1 (dashboard composer, grouped navigation, write-with-AI)
-  'dashboard.ask': 'What do you want to sell today?',
+  'dashboard.ask': 'What shall we make today: a reel, a poster or a WhatsApp status?',
   'dashboard.quota': '{remaining} of {limit} AI posts left this month',
   'dashboard.seeUsage': 'See this month\'s usage',
   'greetingShort.morning': 'Good morning',

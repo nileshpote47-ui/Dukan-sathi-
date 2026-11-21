@@ -23,7 +23,7 @@ Never mark a future phase complete. Never repeat a completed phase.
 **Status: IN PROGRESS.** Stage 1 **COMPLETED** (2026-11-21); stages 2–3 planned. Details: [docs/PHASE_9.md](docs/PHASE_9.md).
 
 ### Stage 1 — completed features
-- Dashboard composer "What do you want to sell today?": one sentence (or example) → draft + AI copy in one tap, type and language cards, remaining AI posts shown; draft kept if AI fails
+- Dashboard composer "What shall we make today: a reel, a poster or a WhatsApp status?": one sentence (or example) → reel script, poster text, WhatsApp message, post, offer or festival copy in one tap, type and language cards, remaining AI posts shown; draft kept if AI fails
 - "Write with AI" directly on the content page
 - Grouped navigation (Create content / Reach customers / My shop), business card, attention bell (failed posts, accounts to reconnect)
 - Devanagari fonts (Mukta, Baloo 2, self-hosted), illustrated tool cards, compact profile strip and plan card

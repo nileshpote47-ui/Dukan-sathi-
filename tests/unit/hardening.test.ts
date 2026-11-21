@@ -105,7 +105,7 @@ describe('dashboard composer', () => {
 
   it('accepts only real sentences, allowed types and languages; ignores owner ids from the client', () => {
     expect(quickCreateSchema.safeParse({ brief: 'abc', content_type: 'POST', language: 'mr' }).success).toBe(false)
-    expect(quickCreateSchema.safeParse({ brief: 'Fresh rice today', content_type: 'POSTER', language: 'mr' }).success).toBe(false)
+    expect(quickCreateSchema.safeParse({ brief: 'Fresh rice today', content_type: 'OTHER', language: 'mr' }).success).toBe(false)
     expect(quickCreateSchema.safeParse({ brief: 'Fresh rice today', content_type: 'POST', language: 'xx' }).success).toBe(false)
     const ok = quickCreateSchema.safeParse({ brief: 'Fresh rice today', content_type: 'OFFER', language: 'hi', owner_id: 'evil' })
     expect(ok.success && !('owner_id' in ok.data)).toBe(true)

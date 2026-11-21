@@ -45,7 +45,7 @@ test('dashboard starts empty with real zero counts and quick actions', async ({ 
   const errors = trackPageErrors(page)
   await login(page, users.a)
   await expect(page).toHaveURL(/\/dashboard$/)
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('What do you want to sell today?')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('What shall we make today: a reel, a poster or a WhatsApp status?')
   await expect(page.getByRole('main').getByText('Shree Ganesh Kirana', { exact: true }).first()).toBeVisible()
   for (const label of ['Create Post', 'Create Offer', 'Create Poster', 'Create Reel', 'Create WhatsApp Content']) {
     await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible()

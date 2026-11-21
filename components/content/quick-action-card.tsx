@@ -21,7 +21,7 @@ export function QuickActionCard({ type, t }: { type: ContentType; t: Translate }
       href={`/dashboard/create?type=${type}`}
       className="group flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-2.5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md focus-visible:outline-2 focus-visible:outline-ring"
     >
-      <span className={cn('flex aspect-[16/9] items-center justify-center rounded-xl', ART[type] ?? 'bg-muted text-primary')}>
+      <span className={cn('flex aspect-[16/9] max-h-28 w-full items-center justify-center rounded-xl', ART[type] ?? 'bg-muted text-primary')}>
         <Icon aria-hidden className="size-9 transition group-hover:scale-110" strokeWidth={1.6} />
       </span>
       <span className="flex items-center justify-between gap-2 px-1.5 pb-1 font-display font-bold leading-tight">

@@ -303,7 +303,7 @@ export const hi: Partial<Messages> = {
   'errors.reference': 'संदर्भ: {code}',
   'publishing.accounts.error.rate_limited': 'जोड़ने के बहुत ज़्यादा प्रयास हुए. कृपया कुछ मिनट रुककर फिर से कोशिश करें.',
   // UX refresh, stage 1 (dashboard composer, grouped navigation, write-with-AI)
-  'dashboard.ask': 'आज क्या बेचना है?',
+  'dashboard.ask': 'आज क्या बनाएं: रील, पोस्टर या WhatsApp स्टेटस?',
   'dashboard.quota': 'इस महीने {limit} में से {remaining} AI पोस्ट बाकी',
   'dashboard.seeUsage': 'इस महीने का उपयोग देखें',
   'greetingShort.morning': 'सुप्रभात',

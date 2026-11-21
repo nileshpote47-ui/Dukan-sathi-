@@ -10,8 +10,8 @@ Requested after launch readiness (Phase 8). Based on a study of a comparable cre
 
 ## Stage 1 — what changed
 
-### Dashboard: "What do you want to sell today?"
-- The page opens with one question and a composer (`components/dashboard/composer.tsx`): the owner writes one sentence in their own words or taps an example (Diwali offer, new stock, festival wishes, home delivery; text in en/mr/hi), chooses what it becomes (Post / Offer / Festival / WhatsApp) and the language on cards that show a sample line in that language.
+### Dashboard: "What shall we make today: a reel, a poster or a WhatsApp status?"
+- The page opens with one question and a composer (`components/dashboard/composer.tsx`): the owner writes one sentence in their own words or taps an example (Diwali offer, new stock, festival wishes, home delivery; text in en/mr/hi), chooses what it becomes (Reel script / Poster text / WhatsApp / Post / Offer / Festival) and the language on cards that show a sample line in that language.
 - **Make it** runs `quickCreateWithAI` (`app/dashboard/content/ai-actions.ts`): validates (`quickCreateSchema`), creates a draft (title = first clause of the sentence, `lib/content/quick-title.ts`; the full sentence is kept as the description, word for word), then one AI generation through the shared `generateCopy` (`lib/services/ai-content.ts`: own business resolved on the server, plan limit + burst limit via `withUsage`). The owner lands on the content page with a "Your post is ready" confirmation. If the AI step fails (limit reached, provider down) the draft is kept and the message links to it.
 - Remaining AI posts this month are shown under the heading and next to the button (from the Phase 5 usage summary; nothing is estimated).
 - Below: a compact profile-completion strip, illustrated tool cards, recent content, content counts, and the plan with usage folded into "See this month's usage".
