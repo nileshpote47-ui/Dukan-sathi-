@@ -73,3 +73,59 @@ describe('public routes, robots and sitemap', () => {
     expect(urls.every((url) => url.startsWith(publicSiteUrl()))).toBe(true)
   })
 })
+
+// ---------------------------------------------------------------------------
+import { quickCreateFormInput, titleFromBrief, QUICK_TITLE_MAX } from '@/lib/content/quick-title'
+import { QUICK_CREATE_EXAMPLES, QUICK_CREATE_TYPES } from '@/lib/config/content'
+import { DASHBOARD_NAV, NAV_GROUPS } from '@/lib/config/navigation'
+import { LANGUAGES } from '@/lib/config/languages'
+import { contentFormSchema, quickCreateSchema } from '@/lib/validation/content'
+import { en } from '@/lib/i18n/messages/en'
+import { hi } from '@/lib/i18n/messages/hi'
+import { mr } from '@/lib/i18n/messages/mr'
+
+describe('dashboard composer', () => {
+  it('titles a draft with the first clause of the owner’s own words', () => {
+    expect(titleFromBrief('दिवाळीसाठी सर्व सुक्या मेव्यावर 20% सूट, काजू ₹899/किलो')).toBe('दिवाळीसाठी सर्व सुक्या मेव्यावर 20% सूट')
+    expect(titleFromBrief('  New stock arrived: fresh rice ')).toBe('New stock arrived')
+    expect(titleFromBrief('Hi, fresh vegetables daily')).toBe('Hi')
+    const long = titleFromBrief('word '.repeat(60))
+    expect(long.length).toBeLessThanOrEqual(QUICK_TITLE_MAX)
+    expect(long.endsWith('…')).toBe(true)
+  })
+
+  it('builds a content form input the server accepts for every composer type and language', () => {
+    for (const type of QUICK_CREATE_TYPES)
+      for (const lang of LANGUAGES) {
+        const parsed = contentFormSchema.safeParse(quickCreateFormInput('20% off all dry fruits for Diwali, cashews ₹899/kg', type, lang.code))
+        expect(parsed.success).toBe(true)
+        expect(parsed.data?.description).toBe('20% off all dry fruits for Diwali, cashews ₹899/kg')
+      }
+  })
+
+  it('accepts only real sentences, allowed types and languages; ignores owner ids from the client', () => {
+    expect(quickCreateSchema.safeParse({ brief: 'abc', content_type: 'POST', language: 'mr' }).success).toBe(false)
+    expect(quickCreateSchema.safeParse({ brief: 'Fresh rice today', content_type: 'POSTER', language: 'mr' }).success).toBe(false)
+    expect(quickCreateSchema.safeParse({ brief: 'Fresh rice today', content_type: 'POST', language: 'xx' }).success).toBe(false)
+    const ok = quickCreateSchema.safeParse({ brief: 'Fresh rice today', content_type: 'OFFER', language: 'hi', owner_id: 'evil' })
+    expect(ok.success && !('owner_id' in ok.data)).toBe(true)
+  })
+
+  it('every example, type and language card is translated in English, Marathi and Hindi', () => {
+    for (const { key, type } of QUICK_CREATE_EXAMPLES) {
+      expect(QUICK_CREATE_TYPES).toContain(type)
+      for (const dict of [en, mr, hi] as Record<string, string>[]) {
+        expect(dict[`composer.example.${key}`]).toBeTruthy()
+        expect(dict[`composer.chip.${key}`]).toBeTruthy()
+      }
+    }
+    for (const lang of LANGUAGES) expect(lang.sample.length).toBeGreaterThan(3)
+  })
+
+  it('navigation groups cover every item, in order, with labels', () => {
+    for (const item of DASHBOARD_NAV) expect(NAV_GROUPS).toContain(item.group)
+    const order = DASHBOARD_NAV.map((item) => NAV_GROUPS.indexOf(item.group))
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+    for (const group of NAV_GROUPS.filter((g) => g !== 'home')) expect((en as Record<string, string>)[`nav.group.${group}`]).toBeTruthy()
+  })
+})
