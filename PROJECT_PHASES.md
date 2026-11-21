@@ -48,7 +48,7 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Env: `OPENAI_API_KEY` (set in Vercel, Sensitive); optional `DIRECT_POSTER_PROVIDER`, `DIRECT_POSTER_MODEL`
 
 ### Premium plan (2026-11-21)
-- ₹999/month: AI texts 1500, AI posters 120, AI pictures 80, saved posters 1000, reels 200, posts 600 (migration `20261121160000_premium_plan.sql`); needs `RAZORPAY_PLAN_PREMIUM` for payments
+- ₹999/month: AI texts 1500, AI posters 120, AI pictures 80, saved posters 1000, reels 200, posts 600 (migration `20261121160050_premium_plan.sql`); needs `RAZORPAY_PLAN_PREMIUM` for payments
 
 ### Next
 - Stage 2: ideas for today (festival calendar), weekly progress, real template previews

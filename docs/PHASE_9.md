@@ -58,7 +58,7 @@ No database migration; no new environment variables; no new paid API. AI still r
 
 ## Premium plan (owner's request, 2026-11-21)
 
-₹999/month, listed after Growth (migration `20261121160000_premium_plan.sql`). Limits chosen for value against AI cost: features that cost almost nothing per use are generous; the two that cost real money (~₹3.5 each) are capped so even a month of full use stays within the price.
+₹999/month, listed after Growth (migration `20261121160050_premium_plan.sql`). Limits chosen for value against AI cost: features that cost almost nothing per use are generous; the two that cost real money (~₹3.5 each) are capped so even a month of full use stays within the price.
 
 | Feature | Free | Starter ₹199 | Growth ₹499 | **Premium ₹999** |
 |---|---|---|---|---|
