@@ -17,6 +17,7 @@ import { getTranslator } from '@/lib/i18n'
 import { defaultCaption, isSchedulableDate } from '@/lib/publishing/compose'
 import { isoToIstInput } from '@/lib/utils/datetime'
 import { generatedCopySchema, hasGeneratedCopy } from '@/services/ai/output'
+import { needsReview } from '@/lib/services/publishing'
 
 export const metadata: Metadata = { title: 'Publish' }
 
@@ -74,7 +75,7 @@ export default async function PublishPage({ params }: PageProps<'/dashboard/cont
         accounts={options}
         captions={captions}
         media={media
-          .filter((m) => m.url && m.width && m.height)
+          .filter((m) => m.url && m.width && m.height && !needsReview(m.metadata))
           .map((m) => ({ id: m.id, url: m.url!, width: m.width!, height: m.height!, mimeType: m.mime_type ?? 'image/png', type: m.asset_type }))}
         contacts={contacts.filter((c) => !c.opted_out_at).map((c) => ({ id: c.id, name: c.name ?? c.phone_e164, phone: c.phone_e164 }))}
         publishedAccountIds={[...new Set(jobs.filter((j) => j.status === 'PUBLISHED' && j.social_account_id).map((j) => j.social_account_id!))]}

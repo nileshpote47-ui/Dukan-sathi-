@@ -39,6 +39,14 @@ export const posterSpecSchema = z.object({
 })
 export type PosterSpec = z.infer<typeof posterSpecSchema>
 
+/** "Let AI design the whole poster" input: the owner's own lines, size and style. */
+export const directPosterSchema = z.object({
+  content_id: z.uuid(),
+  template: z.string().max(60).refine(isPosterLayoutSlug),
+  aspect_ratio: aspectRatioSchema,
+  texts: posterTextsSchema,
+})
+
 /** "Generate a picture" input. The prompt is built on the server from stored data. */
 export const imageGenerationSchema = z.object({
   content_id: z.uuid(),

@@ -7,7 +7,7 @@ import type { MessageKey } from '@/lib/i18n'
  */
 
 /** Metered operations, mapped to the real Phase 3/4 actions and Phase 6 publishing. */
-export const FEATURE_KEYS = ['ai_text_generation', 'image_generation', 'reel_generation', 'media_export', 'social_publishing'] as const
+export const FEATURE_KEYS = ['ai_text_generation', 'image_generation', 'reel_generation', 'media_export', 'social_publishing', 'direct_poster'] as const
 export type FeatureKey = (typeof FEATURE_KEYS)[number]
 
 export const FEATURE_LABELS: Record<FeatureKey, MessageKey> = {
@@ -16,6 +16,7 @@ export const FEATURE_LABELS: Record<FeatureKey, MessageKey> = {
   reel_generation: 'billing.feature.reel_generation',
   media_export: 'billing.feature.media_export',
   social_publishing: 'billing.feature.social_publishing',
+  direct_poster: 'billing.feature.direct_poster',
 }
 
 /** Shown when a monthly limit is reached (the server refuses the operation). */
@@ -25,6 +26,7 @@ export const LIMIT_MESSAGES: Record<FeatureKey, MessageKey> = {
   reel_generation: 'billing.limit.reel_generation',
   media_export: 'billing.limit.media_export',
   social_publishing: 'billing.limit.social_publishing',
+  direct_poster: 'billing.limit.direct_poster',
 }
 
 export const SUBSCRIPTION_STATUSES = ['AUTHENTICATED', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'EXPIRED', 'PAUSED'] as const

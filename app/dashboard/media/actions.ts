@@ -4,19 +4,19 @@ import { revalidatePath } from 'next/cache'
 import { AI_ERROR_MESSAGES } from '@/lib/ai/error-messages'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import { commitUsage, releaseUsage, reserveUsage, withUsage } from '@/lib/billing/usage'
-import { ASPECT_RATIOS } from '@/lib/config/media'
+import { ASPECT_RATIOS, DIRECT_POSTER_KIND } from '@/lib/config/media'
 import { getPosterLayout } from '@/lib/config/poster-templates'
 import { getContentItem } from '@/lib/data/content'
 import { getAssetUrls } from '@/lib/data/media'
 import type { MessageKey } from '@/lib/i18n'
 import { validateImage, type ImageProblem } from '@/lib/media/image-file'
 import { buildMarketingContext } from '@/lib/marketing/context'
-import { deleteMediaAsset, failGeneration, finishGeneration, ownedPictureIds, startGeneration, storeMedia } from '@/lib/services/media'
-import { imageGenerationSchema, mediaIdSchema, posterSpecSchema } from '@/lib/validation/media'
+import { confirmDirectPoster, deleteMediaAsset, failGeneration, finishGeneration, ownedPictureIds, startGeneration, storeMedia } from '@/lib/services/media'
+import { directPosterSchema, imageGenerationSchema, mediaIdSchema, posterSpecSchema } from '@/lib/validation/media'
 import type { ActionResult } from '@/lib/validation/result'
-import { buildImagePrompt } from '@/services/media/prompts'
-import { getMediaConfig } from '@/services/media/provider'
-import { generateMarketingImage } from '@/services/media/service'
+import { buildDirectPosterPrompt, buildImagePrompt } from '@/services/media/prompts'
+import { getDirectPosterConfig, getMediaConfig } from '@/services/media/provider'
+import { generateDirectPoster, generateMarketingImage } from '@/services/media/service'
 import { AIError } from '@/services/ai/types'
 import { z } from 'zod'
 
@@ -152,6 +152,77 @@ export async function generatePicture(input: unknown): Promise<ActionResult<{ id
   if (!(await commitUsage(reservation.id))) return { ok: false, error: 'billing.error.usage' }
   const urls = await getAssetUrls([assetId])
   return { ok: true, data: { id: assetId, url: urls[assetId] ?? null } }
+}
+
+/**
+ * "Let AI design the whole poster" (Phase 9, explicit owner action, one paid call): the owner's
+ * own lines go to the image model word for word. The poster is stored but kept out of publishing
+ * until the owner confirms its text, price and offer (confirmDirectPosterAction).
+ */
+export async function generateDirectPosterAction(input: unknown): Promise<ActionResult<{ id: string; url: string | null }>> {
+  const { business, profile } = await requireOnboardedBusiness()
+  const parsed = directPosterSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: 'errors.validation' }
+  const values = parsed.data
+  const item = await getContentItem(values.content_id)
+  if (!item) return { ok: false, error: 'errors.contentNotFound' }
+  const config = getDirectPosterConfig()
+  if (!config) return { ok: false, error: 'ai.error.notConfigured' }
+
+  const prompt = buildDirectPosterPrompt({
+    context: buildMarketingContext(business, profile),
+    item: { title: item.title, product: item.product_name, description: item.description },
+    aspectRatio: values.aspect_ratio,
+    layout: getPosterLayout(values.template),
+    texts: values.texts,
+  })
+
+  // Plan limit (direct_poster) + burst limit; released below if anything fails.
+  const reservation = await reserveUsage('direct_poster', { type: 'content_item', id: item.id })
+  if (!reservation.ok) return { ok: false, error: reservation.error }
+
+  const started = await startGeneration({
+    contentItemId: item.id,
+    provider: config.provider,
+    model: config.model,
+    assetType: 'POSTER',
+    metadata: { kind: DIRECT_POSTER_KIND, reviewed: false, template: values.template, aspect_ratio: values.aspect_ratio, texts: values.texts },
+  })
+  if (!started.ok || !started.data) {
+    await releaseUsage(reservation.id)
+    return started.ok ? { ok: false, error: 'errors.saveFailed' } : started
+  }
+  const assetId = started.data.id
+
+  let poster
+  try {
+    poster = await generateDirectPoster({ prompt, aspectRatio: values.aspect_ratio })
+  } catch (error) {
+    await failGeneration(assetId)
+    await releaseUsage(reservation.id)
+    revalidatePath('/dashboard/media')
+    return { ok: false, error: AI_ERROR_MESSAGES[error instanceof AIError ? error.code : 'unknown'] }
+  }
+  const saved = await finishGeneration(assetId, poster.bytes, poster.info, { provider: poster.provider, model: poster.model })
+  revalidatePath('/dashboard/media')
+  if (!saved.ok) {
+    await releaseUsage(reservation.id)
+    return saved
+  }
+  if (!(await commitUsage(reservation.id))) return { ok: false, error: 'billing.error.usage' }
+  const urls = await getAssetUrls([assetId])
+  return { ok: true, data: { id: assetId, url: urls[assetId] ?? null } }
+}
+
+/** The owner checked the direct poster's text, price and offer: it can now be published. */
+export async function confirmDirectPosterAction(id: unknown): Promise<ActionResult> {
+  await requireOnboardedBusiness()
+  const parsed = mediaIdSchema.safeParse(id)
+  if (!parsed.success) return { ok: false, error: 'media.error.notFound' }
+  const result = await confirmDirectPoster(parsed.data)
+  if (!result.ok) return result
+  revalidatePath('/dashboard', 'layout')
+  return { ok: true, message: 'directPoster.confirmed' }
 }
 
 export async function deleteMedia(id: unknown): Promise<ActionResult> {

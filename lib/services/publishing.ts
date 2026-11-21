@@ -18,6 +18,7 @@ import { runPublishingJob, type RunOutcome } from '@/services/publishing/runner'
 import { PublishingProviderError, type StoredCredentials, type WhatsAppTemplate } from '@/services/publishing/types'
 import { log } from '@/lib/observability/log'
 import { allowRequest } from '@/lib/security/rate-limit'
+import { DIRECT_POSTER_KIND } from '@/lib/config/media'
 
 /*
  * Publishing writes for the signed-in owner. Inputs are validated (Zod) by the Server Actions;
@@ -98,6 +99,12 @@ export async function listTemplatesForAccount(accountId: string): Promise<{ ok: 
   }
 }
 
+/** True for a direct poster whose text the owner has not confirmed yet. */
+export function needsReview(metadata: unknown): boolean {
+  const m = metadata as { kind?: unknown; reviewed?: unknown } | null
+  return m?.kind === DIRECT_POSTER_KIND && m.reviewed !== true
+}
+
 export async function createPublication(input: PublishInput): Promise<PublishServiceResult> {
   const ctx = await ownerContext()
   if (!ctx) return { ok: false, error: 'errors.saveFailed' }
@@ -132,12 +139,14 @@ export async function createPublication(input: PublishInput): Promise<PublishSer
   if (input.mediaAssetId) {
     const { data: asset } = await supabase
       .from('media_assets')
-      .select('width, height, mime_type')
+      .select('width, height, mime_type, metadata')
       .eq('owner_id', user.id)
       .eq('id', input.mediaAssetId)
       .eq('status', 'READY')
       .maybeSingle()
     if (!asset?.width || !asset.height || !asset.mime_type) return { ok: false, error: 'publishing.error.INVALID_MEDIA' }
+    // An AI-designed poster is published only after the owner confirmed its text, price and offer.
+    if (needsReview(asset.metadata)) return { ok: false, error: 'directPoster.reviewFirst' }
     media = { width: asset.width, height: asset.height, mimeType: asset.mime_type }
   }
 

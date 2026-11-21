@@ -4,6 +4,7 @@ import { Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
 import { savePoster } from '@/app/dashboard/media/actions'
+import { DirectPosterPanel } from './direct-poster-panel'
 import { Button } from '@/components/ui/button'
 import { Card, CardTitle } from '@/components/ui/card'
 import { FormField } from '@/components/ui/form-field'
@@ -32,6 +33,8 @@ interface PosterEditorProps {
   initial: { template: string; aspectRatio: AspectRatio; texts: PosterTexts; imageId: string | null }
   pictures: Picture[]
   aiAvailable: boolean
+  /** Direct posters (AI designs the whole poster with the owner's text). */
+  direct: { available: boolean; remaining: number | null }
 }
 
 const TEXT_LIMITS: Record<keyof PosterTexts, number> = { headline: 120, body: 400, badge: 60, cta: 80, businessName: 100, footer: 120 }
@@ -40,7 +43,7 @@ const TEXT_LIMITS: Record<keyof PosterTexts, number> = { headline: 120, body: 40
  * Poster / social creative editor: template → size → texts → picture → live preview → save.
  * The preview canvas is the exported file; the server validates it before storing.
  */
-export function PosterEditor({ contentId, templates, initial, pictures: initialPictures, aiAvailable }: PosterEditorProps) {
+export function PosterEditor({ contentId, templates, initial, pictures: initialPictures, aiAvailable, direct }: PosterEditorProps) {
   const { t } = useI18n()
   const router = useRouter()
   const toast = useToast()
@@ -117,6 +120,16 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
               {saving ? t('common.saving') : t('poster.save')}
             </Button>
             <p className="text-center text-xs text-muted-foreground">{t('poster.saveHint')}</p>
+          </div>
+          <div className="mt-4">
+            <DirectPosterPanel
+              contentId={contentId}
+              template={template}
+              aspectRatio={aspectRatio}
+              texts={texts}
+              available={direct.available}
+              remaining={direct.remaining}
+            />
           </div>
         </div>
       </div>

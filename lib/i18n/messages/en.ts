@@ -668,6 +668,7 @@ export const en = {
   'billing.entitlement.reel_generation': '{n} reel storyboards a month',
   'billing.entitlement.media_export': '{n} saved posters a month',
   'billing.entitlement.social_publishing': '{n} posts or WhatsApp sends a month',
+  'billing.entitlement.direct_poster': '{n} AI-designed posters a month',
   'billing.limit.ai_text_generation': 'You have reached your monthly AI content limit. Upgrade your plan to continue generating content.',
   'billing.limit.image_generation': 'You have reached your monthly AI picture limit. Upgrade your plan to create more pictures.',
   'billing.limit.reel_generation': 'You have reached your monthly reel storyboard limit. Upgrade your plan to create more storyboards.',
@@ -1157,6 +1158,24 @@ export const en = {
   'ai.copyExists': 'This content already has AI copy. Use Edit to write a new version.',
   'ai.writeNow': 'Write with AI',
   'ai.writeNowHint': 'Uses 1 AI post from your plan. Your own details are used exactly as written.',
+  // Phase 9: direct posters (AI designs the whole poster with the owner's text)
+  'billing.feature.direct_poster': 'AI posters (designed with your text)',
+  'billing.limit.direct_poster': 'You\'ve used all AI posters in your plan this month. Upgrade your plan or make a template poster.',
+  'directPoster.title': 'Or let AI design the whole poster',
+  'directPoster.body': 'AI designs a complete poster with exactly your lines above, in your chosen size and style.',
+  'directPoster.resultAlt': 'Poster designed by AI',
+  'directPoster.checkHint': 'Check every word, the price and the offer carefully. AI can occasionally misspell a letter.',
+  'directPoster.checkbox': 'I checked the spelling, the price and the offer. They are correct.',
+  'directPoster.use': 'Use this poster',
+  'directPoster.again': 'Make another version',
+  'directPoster.make': 'Design with AI',
+  'directPoster.making': 'Designing your poster…',
+  'directPoster.costOne': 'Uses 1 AI poster from your plan.',
+  'directPoster.cost': 'Uses 1 AI poster · {remaining} left this month.',
+  'directPoster.wait': 'This takes about 30 seconds.',
+  'directPoster.confirmed': 'Poster confirmed. You can now publish it.',
+  'directPoster.reviewFirst': 'Check and confirm this AI poster on its media page before publishing it.',
+  'directPoster.reviewTitle': 'Check this AI poster before you use it',
 } as const
 
 export type MessageKey = keyof typeof en

@@ -2,7 +2,9 @@ import { ArrowLeft, Download, ImageIcon, RefreshCw } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { ConfirmDirectPoster } from '@/components/media/confirm-direct-poster'
 import { DeleteMediaButton } from '@/components/media/delete-media-button'
+import { needsReview } from '@/lib/services/publishing'
 import { MediaStatusBadge, MediaTypeBadge } from '@/components/media/media-badges'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardTitle } from '@/components/ui/card'
@@ -24,7 +26,8 @@ export default async function MediaDetailPage({ params }: PageProps<'/dashboard/
   const t = getTranslator(profile?.preferred_language)
   const locale = intlLocale(profile?.preferred_language)
   const poster = asset.asset_type === 'POSTER' ? posterFromMetadata(asset.metadata) : null
-  const providerName = asset.provider === 'gemini' ? 'Google Gemini' : asset.provider
+  const providerName = asset.provider === 'gemini' ? 'Google Gemini' : asset.provider === 'openai' ? 'OpenAI' : asset.provider
+  const reviewPending = needsReview(asset.metadata)
 
   const rows: [string, string][] = [
     [t('media.detail.type'), t(`media.type.${asset.asset_type}` as MessageKey)],
@@ -45,6 +48,8 @@ export default async function MediaDetailPage({ params }: PageProps<'/dashboard/
         <ArrowLeft aria-hidden className="size-4" />
         {t('media.backToList')}
       </Link>
+
+      {reviewPending && <ConfirmDirectPoster id={asset.id} />}
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">

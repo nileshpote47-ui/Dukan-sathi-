@@ -1,6 +1,6 @@
 import 'server-only'
 import { getBusiness, requireUser } from '@/lib/auth/dal'
-import { GENERATION_STALE_MS, MEDIA_BUCKET, MEDIA_EXTENSIONS, type MediaAssetType, type MediaSourceType } from '@/lib/config/media'
+import { DIRECT_POSTER_KIND, GENERATION_STALE_MS, MEDIA_BUCKET, MEDIA_EXTENSIONS, type MediaAssetType, type MediaSourceType } from '@/lib/config/media'
 import type { ImageInfo } from '@/lib/media/image-file'
 import type { Storyboard } from '@/lib/media/storyboard'
 import { createClient } from '@/lib/supabase/server'
@@ -86,6 +86,8 @@ export async function startGeneration(input: {
   provider: string
   model: string
   metadata: Record<string, unknown>
+  /** IMAGE for AI pictures (default), POSTER for direct posters. */
+  assetType?: MediaAssetType
 }): Promise<ServiceResult<{ id: string }>> {
   const user = await requireUser()
   const business = await getBusiness()
@@ -106,7 +108,7 @@ export async function startGeneration(input: {
       owner_id: user.id,
       business_id: business.id,
       content_item_id: input.contentItemId,
-      asset_type: 'IMAGE',
+      asset_type: input.assetType ?? 'IMAGE',
       source_type: 'AI_GENERATED',
       status: 'GENERATING',
       provider: input.provider,
@@ -152,6 +154,32 @@ export async function failGeneration(id: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('media_assets').update({ status: 'FAILED' }).eq('id', id).eq('owner_id', user.id).eq('status', 'GENERATING')
   if (error) log.error('[db] fail generation', error.code, error.message)
+}
+
+/**
+ * The owner confirms that a direct poster's text, price and offer are correct. Until then the
+ * poster is kept out of publishing (metadata.reviewed = false).
+ */
+export async function confirmDirectPoster(id: string): Promise<ServiceResult> {
+  const user = await requireUser()
+  const supabase = await createClient()
+  const { data: asset, error: readError } = await supabase
+    .from('media_assets')
+    .select('id, metadata')
+    .eq('id', id)
+    .eq('owner_id', user.id)
+    .eq('status', 'READY')
+    .maybeSingle()
+  if (readError) return dbError(readError)
+  const metadata = (asset?.metadata ?? null) as Record<string, unknown> | null
+  if (!asset || metadata?.kind !== DIRECT_POSTER_KIND) return { ok: false, error: 'media.error.notFound' }
+  const { error } = await supabase
+    .from('media_assets')
+    .update({ metadata: { ...metadata, reviewed: true, reviewed_at: new Date().toISOString() } as Json })
+    .eq('id', id)
+    .eq('owner_id', user.id)
+  if (error) return dbError(error)
+  return { ok: true }
 }
 
 /** Delete an owned asset and its file. */

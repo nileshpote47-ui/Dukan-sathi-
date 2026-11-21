@@ -11,21 +11,25 @@ import { getMediaAsset, listPictures } from '@/lib/data/media'
 import { getTranslator } from '@/lib/i18n'
 import { posterDefaults, posterFromMetadata } from '@/lib/media/poster-defaults'
 import { generatedCopySchema, hasGeneratedCopy } from '@/services/ai/output'
-import { isImageGenerationConfigured } from '@/services/media/provider'
+import { isDirectPosterConfigured, isImageGenerationConfigured } from '@/services/media/provider'
+import { getBillingOverview } from '@/lib/data/billing'
 
 export const metadata: Metadata = { title: 'Create poster' }
-// An AI picture can take a while; generation has its own shorter timeout.
-export const maxDuration = 60
+// AI pictures and direct posters can take a while; each generation has its own shorter timeout
+// (a direct poster: one image call of up to ~110 s plus fitting).
+export const maxDuration = 150
 
 export default async function PosterPage({ params, searchParams }: PageProps<'/dashboard/content/[id]/poster'>) {
   const { id } = await params
   const { from } = await searchParams
-  const [{ business, profile }, item, templates, pictures] = await Promise.all([
+  const [{ business, profile }, item, templates, pictures, billing] = await Promise.all([
     requireOnboardedBusiness(),
     getContentItem(id),
     getTemplates(),
     listPictures(),
+    getBillingOverview(),
   ])
+  const directUsage = billing.usage.find((row) => row.feature_key === 'direct_poster')
   if (!item) notFound()
   const t = getTranslator(profile?.preferred_language)
 
@@ -59,6 +63,7 @@ export default async function PosterPage({ params, searchParams }: PageProps<'/d
         initial={previous ?? { ...defaults, imageId: null }}
         pictures={pictureOptions}
         aiAvailable={isImageGenerationConfigured()}
+        direct={{ available: isDirectPosterConfigured(), remaining: directUsage ? directUsage.remaining : null }}
       />
     </>
   )

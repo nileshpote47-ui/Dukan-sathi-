@@ -46,6 +46,20 @@ export const MEDIA_PROVIDERS = ['gemini', 'mock'] as const
 export type MediaProviderId = (typeof MEDIA_PROVIDERS)[number]
 export const DEFAULT_GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image'
 
+/*
+ * Direct posters (Phase 9): one AI image that already carries the owner's own text.
+ * DIRECT_POSTER_PROVIDER = openai | mock (unset = openai when OPENAI_API_KEY is set).
+ * The model draws at a native size; the result is padded (never cropped, so no text is cut)
+ * to the chosen social size.
+ */
+export const DIRECT_POSTER_PROVIDERS = ['openai', 'mock'] as const
+export type DirectPosterProviderId = (typeof DIRECT_POSTER_PROVIDERS)[number]
+export const DEFAULT_DIRECT_POSTER_MODEL = 'gpt-image-2.6-sunburst'
+export const DIRECT_POSTER_TIMEOUT_MS = 110_000
+export const DIRECT_POSTER_NATIVE_SIZES = { '1:1': '1024x1024', '4:5': '1024x1536', '9:16': '1024x1536', '16:9': '1536x1024' } as const
+/** metadata.kind on media_assets for direct posters; they stay out of publishing until the owner confirms the text. */
+export const DIRECT_POSTER_KIND = 'direct_poster'
+
 /** Poster / creative sizes in pixels (social-media friendly). */
 export const ASPECT_RATIOS = {
   '1:1': { width: 1080, height: 1080 },

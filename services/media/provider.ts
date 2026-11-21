@@ -1,8 +1,9 @@
 import 'server-only'
-import { DEFAULT_GEMINI_IMAGE_MODEL, MEDIA_PROVIDERS, type MediaProviderId } from '@/lib/config/media'
+import { DEFAULT_DIRECT_POSTER_MODEL, DEFAULT_GEMINI_IMAGE_MODEL, MEDIA_PROVIDERS, type DirectPosterProviderId, type MediaProviderId } from '@/lib/config/media'
 import { AIError } from '@/services/ai/types'
 import { GeminiImageProvider } from './providers/gemini'
 import { MockMediaProvider } from './providers/mock'
+import { OpenAIImageProvider } from './providers/openai'
 import type { MediaProvider } from './types'
 
 /*
@@ -42,4 +43,29 @@ export function getMediaProvider(): MediaProvider {
     case 'mock':
       return new MockMediaProvider()
   }
+}
+
+/*
+ * Direct posters (Phase 9): a separate provider choice from AI pictures.
+ *   DIRECT_POSTER_PROVIDER = openai | mock   (unset = openai when OPENAI_API_KEY is set, else off)
+ *   DIRECT_POSTER_MODEL    = model id (default DEFAULT_DIRECT_POSTER_MODEL)
+ *   OPENAI_API_KEY         = server-only secret (Vercel Sensitive; never NEXT_PUBLIC_, never logged)
+ */
+export function getDirectPosterConfig(): { provider: DirectPosterProviderId; model: string } | null {
+  const chosen = process.env.DIRECT_POSTER_PROVIDER?.trim().toLowerCase() || (process.env.OPENAI_API_KEY ? 'openai' : '')
+  if (chosen === 'openai') {
+    if (!process.env.OPENAI_API_KEY) return null
+    return { provider: 'openai', model: process.env.DIRECT_POSTER_MODEL?.trim() || DEFAULT_DIRECT_POSTER_MODEL }
+  }
+  // The test provider must never serve real users.
+  if (chosen === 'mock' && process.env.VERCEL_ENV !== 'production') return { provider: 'mock', model: 'mock-poster-1' }
+  return null
+}
+
+export const isDirectPosterConfigured = () => getDirectPosterConfig() !== null
+
+export function getDirectPosterProvider(): MediaProvider {
+  const config = getDirectPosterConfig()
+  if (!config) throw new AIError('not_configured', 'Direct posters are not configured')
+  return config.provider === 'openai' ? new OpenAIImageProvider(config.model, { apiKey: process.env.OPENAI_API_KEY }) : new MockMediaProvider()
 }
