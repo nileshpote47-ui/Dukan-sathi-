@@ -36,6 +36,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <div className="flex min-w-0 flex-col">
           <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-card/95 px-4 py-2 backdrop-blur md:hidden">
             <Logo href="/dashboard" />
+            <span className="min-w-0 flex-1 truncate text-right text-sm text-muted-foreground">{business.business_name}</span>
             <AttentionBell attention={shell.attention} className="size-10" />
           </header>
           <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-28 md:px-8 md:pt-10 md:pb-12">{children}</main>
