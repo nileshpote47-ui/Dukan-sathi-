@@ -38,7 +38,7 @@ Never mark a future phase complete. Never repeat a completed phase.
 - No migrations, no new environment variables, no new paid services
 
 ### Tests performed
-- Unit 205/205 · lint · typecheck · build · E2E experience 3/3 (mock AI) · full E2E regression: in progress at commit time
+- Unit 205/205 · lint · typecheck · build · E2E 52/52 with mock providers (3 new UX tests + 49 regression; 3 older dashboard assertions updated for the new heading and the business card in the menu)
 
 ### Next
 - Stage 2: ideas for today (festival calendar), weekly progress, real template previews

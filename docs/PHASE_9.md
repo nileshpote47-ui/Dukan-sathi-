@@ -33,7 +33,7 @@ Requested after launch readiness (Phase 8). Based on a study of a comparable cre
 
 ## Tests
 - Unit: composer title + form input accepted by the content schema for every type and language, composer validation (strips client-supplied owner ids), example/language translations in en/mr/hi, navigation grouping (`tests/unit/hardening.test.ts`).
-- E2E (`tests/e2e/experience.spec.ts`, mock AI): example sentence → Marathi offer with AI copy and the owner's words kept; Write with AI on the content page; grouped navigation, business card and bell, no horizontal scroll. Full regression: see PROJECT_PHASES.md.
+- E2E (`tests/e2e/experience.spec.ts`, mock AI): example sentence → Marathi offer with AI copy and the owner's words kept; Write with AI on the content page; grouped navigation, business card and bell, no horizontal scroll. Full regression: 52/52 end-to-end tests passed on the final build.
 
 ## Not changed
 No database migration; no new environment variables; no new paid API. AI still runs only on an explicit tap, through the existing provider, limits and logging.

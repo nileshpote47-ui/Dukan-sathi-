@@ -100,10 +100,13 @@ test.describe('with test users', () => {
 
     // Dashboard
     await expect(page).toHaveURL(/\/dashboard$/)
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Shree Ganesh Kirana')
-    await expect(page.getByText('Grocery')).toBeVisible()
-    await expect(page.getByText('Shirur, Pune, Maharashtra 412210')).toBeVisible()
-    await expect(page.getByText('Profile completion')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('What do you want to sell today?')
+    await expect(page.getByRole('main').getByText('Shree Ganesh Kirana', { exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('progressbar', { name: 'Profile completion' })).toBeVisible()
+    // Business summary lives on the business card in the menu (phone: "More").
+    await page.getByRole('button', { name: 'More' }).click()
+    await expect(page.getByRole('dialog').getByRole('link', { name: /Shree Ganesh Kirana\s*Grocery · Shirur, Pune, Maharashtra 412210/ })).toBeVisible()
+    await page.keyboard.press('Escape')
     // Real counts only (Phase 2 dashboard): a new business has no content yet.
     await expect(page.getByRole('region', { name: 'Your content' }).getByRole('link', { name: /Total content\s*0/ })).toBeVisible()
 
@@ -123,7 +126,7 @@ test.describe('with test users', () => {
     await expect(page.getByRole('heading', { name: 'My Business' })).toBeVisible()
     const tab = await context.newPage()
     await tab.goto('/dashboard')
-    await expect(tab.getByRole('heading', { level: 1 })).toContainText('Shree Ganesh Kirana')
+    await expect(tab.getByRole('main').getByText('Shree Ganesh Kirana', { exact: true }).first()).toBeVisible()
     await tab.close()
 
     // Signed-in users are sent away from login.
