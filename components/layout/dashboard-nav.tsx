@@ -1,12 +1,13 @@
 'use client'
 
-import { LogOut, Menu } from 'lucide-react'
+import { Bell, LogOut, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { logout } from '@/app/(auth)/actions'
 import { Dialog } from '@/components/ui/dialog'
-import { DASHBOARD_NAV, type NavItem } from '@/lib/config/navigation'
+import { DASHBOARD_NAV, NAV_GROUPS, type NavItem } from '@/lib/config/navigation'
+import type { MessageKey } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils/cn'
 
@@ -36,42 +37,111 @@ function LogoutButton({ className }: { className?: string }) {
   )
 }
 
+export interface ShellInfo {
+  businessName: string
+  /** e.g. "Grocery · Shirur" */
+  businessMeta: string
+  attention: { failedJobs: number; accountsToReconnect: number }
+}
+
 function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname()
   const { t } = useI18n()
   return (
-    <ul className="flex flex-col gap-1">
-      {items.map((item) => {
-        const active = isActive(pathname, item.href)
+    <div className="flex flex-col gap-1">
+      {NAV_GROUPS.map((group) => {
+        const groupItems = items.filter((item) => item.group === group)
+        if (!groupItems.length) return null
+        const headingId = `nav-group-${group}`
         return (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              onClick={onNavigate}
-              aria-current={active ? 'page' : undefined}
-              className={cn(
-                'flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium focus-visible:outline-2 focus-visible:outline-ring',
-                active ? 'bg-primary-soft text-primary' : 'text-foreground hover:bg-muted',
-              )}
-            >
-              <item.icon aria-hidden className="size-5 shrink-0" />
-              {t(item.labelKey)}
-              {item.comingSoon && <SoonBadge label={t('common.comingSoon')} />}
-            </Link>
-          </li>
+          <div key={group} className="flex flex-col gap-1">
+            {group !== 'home' && (
+              <p id={headingId} className="px-3 pt-3 pb-1 text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+                {t(`nav.group.${group}` as MessageKey)}
+              </p>
+            )}
+            <ul className="flex flex-col gap-0.5" aria-labelledby={group !== 'home' ? headingId : undefined}>
+              {groupItems.map((item) => {
+                const active = isActive(pathname, item.href)
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'flex min-h-11 items-center gap-3 rounded-xl px-3 font-medium transition focus-visible:outline-2 focus-visible:outline-ring',
+                        active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <item.icon aria-hidden className="size-5 shrink-0" />
+                      {t(item.labelKey)}
+                      {item.comingSoon && <SoonBadge label={t('common.comingSoon')} />}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         )
       })}
-    </ul>
+    </div>
+  )
+}
+
+/** Bell with the number of things that need the owner (failed posts, accounts to reconnect). */
+export function AttentionBell({ attention, className }: { attention: ShellInfo['attention']; className?: string }) {
+  const { t } = useI18n()
+  const count = attention.failedJobs + attention.accountsToReconnect
+  const href = attention.failedJobs > 0 ? '/dashboard/publishing?tab=failed' : '/dashboard/accounts'
+  const label = count > 0 ? t('nav.attention', { count }) : t('nav.attentionNone')
+  return (
+    <Link
+      href={count > 0 ? href : '/dashboard/publishing'}
+      aria-label={label}
+      title={label}
+      className={cn(
+        'relative inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring',
+        className,
+      )}
+    >
+      <Bell aria-hidden className="size-5" />
+      {count > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 flex min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-foreground tabular-nums ring-2 ring-card">
+          {count > 9 ? '9+' : count}
+        </span>
+      )}
+    </Link>
+  )
+}
+
+function BusinessCard({ shell }: { shell: ShellInfo }) {
+  return (
+    <Link
+      href="/dashboard/business"
+      className="flex items-center gap-3 rounded-2xl border border-border p-2.5 transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+    >
+      <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-soft font-display font-bold text-accent-foreground">
+        {Array.from(shell.businessName.trim())[0] ?? '?'}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold">{shell.businessName}</span>
+        <span className="block truncate text-xs text-muted-foreground">{shell.businessMeta}</span>
+      </span>
+    </Link>
   )
 }
 
 /** Desktop sidebar (md and up). */
-export function Sidebar() {
+export function Sidebar({ shell }: { shell: ShellInfo }) {
   const { t } = useI18n()
   return (
-    <nav aria-label={t('common.menu')} className="flex h-full flex-col gap-4">
-      <NavList items={DASHBOARD_NAV} />
-      <div className="mt-auto border-t border-border pt-4">
+    <nav aria-label={t('common.menu')} className="flex h-full min-h-0 flex-col gap-4">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <NavList items={DASHBOARD_NAV} />
+      </div>
+      <div className="flex flex-col gap-2 border-t border-border pt-3">
+        <BusinessCard shell={shell} />
         <LogoutButton />
       </div>
     </nav>
@@ -79,7 +149,7 @@ export function Sidebar() {
 }
 
 /** Phone navigation: bottom tab bar for main sections, plus a "More" sheet for the rest. */
-export function MobileNav() {
+export function MobileNav({ shell }: { shell: ShellInfo }) {
   const pathname = usePathname()
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -115,7 +185,8 @@ export function MobileNav() {
 
       <Dialog open={open} onClose={() => setOpen(false)} title={t('common.menu')} closeLabel={t('common.close')}>
         <NavList items={DASHBOARD_NAV} onNavigate={() => setOpen(false)} />
-        <div className="mt-4 border-t border-border pt-4">
+        <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+          <BusinessCard shell={shell} />
           <LogoutButton />
         </div>
       </Dialog>

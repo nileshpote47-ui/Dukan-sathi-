@@ -21,6 +21,12 @@
   --success: #15803d;
   --success-soft: #dcfce7;
   --ring: #0f766e;
+  /* Text on --accent-soft (amber), and two extra soft hues for illustrated tool cards. */
+  --accent-foreground: #92400e;
+  --rose: #be185d;
+  --rose-soft: #fce7f3;
+  --indigo: #4338ca;
+  --indigo-soft: #e0e7ff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,6 +49,11 @@
     --success: #4ade80;
     --success-soft: #0f2e1a;
     --ring: #2dd4bf;
+    --accent-foreground: #fcd34d;
+    --rose: #f9a8d4;
+    --rose-soft: #3b1328;
+    --indigo: #a5b4fc;
+    --indigo-soft: #1e1b4b;
   }
 }
 
@@ -65,7 +76,14 @@
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-ring: var(--ring);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari", sans-serif;
+  --color-accent-foreground: var(--accent-foreground);
+  --color-rose: var(--rose);
+  --color-rose-soft: var(--rose-soft);
+  --color-indigo: var(--indigo);
+  --color-indigo-soft: var(--indigo-soft);
+  /* Mukta and Baloo 2 cover Latin + Devanagari (self-hosted via @fontsource; system fonts as fallback). */
+  --font-sans: "Mukta", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari", sans-serif;
+  --font-display: "Baloo 2", "Mukta", ui-sans-serif, system-ui, "Noto Sans Devanagari", sans-serif;
 }
 
 body {
@@ -73,6 +91,20 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
 
 /* Native <dialog> backdrop */

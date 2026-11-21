@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { publicSiteUrl, siteConfig } from '@/lib/config/site'
+import '@fontsource/mukta/400.css'
+import '@fontsource/mukta/500.css'
+import '@fontsource/mukta/600.css'
+import '@fontsource/mukta/700.css'
+import '@fontsource/baloo-2/600.css'
+import '@fontsource/baloo-2/700.css'
 import './globals.css'
 
 export const metadata: Metadata = {

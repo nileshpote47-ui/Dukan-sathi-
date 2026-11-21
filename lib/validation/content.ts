@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CONTENT_STATUSES, CONTENT_TYPES, FILTERABLE_STATUSES } from '@/lib/config/content'
+import { CONTENT_STATUSES, CONTENT_TYPES, FILTERABLE_STATUSES, QUICK_CREATE_BRIEF_MAX, QUICK_CREATE_TYPES } from '@/lib/config/content'
 import { AI_INSTRUCTIONS_MAX } from '@/lib/config/ai'
 import { CONTACT_METHODS, PROMOTIONAL_STYLES, TONES } from '@/lib/config/marketing'
 import { generatedCopySchema } from '@/services/ai/output'
@@ -37,6 +37,15 @@ export const aiGenerateSchema = contentFormSchema.omit({ generated_copy: true })
   instructions: optionalText(AI_INSTRUCTIONS_MAX),
   previous: generatedCopySchema.nullable().optional(),
 })
+
+/** Dashboard composer: one sentence in the owner's words → a content item + AI copy. */
+export const quickCreateSchema = z.object({
+  brief: requiredText(5, QUICK_CREATE_BRIEF_MAX),
+  content_type: z.enum(QUICK_CREATE_TYPES, msg('validation.contentType')),
+  language,
+})
+
+export type QuickCreateInput = z.input<typeof quickCreateSchema>
 
 export type AIGenerateInput = z.input<typeof aiGenerateSchema>
 

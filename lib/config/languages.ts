@@ -6,9 +6,9 @@
  * register it in lib/i18n/index.ts, and add a migration for the check constraint.
  */
 export const LANGUAGES = [
-  { code: 'en', label: 'English', nativeLabel: 'English' },
-  { code: 'mr', label: 'Marathi', nativeLabel: 'मराठी' },
-  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
+  { code: 'en', label: 'English', nativeLabel: 'English', sample: 'Visit us today' },
+  { code: 'mr', label: 'Marathi', nativeLabel: 'मराठी', sample: 'आजच भेट द्या' },
+  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी', sample: 'आज ही आएं' },
 ] as const
 
 export type LanguageCode = (typeof LANGUAGES)[number]['code']

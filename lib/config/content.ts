@@ -54,6 +54,19 @@ export const PUBLISHABLE_STATUSES: readonly ContentStatus[] = ['READY', 'SCHEDUL
 /** Dashboard quick actions, in display order. Each opens /dashboard/create?type=<TYPE>. */
 export const QUICK_ACTION_TYPES: readonly ContentType[] = ['POST', 'OFFER', 'POSTER', 'REEL', 'WHATSAPP']
 
+/** Dashboard composer: what one sentence can become in a tap (AI text types only). */
+export const QUICK_CREATE_TYPES = ['POST', 'OFFER', 'FESTIVAL', 'WHATSAPP'] as const satisfies readonly ContentType[]
+export type QuickCreateType = (typeof QUICK_CREATE_TYPES)[number]
+export const QUICK_CREATE_BRIEF_MAX = 600
+
+/** Example sentences under the composer (text in i18n: composer.example.<key>) and the type each fills in. */
+export const QUICK_CREATE_EXAMPLES: readonly { key: 'offer' | 'newStock' | 'festival' | 'delivery'; type: QuickCreateType }[] = [
+  { key: 'offer', type: 'OFFER' },
+  { key: 'newStock', type: 'POST' },
+  { key: 'festival', type: 'FESTIVAL' },
+  { key: 'delivery', type: 'WHATSAPP' },
+]
+
 export const CONTENT_TYPE_ICONS: Record<ContentType, LucideIcon> = {
   POST: PenSquare,
   OFFER: Megaphone,

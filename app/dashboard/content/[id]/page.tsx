@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarClock, Clapperboard, ImageIcon, Pencil, Send, Sparkles } from 'lucide-react'
+import { ArrowLeft, CalendarClock, CheckCircle2, Clapperboard, ImageIcon, Pencil, Send, Sparkles } from 'lucide-react'
 import { AICopyView } from '@/components/ai/ai-copy-view'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -22,11 +22,14 @@ import { formatDateTime, intlLocale } from '@/lib/utils/datetime'
 import type { ContentType } from '@/lib/config/content'
 import type { MessageKey } from '@/lib/i18n'
 import { generatedCopySchema, hasGeneratedCopy } from '@/services/ai/output'
+import { isAIConfigured } from '@/services/ai/provider'
+import { WriteWithAIButton } from '@/components/ai/write-with-ai-button'
 
 export const metadata: Metadata = { title: 'Content' }
 
-export default async function ContentDetailPage({ params }: PageProps<'/dashboard/content/[id]'>) {
-  const { id } = await params
+export default async function ContentDetailPage({ params, searchParams }: PageProps<'/dashboard/content/[id]'>) {
+  const [{ id }, query] = await Promise.all([params, searchParams])
+  const justCreated = query.created === '1'
   const [{ business, profile }, item] = await Promise.all([requireOnboardedBusiness(), getContentItem(id)])
   // Not found and "belongs to someone else" look the same: no information leaks.
   if (!item) notFound()
@@ -49,6 +52,13 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
         <ArrowLeft aria-hidden className="size-4" />
         {t('content.backToList')}
       </Link>
+
+      {justCreated && copy && (
+        <p role="status" className="mb-4 flex items-center gap-2 rounded-2xl bg-success-soft px-4 py-3 text-sm font-medium text-success">
+          <CheckCircle2 aria-hidden className="size-5 shrink-0" />
+          {t('composer.created')}
+        </p>
+      )}
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -94,9 +104,13 @@ export default async function ContentDetailPage({ params }: PageProps<'/dashboar
               }
             />
           ) : (
-            <div className="text-sm">
+            <div className="flex flex-col gap-3 text-sm">
               <p className="font-medium">{t('ai.noContentYet')}</p>
-              {isEditable(status) && <p className="mt-1 text-muted-foreground">{t('ai.noContentHint')}</p>}
+              {isEditable(status) && isAIConfigured() ? (
+                <WriteWithAIButton contentId={item.id} />
+              ) : (
+                isEditable(status) && <p className="text-muted-foreground">{t('ai.noContentHint')}</p>
+              )}
             </div>
           )}
         </Card>

@@ -140,3 +140,21 @@ export async function listWhatsAppContacts(): Promise<WhatsAppContact[]> {
   if (error) fail('contacts', error)
   return data ?? []
 }
+
+/**
+ * What needs the owner's attention, for the bell in the navigation: posts that failed in the
+ * last 7 days and connected accounts that must be reconnected. Head-only counts (no rows).
+ */
+export async function getAttentionSummary(): Promise<{ failedJobs: number; accountsToReconnect: number }> {
+  const user = await requireUser()
+  const supabase = await createClient()
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const [jobs, accounts] = await Promise.all([
+    supabase.from('publishing_jobs').select('id', { count: 'exact', head: true }).eq('owner_id', user.id).eq('status', 'FAILED').gte('updated_at', since),
+    supabase.from('social_accounts').select('id', { count: 'exact', head: true }).eq('owner_id', user.id).in('status', ['EXPIRED', 'REVOKED', 'ERROR']),
+  ])
+  // The bell is a convenience: on a read error show nothing rather than failing the whole page.
+  if (jobs.error) log.error('[publishing] read attention jobs', jobs.error.code)
+  if (accounts.error) log.error('[publishing] read attention accounts', accounts.error.code)
+  return { failedJobs: jobs.count ?? 0, accountsToReconnect: accounts.count ?? 0 }
+}
