@@ -13,8 +13,36 @@ Never mark a future phase complete. Never repeat a completed phase.
 | 6 | Social / WhatsApp / Publishing | **COMPLETED** |
 | 7 | Analytics, Admin & Business Intelligence | **COMPLETED** |
 | 8 | Production Hardening & Launch | **COMPLETED** |
+| 9 | UX Refresh & AI Studio (requested after launch) | **IN PROGRESS** — Stage 1 completed |
 
 **Product status: PRODUCTION_READY** (code, infrastructure, security, operations). **Roadmap: ALL_PLANNED_PHASES_COMPLETED.** Taking paying customers needs the owner-side launch steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#launch-checklist) (Supabase Pro, SMTP + email confirmation, Razorpay live, Meta App Review).
+
+---
+
+## PHASE 9 — UX REFRESH & AI STUDIO
+**Status: IN PROGRESS.** Stage 1 **COMPLETED** (2026-11-21); stages 2–3 planned. Details: [docs/PHASE_9.md](docs/PHASE_9.md).
+
+### Stage 1 — completed features
+- Dashboard composer "What do you want to sell today?": one sentence (or example) → draft + AI copy in one tap, type and language cards, remaining AI posts shown; draft kept if AI fails
+- "Write with AI" directly on the content page
+- Grouped navigation (Create content / Reach customers / My shop), business card, attention bell (failed posts, accounts to reconnect)
+- Devanagari fonts (Mukta, Baloo 2, self-hosted), illustrated tool cards, compact profile strip and plan card
+
+### Files created
+- `components/dashboard/composer.tsx`, `components/ai/write-with-ai-button.tsx`, `lib/services/ai-content.ts`, `lib/content/quick-title.ts`, `tests/e2e/experience.spec.ts`, `docs/PHASE_9.md`
+
+### Files modified
+- `app/dashboard/page.tsx`, `app/dashboard/layout.tsx`, `app/dashboard/content/ai-actions.ts`, `app/dashboard/content/[id]/page.tsx`, `components/layout/dashboard-nav.tsx`, `components/content/quick-action-card.tsx`, `lib/config/{content,languages,navigation}.ts`, `lib/data/publishing.ts`, `lib/validation/content.ts`, `app/globals.css`, `app/layout.tsx`, i18n (en/mr/hi), `tests/unit/hardening.test.ts`, `package.json` (@fontsource/mukta, @fontsource/baloo-2)
+
+### Database / environment
+- No migrations, no new environment variables, no new paid services
+
+### Tests performed
+- Unit 205/205 · lint · typecheck · build · E2E experience 3/3 (mock AI) · full E2E regression: in progress at commit time
+
+### Next
+- Stage 2: ideas for today (festival calendar), weekly progress, real template previews
+- Stage 3: direct poster (GPT Image 2.6 Sunburst), free stock photos, reel voiceover — needs `OPENAI_API_KEY` and poster limits per plan
 
 ---
 
