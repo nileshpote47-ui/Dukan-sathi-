@@ -105,7 +105,7 @@ describe('config matches the database', () => {
     }
     expect(latestFeatures('plan_entitlements')).toEqual([...FEATURE_KEYS])
     expect(latestFeatures('usage_ledger')).toEqual([...FEATURE_KEYS])
-    expect(tableCheck('plan_entitlements', 'feature_key')).toEqual(FEATURE_KEYS.filter((f) => f !== 'social_publishing'))
+    expect(tableCheck('plan_entitlements', 'feature_key')).toEqual(FEATURE_KEYS.filter((f) => f !== 'social_publishing' && f !== 'direct_poster'))
     expect(tableCheck('business_subscriptions', 'status')).toEqual([...SUBSCRIPTION_STATUSES])
     expect(tableCheck('business_subscriptions', 'provider')).toEqual([...BILLING_PROVIDERS])
     expect(tableCheck('billing_payments', 'status')).toEqual([...PAYMENT_STATUSES])
