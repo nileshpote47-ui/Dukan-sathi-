@@ -13,7 +13,7 @@ Never mark a future phase complete. Never repeat a completed phase.
 | 6 | Social / WhatsApp / Publishing | **COMPLETED** |
 | 7 | Analytics, Admin & Business Intelligence | **COMPLETED** |
 | 8 | Production Hardening & Launch | **COMPLETED** |
-| 9 | UX Refresh & AI Studio (requested after launch) | **IN PROGRESS** — Stage 1 completed |
+| 9 | UX Refresh & AI Studio (requested after launch) | **IN PROGRESS** — Stage 1 and direct posters completed |
 
 **Product status: PRODUCTION_READY** (code, infrastructure, security, operations). **Roadmap: ALL_PLANNED_PHASES_COMPLETED.** Taking paying customers needs the owner-side launch steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#launch-checklist) (Supabase Pro, SMTP + email confirmation, Razorpay live, Meta App Review).
 
@@ -40,9 +40,16 @@ Never mark a future phase complete. Never repeat a completed phase.
 ### Tests performed
 - Unit 205/205 · lint · typecheck · build · E2E 52/52 with mock providers (3 new UX tests + 49 regression; 3 older dashboard assertions updated for the new heading and the business card in the menu)
 
+### Stage 3a — direct posters (completed 2026-11-21)
+- AI designs the whole poster with the owner's own lines (OpenAI GPT Image 2.6 Sunburst); owner must confirm text, price and offer before it can be published (server-enforced)
+- New metered feature `direct_poster`: Free 3 / Starter 30 / Growth 70 per month; burst limit 6 per 10 minutes
+- Tests: unit 214/214 · pgTAP direct_poster 9/9 · E2E 54/54 across the final runs (incl. 2 new direct-poster tests) · one real OpenAI poster through the app (exact Marathi text)
+- Files: `services/media/providers/openai.ts`, `lib/media/fit-aspect.ts`, `components/media/{direct-poster-panel,confirm-direct-poster}.tsx`, prompt + service + actions + provider selection, migration `20261121145815_direct_poster.sql`, tests (unit 8, pgTAP 9, e2e 2), CLAUDE.md media rule (documented exception)
+- Env: `OPENAI_API_KEY` (set in Vercel, Sensitive); optional `DIRECT_POSTER_PROVIDER`, `DIRECT_POSTER_MODEL`
+
 ### Next
 - Stage 2: ideas for today (festival calendar), weekly progress, real template previews
-- Stage 3: direct poster (GPT Image 2.6 Sunburst), free stock photos, reel voiceover — needs `OPENAI_API_KEY` and poster limits per plan
+- Stage 3b: free stock photos (Pexels), reel voiceover
 
 ---
 

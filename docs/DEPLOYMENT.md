@@ -10,6 +10,7 @@ How Dukaan Sathi is built, configured and deployed. Security model: [SECURITY.md
 | Scheduler | Supabase `pg_cron` job `publishing-runner` (every minute) → `pg_net` → `POST /api/publishing/run` only when a post is due | No Vercel cron needed |
 | AI text | Google Gemini (`AI_MODEL=gemini-3.5-flash-lite`) | |
 | AI pictures | Off (`MEDIA_PROVIDER` unset); posters from templates + uploaded photos work | Set `MEDIA_PROVIDER=gemini` to enable (may need a paid Gemini tier) |
+| Direct posters | OpenAI `gpt-image-2.6-sunburst` (~$0.04 each), limits Free 3 / Starter 30 / Growth 70 per month | Owner must confirm text before publishing |
 | Payments | Razorpay **test mode** | Live keys are a launch step |
 | Social | Meta app in **development mode** (Facebook Pages + Instagram) | App Review is a launch step; WhatsApp / Google not configured |
 
@@ -33,6 +34,8 @@ All are documented in `.env.example` (placeholders only). Real values live in `.
 | `AI_PROVIDER`, `AI_MODEL` | server | set | `gemini` + model |
 | `GEMINI_API_KEY` | server secret | set | Gemini (text, and pictures if enabled) |
 | `MEDIA_PROVIDER`, `MEDIA_MODEL` | server | unset | AI pictures off |
+| `OPENAI_API_KEY` | server secret | set (Production + Preview) | Direct posters (GPT Image); set a monthly budget in the OpenAI dashboard |
+| `DIRECT_POSTER_PROVIDER`, `DIRECT_POSTER_MODEL` | server | unset | Defaults: `openai` when the key is set, `gpt-image-2.6-sunburst` |
 | `BILLING_PROVIDER` | server | `razorpay` | |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | server secret | test keys | |
 | `RAZORPAY_PLAN_STARTER`, `RAZORPAY_PLAN_GROWTH` | server | test plan ids | Amounts are re-checked against `billing_plans` |

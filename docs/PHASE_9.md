@@ -6,7 +6,8 @@ Requested after launch readiness (Phase 8). Based on a study of a comparable cre
 |---|---|---|
 | 1 | Dashboard composer, one-tap AI from the content page, grouped navigation, attention bell, Devanagari fonts, illustrated tool cards | **COMPLETED** (2026-11-21) |
 | 2 | "Ideas for today" (festival calendar + ideas per business category), weekly progress from real data, real poster-template previews | Planned |
-| 3 | Direct poster from a sentence (GPT Image 2.6 Sunburst; test: 8/8 Marathi/Hindi posters exact, ~$0.04 each), free stock photos (Pexels), voiceover for reels | Planned (needs `OPENAI_API_KEY` and plan limits) |
+| 3a | **Direct poster**: AI designs the whole poster with the owner's own lines (GPT Image 2.6 Sunburst) | **COMPLETED** (2026-11-21) |
+| 3b | Free stock photos (Pexels), voiceover for reels | Planned |
 
 ## Stage 1 — what changed
 
@@ -37,3 +38,20 @@ Requested after launch readiness (Phase 8). Based on a study of a comparable cre
 
 ## Not changed
 No database migration; no new environment variables; no new paid API. AI still runs only on an explicit tap, through the existing provider, limits and logging.
+
+## Stage 3a — Direct poster (AI designs the whole poster)
+
+**What the owner sees.** On the poster page, under the template preview: "Or let AI design the whole poster". It uses the same lines (headline, message, badge, call to action, shop name, place/phone), size and style the owner already chose. **Design with AI** makes one poster in about 30 seconds; the owner must tick "I checked the spelling, the price and the offer" before **Use this poster**. "Make another version" uses one more credit. A poster that was not confirmed shows the same check on its media page.
+
+**Model test before building** (8 posters, 4 shops, Marathi and Hindi): GPT Image 2.6 Sunburst and Flare both wrote every line, price and offer exactly; Sunburst chosen (~$0.04 vs $0.07–0.16 per poster). One real poster made through the app afterwards was also exact (29 s, 4:5).
+
+**How it works**
+- `generateDirectPosterAction` (`app/dashboard/media/actions.ts`): own business resolved on the server → validation (`directPosterSchema`) → plan limit `direct_poster` + burst limit (6 per 10 min) → `startGeneration` (POSTER, one at a time per owner) → `generateDirectPoster()` → `finishGeneration` → commit; any failure releases the credit and marks the asset FAILED.
+- Prompt: `buildDirectPosterPrompt()` (`services/media/prompts.ts`) lists the owner's non-empty lines, quoted as data, and tells the model to write exactly those and nothing else (no translation, no added numbers, logos or claims). Ordinary AI pictures keep the "no text in the image" rule.
+- Provider: `OpenAIImageProvider` (`services/media/providers/openai.ts`, plain HTTPS, no SDK, one call, 110 s timeout, safe error codes; the key is never logged). Selected by `getDirectPosterConfig()`; `mock` for tests, refused in production.
+- Size: the model draws at 1024×1024 / 1024×1536 / 1536×1024; `padToAspect()` (`lib/media/fit-aspect.ts`) fits the whole poster inside 1080×1080, 1080×1350, 1080×1920 or 1920×1080 on a blurred copy of itself — never cropped, so no text is cut — and saves JPEG.
+- Safety: stored with `metadata.reviewed = false`; `needsReview()` keeps it out of the publish picker and `createPublication` refuses it on the server until `confirmDirectPosterAction` sets `reviewed = true`.
+
+**Billing.** Migration `20261121145815_direct_poster.sql`: feature `direct_poster` (check constraints, `billing_reserve_for`), entitlements Free 3 / Starter 30 / Growth 70 (owner's decision). Full Growth use ≈ ₹250/month at current prices.
+
+**Tests.** Unit (`tests/unit/direct-poster.test.ts`, 8): owner lines verbatim in the prompt, visuals-only rule kept for pictures, input validation, OpenAI request/key/error mapping, provider selection (mock refused in production), padding to each size, publishing hold. pgTAP (`direct_poster.test.sql`, 9/9 on the live database, rolled back): limits per plan, reserve/commit/release, limit refused, isolation. E2E (`tests/e2e/direct-poster.spec.ts`, mock provider): make → must tick → use; unconfirmed poster asks for the check on its media page. Real OpenAI run through the app: exact Marathi text.
