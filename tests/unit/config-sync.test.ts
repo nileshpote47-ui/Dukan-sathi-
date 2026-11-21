@@ -116,7 +116,7 @@ describe('config matches the database', () => {
     expect([...featureLists.at(-1)![1].matchAll(/'([^']+)'/g)].map((m) => m[1])).toEqual([...FEATURE_KEYS])
     // Seeded plans: free + the purchasable plans, each with every feature.
     for (const slug of [FREE_PLAN_SLUG, ...PAID_PLAN_SLUGS]) {
-      expect(billing).toMatch(new RegExp(`\\('${slug}', '`))
+      expect(allMigrations).toMatch(new RegExp(`\\('${slug}', '`))
       for (const feature of FEATURE_KEYS) expect(allMigrations).toContain(`('${slug}', '${feature}', `)
     }
   })

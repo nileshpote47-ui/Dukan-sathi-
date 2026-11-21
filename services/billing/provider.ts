@@ -8,7 +8,7 @@ import { BillingError, type BillingProvider } from './types'
  * Chooses the payment provider from server-only environment variables:
  *   BILLING_PROVIDER = razorpay | mock
  *   RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET (secret), RAZORPAY_WEBHOOK_SECRET (secret)
- *   RAZORPAY_PLAN_STARTER, RAZORPAY_PLAN_GROWTH (provider plan ids; amounts are verified)
+ *   RAZORPAY_PLAN_STARTER, RAZORPAY_PLAN_GROWTH, RAZORPAY_PLAN_PREMIUM (provider plan ids; amounts are verified)
  *   BILLING_MOCK_WEBHOOK_SECRET (tests only)
  * Secrets are never sent to the browser or logged.
  */
@@ -36,7 +36,7 @@ export function getBillingProvider(id: BillingProviderId | null = getBillingProv
       keyId,
       keySecret,
       webhookSecret: env('RAZORPAY_WEBHOOK_SECRET'),
-      planIds: { starter: env('RAZORPAY_PLAN_STARTER'), growth: env('RAZORPAY_PLAN_GROWTH') },
+      planIds: { starter: env('RAZORPAY_PLAN_STARTER'), growth: env('RAZORPAY_PLAN_GROWTH'), premium: env('RAZORPAY_PLAN_PREMIUM') },
     })
   }
   if (id === 'mock' && process.env.VERCEL_ENV !== 'production' && process.env.BILLING_MOCK_WEBHOOK_SECRET) {

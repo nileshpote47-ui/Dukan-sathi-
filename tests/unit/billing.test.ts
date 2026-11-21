@@ -45,7 +45,7 @@ describe('signatures (HMAC-SHA256, Razorpay format)', () => {
 
 // ---------------------------------------------------------------------------
 describe('Razorpay provider (fake HTTP, no real API)', () => {
-  const config = { keyId: 'rzp_test_key', keySecret: 'key_secret', webhookSecret: 'hook_secret', planIds: { starter: 'plan_S', growth: 'plan_G' } }
+  const config = { keyId: 'rzp_test_key', keySecret: 'key_secret', webhookSecret: 'hook_secret', planIds: { starter: 'plan_S', growth: 'plan_G', premium: 'plan_P' } }
   const input = { planSlug: 'starter' as const, pricePaise: 19900, currency: 'INR', businessId: 'biz-1', ownerId: 'owner-1' }
 
   function fakeFetch(plan: unknown, subscription: unknown = { id: 'sub_new' }) {
@@ -81,7 +81,7 @@ describe('Razorpay provider (fake HTTP, no real API)', () => {
       await expect(new RazorpayProvider(config, fetcher).createSubscription(input)).rejects.toMatchObject({ code: 'plan_mismatch' })
       expect(calls).toHaveLength(1) // no subscription created
     }
-    await expect(new RazorpayProvider({ ...config, planIds: { starter: undefined, growth: 'plan_G' } }).createSubscription(input)).rejects.toMatchObject({ code: 'not_configured' })
+    await expect(new RazorpayProvider({ ...config, planIds: { starter: undefined, growth: 'plan_G', premium: 'plan_P' } }).createSubscription(input)).rejects.toMatchObject({ code: 'not_configured' })
   })
 
   it('maps API errors safely', async () => {
@@ -178,6 +178,7 @@ describe('billing state rules (mirror the database)', () => {
     expect(usageLevel(0, 0, 0.2)).toBe('reached')
     expect(planRank('free')).toBeLessThan(planRank('starter'))
     expect(planRank('starter')).toBeLessThan(planRank('growth'))
+    expect(planRank('growth')).toBeLessThan(planRank('premium'))
     expect(isLimitError(LIMIT_MESSAGES.ai_text_generation)).toBe(true)
     expect(isLimitError('ai.error.failed')).toBe(false)
   })

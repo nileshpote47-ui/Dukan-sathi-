@@ -47,6 +47,9 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Files: `services/media/providers/openai.ts`, `lib/media/fit-aspect.ts`, `components/media/{direct-poster-panel,confirm-direct-poster}.tsx`, prompt + service + actions + provider selection, migration `20261121145815_direct_poster.sql`, tests (unit 8, pgTAP 9, e2e 2), CLAUDE.md media rule (documented exception)
 - Env: `OPENAI_API_KEY` (set in Vercel, Sensitive); optional `DIRECT_POSTER_PROVIDER`, `DIRECT_POSTER_MODEL`
 
+### Premium plan (2026-11-21)
+- ₹999/month: AI texts 1500, AI posters 120, AI pictures 80, saved posters 1000, reels 200, posts 600 (migration `20261121160000_premium_plan.sql`); needs `RAZORPAY_PLAN_PREMIUM` for payments
+
 ### Next
 - Stage 2: ideas for today (festival calendar), weekly progress, real template previews
 - Stage 3b: free stock photos (Pexels), reel voiceover

@@ -38,7 +38,7 @@ All are documented in `.env.example` (placeholders only). Real values live in `.
 | `DIRECT_POSTER_PROVIDER`, `DIRECT_POSTER_MODEL` | server | unset | Defaults: `openai` when the key is set, `gpt-image-2.6-sunburst` |
 | `BILLING_PROVIDER` | server | `razorpay` | |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | server secret | test keys | |
-| `RAZORPAY_PLAN_STARTER`, `RAZORPAY_PLAN_GROWTH` | server | test plan ids | Amounts are re-checked against `billing_plans` |
+| `RAZORPAY_PLAN_STARTER`, `RAZORPAY_PLAN_GROWTH`, `RAZORPAY_PLAN_PREMIUM` | server | Starter/Growth set; **Premium to add** | Razorpay monthly plans (₹199 / ₹499 / ₹999); amounts are re-checked against `billing_plans` |
 | `RAZORPAY_WEBHOOK_SECRET` | server secret | optional | Authoritative copy is Vault `razorpay_webhook_secret` |
 | `PUBLISHING_SERVER_SECRET` | server secret | set | Same value as Vault `publishing_server_secret` |
 | `SOCIAL_TOKEN_ENCRYPTION_KEY` | server secret | set | AES-256-GCM key for stored social tokens; changing it disconnects every account |

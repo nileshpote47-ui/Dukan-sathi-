@@ -43,7 +43,7 @@ export type BillingProviderId = (typeof BILLING_PROVIDERS)[number]
 
 export const FREE_PLAN_SLUG = 'free'
 /** Plans that can be bought, in upgrade order. */
-export const PAID_PLAN_SLUGS = ['starter', 'growth'] as const
+export const PAID_PLAN_SLUGS = ['starter', 'growth', 'premium'] as const
 export type PaidPlanSlug = (typeof PAID_PLAN_SLUGS)[number]
 export const isPaidPlanSlug = (slug: string): slug is PaidPlanSlug => (PAID_PLAN_SLUGS as readonly string[]).includes(slug)
 /** Plan rank for upgrade/downgrade decisions. */

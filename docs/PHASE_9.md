@@ -55,3 +55,18 @@ No database migration; no new environment variables; no new paid API. AI still r
 **Billing.** Migration `20261121145815_direct_poster.sql`: feature `direct_poster` (check constraints, `billing_reserve_for`), entitlements Free 3 / Starter 30 / Growth 70 (owner's decision). Full Growth use ≈ ₹250/month at current prices.
 
 **Tests.** Unit (`tests/unit/direct-poster.test.ts`, 8): owner lines verbatim in the prompt, visuals-only rule kept for pictures, input validation, OpenAI request/key/error mapping, provider selection (mock refused in production), padding to each size, publishing hold. pgTAP (`direct_poster.test.sql`, 9/9 on the live database, rolled back): limits per plan, reserve/commit/release, limit refused, isolation. E2E (`tests/e2e/direct-poster.spec.ts`, mock provider): make → must tick → use; unconfirmed poster asks for the check on its media page. Real OpenAI run through the app: exact Marathi text.
+
+## Premium plan (owner's request, 2026-11-21)
+
+₹999/month, listed after Growth (migration `20261121160000_premium_plan.sql`). Limits chosen for value against AI cost: features that cost almost nothing per use are generous; the two that cost real money (~₹3.5 each) are capped so even a month of full use stays within the price.
+
+| Feature | Free | Starter ₹199 | Growth ₹499 | **Premium ₹999** |
+|---|---|---|---|---|
+| AI texts | 30 | 200 | 600 | **1500** |
+| AI-designed posters | 3 | 30 | 70 | **120** |
+| AI pictures | 3 | 20 | 60 | **80** |
+| Saved posters | 10 | 100 | 300 | **1000** |
+| Reel storyboards | 5 | 30 | 100 | **200** |
+| Posts / WhatsApp sends | 10 | 60 | 200 | **600** |
+
+Payment: needs a Razorpay monthly plan of ₹999 and `RAZORPAY_PLAN_PREMIUM` in Vercel; until then choosing Premium shows the friendly "payment not set up" message (the amount is always re-checked against the database). Tests: unit (plan order, Razorpay mapping), config-sync (every plan seeded with every feature), pgTAP `premium_plan.test.sql`, pricing e2e.

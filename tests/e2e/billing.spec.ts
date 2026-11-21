@@ -70,9 +70,11 @@ async function billingRows(user = users.a) {
 
 test('public pricing page lists the plans from the database', async ({ page }) => {
   await page.goto('/pricing')
-  for (const name of ['Free', 'Starter', 'Growth']) await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
+  for (const name of ['Free', 'Starter', 'Growth', 'Premium']) await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
   await expect(page.getByText('₹199')).toBeVisible()
   await expect(page.getByText('₹499')).toBeVisible()
+  await expect(page.getByText('₹999')).toBeVisible()
+  await expect(page.getByText('120 AI-designed posters a month')).toBeVisible()
   await expect(page.getByText('Introductory price — not final yet.').first()).toBeVisible()
   await expect(page.getByText('30 AI content generations a month')).toBeVisible()
 })
