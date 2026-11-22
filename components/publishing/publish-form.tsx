@@ -47,17 +47,36 @@ interface Props {
   defaultSchedule: string
   businessName: string
   whatsappDefaults: string[]
+  /** The owner's plan: how many accounts one post may go to at once (from the database). */
+  maxAccounts: number
+  planName: string
 }
 
 export function PublishForm(props: Props) {
   const { t } = useI18n()
   const toast = useToast()
   const router = useRouter()
-  const { accounts, media, contacts } = props
+  const { accounts, media, contacts, maxAccounts } = props
   const firstUsable = accounts.find((a) => canPublishToday(a.channel))
-  const [accountId, setAccountId] = useState(firstUsable?.id ?? '')
-  const account = accounts.find((a) => a.id === accountId) ?? null
-  const channel = account?.channel ?? null
+  // One-account plans start with the first account ticked; with several allowed the owner picks each one,
+  // so a post never goes to an account they did not choose.
+  const [accountIds, setAccountIds] = useState<string[]>(firstUsable && maxAccounts === 1 ? [firstUsable.id] : [])
+  const selected = accounts.filter((a) => accountIds.includes(a.id))
+  const textChannels = [...new Set(selected.filter((a) => a.channel !== 'WHATSAPP').map((a) => a.channel))]
+  const waAccount = selected.find((a) => a.channel === 'WHATSAPP') ?? null
+  const atLimit = accountIds.length >= maxAccounts
+
+  const toggleAccount = (id: string, on: boolean) => {
+    setAccountIds((ids) => {
+      if (!on) return ids.filter((x) => x !== id)
+      // One account per post on plans with a limit of 1: picking another one switches to it.
+      if (maxAccounts === 1) return [id]
+      const next = [...ids, id]
+      // Only one WhatsApp number per post.
+      const chosen = accounts.find((a) => a.id === id)
+      return chosen?.channel === 'WHATSAPP' ? next.filter((x) => x === id || accounts.find((a) => a.id === x)?.channel !== 'WHATSAPP') : next
+    })
+  }
 
   const [captions, setCaptions] = useState(props.captions)
   const [mediaId, setMediaId] = useState<string | null>(media[0]?.id ?? null)
@@ -71,25 +90,26 @@ export function PublishForm(props: Props) {
   const [pending, startTransition] = useTransition()
 
   // WhatsApp: approved templates of the selected number, values, recipients.
+  const waId = waAccount?.id ?? ''
   const [templatesByAccount, setTemplatesByAccount] = useState<Record<string, { templates?: WhatsAppTemplate[]; error?: MessageKey }>>({})
-  const templates = templatesByAccount[accountId]?.templates ?? null
-  const templateError = templatesByAccount[accountId]?.error ?? null
+  const templates = templatesByAccount[waId]?.templates ?? null
+  const templateError = templatesByAccount[waId]?.error ?? null
   const [templateKey, setTemplateKey] = useState('')
   const [params, setParams] = useState<string[]>([])
   const [recipients, setRecipients] = useState<string[]>([])
   const template = templates?.find((tpl) => `${tpl.name}|${tpl.language}` === templateKey) ?? null
-  const needTemplates = channel === 'WHATSAPP' && Boolean(accountId) && !templatesByAccount[accountId]
+  const needTemplates = Boolean(waId) && !templatesByAccount[waId]
 
   useEffect(() => {
     if (!needTemplates) return
     let active = true
-    loadTemplatesAction(accountId).then((result) => {
-      if (active) setTemplatesByAccount((all) => ({ ...all, [accountId]: result.ok ? { templates: result.templates } : { error: result.error } }))
+    loadTemplatesAction(waId).then((result) => {
+      if (active) setTemplatesByAccount((all) => ({ ...all, [waId]: result.ok ? { templates: result.templates } : { error: result.error } }))
     })
     return () => {
       active = false
     }
-  }, [needTemplates, accountId])
+  }, [needTemplates, waId])
 
   const chooseTemplate = (key: string) => {
     setTemplateKey(key)
@@ -97,44 +117,47 @@ export function PublishForm(props: Props) {
     setParams(Array.from({ length: tpl?.bodyParamCount ?? 0 }, (_, i) => props.whatsappDefaults[i]?.slice(0, 200) ?? ''))
   }
 
-  const caption = channel ? captions[channel] : ''
   const selectedMedia = media.find((m) => m.id === mediaId) ?? null
-  const usesMedia = channel !== 'WHATSAPP' || Boolean(template?.imageHeader)
+  const usesMedia = textChannels.length > 0 || Boolean(template?.imageHeader)
+  const pictureOptional = textChannels.every((c) => CHANNEL_RULES[c].media !== 'image')
   const scheduledIso = mode === 'schedule' && when ? istInputToIso(when) : null
-  const alreadyPublished = account ? props.publishedAccountIds.includes(account.id) : false
-  const noCredits = props.credits !== null && props.credits.remaining < 1
+  const alreadyPublished = selected.some((a) => props.publishedAccountIds.includes(a.id))
+  const noCredits = props.credits !== null && props.credits.remaining < Math.max(1, selected.length)
 
-  const issues = useMemo(
-    () =>
-      channel
-        ? validateDraft({
-            channel,
-            caption,
-            media: usesMedia && selectedMedia ? { width: selectedMedia.width, height: selectedMedia.height, mimeType: selectedMedia.mimeType } : null,
-            scheduledFor: mode === 'schedule' ? (scheduledIso ? new Date(scheduledIso) : new Date(NaN)) : null,
-            whatsapp:
-              channel === 'WHATSAPP'
-                ? { templateChosen: Boolean(template), params, paramCount: template?.bodyParamCount ?? 0, recipients: recipients.length, needsImage: Boolean(template?.imageHeader) }
-                : null,
-          })
-        : [],
-    [channel, caption, usesMedia, selectedMedia, mode, scheduledIso, template, params, recipients],
-  )
+  const issues = useMemo(() => {
+    const all = selected.flatMap((a) =>
+      validateDraft({
+        channel: a.channel,
+        caption: a.channel === 'WHATSAPP' ? '' : captions[a.channel],
+        media: (a.channel !== 'WHATSAPP' || template?.imageHeader) && selectedMedia ? { width: selectedMedia.width, height: selectedMedia.height, mimeType: selectedMedia.mimeType } : null,
+        scheduledFor: mode === 'schedule' ? (scheduledIso ? new Date(scheduledIso) : new Date(NaN)) : null,
+        whatsapp:
+          a.channel === 'WHATSAPP'
+            ? { templateChosen: Boolean(template), params, paramCount: template?.bodyParamCount ?? 0, recipients: recipients.length, needsImage: Boolean(template?.imageHeader) }
+            : null,
+      }),
+    )
+    const seen = new Set<string>()
+    return all.filter((issue) => {
+      const id = `${issue.key}|${JSON.stringify(issue.values ?? {})}`
+      return seen.has(id) ? false : (seen.add(id), true)
+    })
+  }, [selected, captions, selectedMedia, mode, scheduledIso, template, params, recipients])
 
   const submit = () => {
     setSubmitted(true)
     setError(null)
     setServerIssues([])
-    if (!account || issues.length || !confirm) {
+    if (!selected.length || issues.length || !confirm) {
       if (!confirm) setError('publishing.validation.confirm')
       return
     }
     startTransition(async () => {
       const result = await publishContentAction({
         contentId: props.contentId,
-        accountId: account.id,
+        accountIds: selected.map((a) => a.id),
         mediaAssetId: usesMedia ? mediaId : null,
-        caption,
+        captions: Object.fromEntries(textChannels.map((c) => [c, captions[c]])),
         mode,
         scheduledFor: mode === 'schedule' ? when : undefined,
         allowRepeat,
@@ -146,15 +169,14 @@ export function PublishForm(props: Props) {
         setServerIssues(result.issues ?? [])
         return
       }
-      const outcomeMessage: Record<string, string> = {
-        PUBLISHED: t('publishing.form.published', { channel: t(`publishing.channel.${account.channel}` as MessageKey) }),
-        SCHEDULED: t('publishing.form.scheduled'),
-        FAILED: t('publishing.form.failed'),
-      }
-      const text = outcomeMessage[result.outcome] ?? t('publishing.form.queued')
-      if (result.outcome === 'FAILED') toast.error(text)
-      else toast.success(text)
-      router.push(`/dashboard/publishing?job=${result.jobId}`)
+      const failed = result.results.filter((r) => r.outcome === 'FAILED' || r.outcome === 'NOT_CREATED')
+      const name = (r: { channel: Channel }) => t(`publishing.channel.${r.channel}` as MessageKey)
+      if (failed.length) toast.error(t('publishing.form.someFailed', { channels: failed.map(name).join(', ') }))
+      else if (mode === 'schedule') toast.success(t('publishing.form.scheduled'))
+      else if (result.results.every((r) => r.outcome === 'PUBLISHED')) toast.success(t('publishing.form.published', { channel: result.results.map(name).join(', ') }))
+      else toast.success(t('publishing.form.queued'))
+      const first = result.results.find((r) => r.jobId)
+      router.push(first ? `/dashboard/publishing?job=${first.jobId}` : '/dashboard/publishing')
     })
   }
 
@@ -169,28 +191,27 @@ export function PublishForm(props: Props) {
     )
   }
 
-  const rules = channel ? CHANNEL_RULES[channel] : null
   const shownIssues = submitted ? issues : issues.filter((i) => i.key === 'publishing.validation.needsVideo' || i.key === 'publishing.validation.aspect' || i.key === 'publishing.validation.captionTooLong')
+  const accountNames = selected.map((a) => `${t(`publishing.channel.${a.channel}` as MessageKey)} (${a.name})`).join(', ')
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
       <div className="flex flex-col gap-4">
         <Card>
           <fieldset>
-            <legend className="mb-3 text-base font-semibold">{t('publishing.form.account')}</legend>
+            <legend className="mb-1 text-base font-semibold">{t('publishing.form.accounts')}</legend>
+            <p className="mb-3 text-sm text-muted-foreground">{t('publishing.form.accountsLimit', { n: maxAccounts, plan: props.planName })}</p>
             <div className="flex flex-col gap-2">
               {accounts.map((a) => {
                 const usable = canPublishToday(a.channel)
+                const on = accountIds.includes(a.id)
+                const blocked = !on && atLimit && maxAccounts > 1
                 return (
                   <label
                     key={a.id}
-                    className={cn(
-                      'flex min-h-11 items-center gap-3 rounded-xl border p-3',
-                      a.id === accountId ? 'border-primary bg-primary-soft' : 'border-border',
-                      !usable && 'opacity-60',
-                    )}
+                    className={cn('flex min-h-11 items-center gap-3 rounded-xl border p-3', on ? 'border-primary bg-primary-soft' : 'border-border', (!usable || blocked) && 'opacity-60')}
                   >
-                    <Radio name="account" value={a.id} checked={a.id === accountId} disabled={!usable} onChange={() => setAccountId(a.id)} />
+                    <Checkbox checked={on} disabled={!usable || blocked} onChange={(e) => toggleAccount(a.id, e.target.checked)} />
                     <span className="flex min-w-0 flex-col">
                       <ChannelLabel channel={a.channel} t={t} />
                       <span className="text-sm break-words text-muted-foreground">
@@ -202,29 +223,40 @@ export function PublishForm(props: Props) {
                 )
               })}
             </div>
+            {atLimit && accounts.length > accountIds.length && (
+              <p className="mt-2 text-sm">
+                {t('publishing.form.accountsUpgrade', { n: maxAccounts })}{' '}
+                <Link href="/dashboard/billing" className="font-medium text-primary underline underline-offset-4">
+                  {t('publishing.form.seePlans')}
+                </Link>
+              </p>
+            )}
             <Link href="/dashboard/accounts" className="mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4">
               {t('publishing.form.manageAccounts')}
             </Link>
           </fieldset>
         </Card>
 
-        {channel && channel !== 'WHATSAPP' && rules && (
-          <Card>
-            <FormField
-              label={t('publishing.form.caption')}
-              hint={[
-                t('publishing.form.captionHint', { n: caption.length, max: rules.maxCaption }),
-                rules.maxHashtags !== undefined ? t('publishing.form.hashtags', { n: countHashtags(caption), max: rules.maxHashtags }) : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            >
-              <Textarea rows={8} value={caption} maxLength={rules.maxCaption + 500} onChange={(e) => setCaptions((c) => ({ ...c, [channel]: e.target.value }))} />
-            </FormField>
-          </Card>
-        )}
-
-        {channel === 'WHATSAPP' && (
+        {textChannels.map((channel) => {
+          const rules = CHANNEL_RULES[channel]
+          const caption = captions[channel]
+          return (
+            <Card key={channel}>
+              <FormField
+                label={textChannels.length > 1 ? t('publishing.form.captionFor', { channel: t(`publishing.channel.${channel}` as MessageKey) }) : t('publishing.form.caption')}
+                hint={[
+                  t('publishing.form.captionHint', { n: caption.length, max: rules.maxCaption }),
+                  rules.maxHashtags !== undefined ? t('publishing.form.hashtags', { n: countHashtags(caption), max: rules.maxHashtags }) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              >
+                <Textarea rows={8} value={caption} maxLength={rules.maxCaption + 500} onChange={(e) => setCaptions((c) => ({ ...c, [channel]: e.target.value }))} />
+              </FormField>
+            </Card>
+          )
+        })}
+        {waAccount && (
           <Card className="flex flex-col gap-4">
             <p className="rounded-xl bg-primary-soft p-3 text-sm">{t('publishing.wa.policy')}</p>
             {templateError ? (
@@ -292,7 +324,7 @@ export function PublishForm(props: Props) {
           </Card>
         )}
 
-        {channel && usesMedia && (
+        {selected.length > 0 && usesMedia && (
           <Card>
             <fieldset>
               <legend className="mb-3 text-base font-semibold">{t('publishing.form.picture')}</legend>
@@ -312,7 +344,7 @@ export function PublishForm(props: Props) {
                       <img src={m.url} alt="" loading="lazy" className="h-28 w-full bg-muted object-contain" />
                     </label>
                   ))}
-                  {CHANNEL_RULES[channel].media !== 'image' && (
+                  {pictureOptional && (
                     <label className={cn('flex h-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 bg-muted text-xs', mediaId === null ? 'border-primary' : 'border-transparent')}>
                       <Radio name="media" className="sr-only" checked={mediaId === null} onChange={() => setMediaId(null)} />
                       <ImageOff aria-hidden className="size-5" />
@@ -325,7 +357,7 @@ export function PublishForm(props: Props) {
           </Card>
         )}
 
-        {channel && (
+        {selected.length > 0 && (
           <Card>
             <fieldset>
               <legend className="mb-3 text-base font-semibold">{t('publishing.form.when')}</legend>
@@ -348,28 +380,31 @@ export function PublishForm(props: Props) {
       </div>
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
-        {channel && account && (
-          <Card aria-label={t('publishing.form.preview')}>
-            <CardTitle className="mb-3 text-base">{t('publishing.form.preview')}</CardTitle>
-            <div className={cn('overflow-hidden rounded-2xl border border-border', channel === 'WHATSAPP' && 'bg-success-soft p-3')}>
-              {channel !== 'WHATSAPP' && (
-                <div className="flex items-center gap-2 border-b border-border p-3">
-                  <ChannelLabel channel={channel} t={t} />
-                  <span className="truncate text-sm text-muted-foreground">{account.name}</span>
-                </div>
-              )}
-              <div className={cn(channel === 'WHATSAPP' && 'max-w-[85%] overflow-hidden rounded-xl bg-card shadow-sm')}>
-                {usesMedia && selectedMedia && (
-                  // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
-                  <img src={selectedMedia.url} alt="" className="w-full bg-muted" />
+        {selected.map((account) => {
+          const channel = account.channel
+          return (
+            <Card key={account.id} aria-label={t('publishing.form.previewFor', { channel: t(`publishing.channel.${channel}` as MessageKey) })}>
+              <CardTitle className="mb-3 text-base">{t('publishing.form.preview')}</CardTitle>
+              <div className={cn('overflow-hidden rounded-2xl border border-border', channel === 'WHATSAPP' && 'bg-success-soft p-3')}>
+                {channel !== 'WHATSAPP' && (
+                  <div className="flex items-center gap-2 border-b border-border p-3">
+                    <ChannelLabel channel={channel} t={t} />
+                    <span className="truncate text-sm text-muted-foreground">{account.name}</span>
+                  </div>
                 )}
-                <p className="p-3 text-sm break-words whitespace-pre-line">
-                  {channel === 'WHATSAPP' ? (template ? fillTemplate(template.bodyText, params) : '…') : caption || '…'}
-                </p>
+                <div className={cn(channel === 'WHATSAPP' && 'max-w-[85%] overflow-hidden rounded-xl bg-card shadow-sm')}>
+                  {(channel !== 'WHATSAPP' || template?.imageHeader) && selectedMedia && (
+                    // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
+                    <img src={selectedMedia.url} alt="" className="w-full bg-muted" />
+                  )}
+                  <p className="p-3 text-sm break-words whitespace-pre-line">
+                    {channel === 'WHATSAPP' ? (template ? fillTemplate(template.bodyText, params) : '…') : captions[channel] || '…'}
+                  </p>
+                </div>
               </div>
-            </div>
-          </Card>
-        )}
+            </Card>
+          )
+        })}
 
         <Card className="flex flex-col gap-3">
           {props.credits && (
@@ -404,15 +439,15 @@ export function PublishForm(props: Props) {
               </label>
             </div>
           )}
-          {account && (
+          {selected.length > 0 && (
             <label className="flex min-h-11 items-start gap-3 text-sm">
               <Checkbox className="mt-0.5" checked={confirm} onChange={(e) => setConfirm(e.target.checked)} />
-              <span>{t('publishing.form.confirm', { account: `${t(`publishing.channel.${account.channel}` as MessageKey)} (${account.name})` })}</span>
+              <span>{t('publishing.form.confirm', { account: accountNames })}</span>
             </label>
           )}
           <ActionError messageKey={error} />
-          <Button onClick={submit} loading={pending} disabled={!account || noCredits || (alreadyPublished && !allowRepeat)} size="lg">
-            {mode === 'schedule' ? t('publishing.form.submitSchedule') : channel === 'WHATSAPP' ? t('publishing.form.sendNow') : t('publishing.form.submitNow')}
+          <Button onClick={submit} loading={pending} disabled={!selected.length || noCredits || (alreadyPublished && !allowRepeat)} size="lg">
+            {mode === 'schedule' ? t('publishing.form.submitSchedule') : waAccount && !textChannels.length ? t('publishing.form.sendNow') : t('publishing.form.submitNow')}
           </Button>
         </Card>
       </div>

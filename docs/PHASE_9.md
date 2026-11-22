@@ -87,6 +87,15 @@ Unit `tests/unit/ideas.test.ts` (12): calendar dates valid/ordered/unique/in ran
 
 **Tests.** Unit `tests/unit/stock.test.ts` (9): request parameters (English, photos only, safe search), off-host results dropped, browser download link only on Pixabay hosts (unsafe links skipped), credits looked up by id, error mapping without the key, provider selection (mock refused in production), input accepts only a numeric id, mock images pass the file check, suggestions + texts in en/mr/hi. E2E (`media.spec.ts`, mock provider): open → suggestion → more → tap → saved as STOCK with the photographer, linked to the content, shown on the media page. Full media suite 7/7.
 
+## Accounts per post (owner's request, 2026-11-22)
+
+One post can now go to several connected accounts at once; how many is plan data (`billing_plans.max_accounts_per_post`, migration `20261122075556_accounts_per_post.sql`): **Free 1 · Starter 1 · Growth 2 · Premium 4**. Shown on the pricing page ("Accounts in one post: n").
+
+- Publish page: accounts are checkboxes. On one-account plans the first account is ticked and picking another switches to it; on multi-account plans nothing is pre-ticked and further accounts are disabled at the limit, with a link to plans. One caption box and one preview per chosen channel; one WhatsApp number per post.
+- Server (`createPublication`): plan limit and remaining posts checked first, then EVERY chosen account is checked (connected, channel rules, picture, WhatsApp template and customers); only if all pass is one job created per account, so a mistake never sends to some accounts and not others. Results are reported per account. Each job uses one post credit as before.
+- Channels: Facebook, Instagram, WhatsApp (customers), YouTube, Google Business Profile — all manual. Autopilot (next) will post only to Facebook, Instagram and WhatsApp.
+- Tests: unit (input: 1–10 unique accounts, known channels only), pgTAP `accounts_per_post.test.sql` 3/3 on the live database, E2E: Free switches between accounts; Growth (run with `E2E_PLAN_ACCOUNTS=growth` and a temporary subscription, README) scheduled one post to Facebook + Instagram, third account blocked, nothing pre-ticked — passed; publishing/analytics regression passed.
+
 ## Stage 3a — Direct poster (AI designs the whole poster)
 
 **What the owner sees.** On the poster page, under the template preview: "Or let AI design the whole poster". It uses the same lines (headline, message, badge, call to action, shop name, place/phone), size and style the owner already chose. **Design with AI** makes one poster in about 30 seconds; the owner must tick "I checked the spelling, the price and the offer" before **Use this poster**. "Make another version" uses one more credit. A poster that was not confirmed shows the same check on its media page.

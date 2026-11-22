@@ -3,6 +3,7 @@ import { getBusiness, requireUser } from '@/lib/auth/dal'
 import { LIMIT_MESSAGES } from '@/lib/config/billing'
 import { CHANNEL_CONNECTOR, canPublishToday, isChannel, type Channel } from '@/lib/config/publishing'
 import { getContentItem } from '@/lib/data/content'
+import { getBillingOverview } from '@/lib/data/billing'
 import type { MessageKey } from '@/lib/i18n'
 import { validateDraft, type ValidationIssue } from '@/lib/publishing/compose'
 import { preparePublishingMedia, removePublishingMedia, resignPublishingMedia } from '@/lib/publishing/prepare-media'
@@ -28,7 +29,7 @@ import { DIRECT_POSTER_KIND } from '@/lib/config/media'
  */
 
 export type PublishServiceResult =
-  | { ok: true; jobId: string; outcome: RunOutcome | 'SCHEDULED' }
+  | { ok: true; results: PublishResult[] }
   | { ok: false; error: MessageKey; issues?: ValidationIssue[] }
 
 const RPC_ERRORS: Record<string, MessageKey> = {
@@ -105,28 +106,64 @@ export function needsReview(metadata: unknown): boolean {
   return m?.kind === DIRECT_POSTER_KIND && m.reviewed !== true
 }
 
+type Supabase = Awaited<ReturnType<typeof createClient>>
+type Owner = NonNullable<Awaited<ReturnType<typeof ownerContext>>>
+
+/** Everything checked for one account; creating its job has no further decisions to make. */
+interface PreparedPost {
+  accountId: string
+  channel: Channel
+  caption: string
+  needsMedia: boolean
+  template: WhatsAppTemplate | null
+  contactIds: string[]
+}
+
+/** One account's outcome when a post goes to several accounts at once. */
+export interface PublishResult {
+  accountId: string
+  channel: Channel
+  jobId: string | null
+  outcome: RunOutcome | 'SCHEDULED' | 'NOT_CREATED'
+  error?: MessageKey
+}
+
+/**
+ * Publish one post to one or more of the owner's accounts (now or scheduled). Every account is checked first
+ * (plan limit, connection, channel rules, picture, WhatsApp template and customers); only when all pass is one
+ * job created per account, so a mistake never sends to some accounts and not others.
+ */
 export async function createPublication(input: PublishInput): Promise<PublishServiceResult> {
   const ctx = await ownerContext()
   if (!ctx) return { ok: false, error: 'errors.saveFailed' }
   const secret = serverSecret()
   if (!secret || !isPublishingReady()) return { ok: false, error: 'publishing.error.notConfigured' }
-  const { user, business } = ctx
-  if (!(await allowRequest('social_publishing'))) return { ok: false, error: 'errors.rateLimited' }
+  const { user } = ctx
   const supabase = await createClient()
+
+  // Plan limit: accounts per post (plan data) and enough posts left this month.
+  const billing = await getBillingOverview()
+  const maxAccounts = billing.currentPlan.max_accounts_per_post ?? 1
+  if (input.accountIds.length > maxAccounts) {
+    return { ok: false, error: 'publishing.error.accountLimit', issues: [{ key: 'publishing.error.accountLimitDetail', values: { n: maxAccounts, plan: billing.currentPlan.name } }] }
+  }
+  const credits = billing.usage.find((row) => row.feature_key === 'social_publishing')
+  if (credits && credits.remaining < input.accountIds.length) return { ok: false, error: LIMIT_MESSAGES.social_publishing }
 
   const item = await getContentItem(input.contentId)
   if (!item) return { ok: false, error: 'errors.contentNotFound' }
   if (!['READY', 'SCHEDULED', 'PUBLISHED'].includes(item.status)) return { ok: false, error: 'publishing.error.contentNotReady' }
 
-  const { data: account } = await supabase
+  const { data: accounts } = await supabase
     .from('social_accounts')
     .select('id, channel, provider, status')
     .eq('owner_id', user.id)
-    .eq('id', input.accountId)
-    .maybeSingle()
-  if (!account || account.status !== 'CONNECTED' || !isChannel(account.channel)) return { ok: false, error: 'publishing.error.ACCOUNT_NOT_CONNECTED' }
-  const channel = account.channel
-  if (!canPublishToday(channel)) return { ok: false, error: 'publishing.validation.needsVideo' }
+    .in('id', input.accountIds)
+  const byId = new Map((accounts ?? []).map((a) => [a.id, a]))
+  const chosen = input.accountIds.map((id) => byId.get(id))
+  if (chosen.some((a) => !a || a.status !== 'CONNECTED' || !isChannel(a.channel))) return { ok: false, error: 'publishing.error.ACCOUNT_NOT_CONNECTED' }
+  // One WhatsApp number per post (its own template and customers).
+  if (chosen.filter((a) => a!.channel === 'WHATSAPP').length > 1) return { ok: false, error: 'publishing.error.oneWhatsApp' }
 
   let scheduledFor: Date | null = null
   if (input.mode === 'schedule') {
@@ -150,6 +187,31 @@ export async function createPublication(input: PublishInput): Promise<PublishSer
     media = { width: asset.width, height: asset.height, mimeType: asset.mime_type }
   }
 
+  const prepared: PreparedPost[] = []
+  for (const account of chosen as { id: string; channel: Channel }[]) {
+    const result = await preparePost(ctx, supabase, account, input, media, scheduledFor)
+    if (!result.ok) return result
+    prepared.push(result.post)
+  }
+
+  const results: PublishResult[] = []
+  for (const post of prepared) results.push(await executePost(ctx, supabase, secret, item, post, input, scheduledFor))
+  if (results.every((r) => r.outcome === 'NOT_CREATED')) return { ok: false, error: results[0].error ?? 'errors.saveFailed' }
+  return { ok: true, results }
+}
+
+async function preparePost(
+  ctx: Owner,
+  supabase: Supabase,
+  account: { id: string; channel: Channel },
+  input: PublishInput,
+  media: { width: number; height: number; mimeType: string } | null,
+  scheduledFor: Date | null,
+): Promise<{ ok: true; post: PreparedPost } | { ok: false; error: MessageKey; issues?: ValidationIssue[] }> {
+  const { user, business } = ctx
+  const channel = account.channel
+  if (!canPublishToday(channel)) return { ok: false, error: 'publishing.validation.needsVideo' }
+
   // WhatsApp: an approved template of this number + opted-in customers of this business only.
   let template: WhatsAppTemplate | null = null
   let contactIds: string[] = []
@@ -170,61 +232,76 @@ export async function createPublication(input: PublishInput): Promise<PublishSer
     if (contactIds.length !== new Set(input.whatsapp.contactIds).size) return { ok: false, error: 'publishing.error.recipientsChanged' }
   }
 
+  const caption = channel === 'WHATSAPP' ? '' : (input.captions[channel] ?? '').trim()
   const issues = validateDraft({
     channel,
-    caption: input.caption,
-    media,
+    caption,
+    media: channel === 'WHATSAPP' && !template?.imageHeader ? null : media,
     scheduledFor,
     whatsapp: template
       ? { templateChosen: true, params: input.whatsapp!.params, paramCount: template.bodyParamCount, recipients: contactIds.length, needsImage: template.imageHeader }
       : null,
   })
   if (issues.length) return { ok: false, error: 'publishing.error.fixIssues', issues }
+  const needsMedia = Boolean(input.mediaAssetId) && (channel !== 'WHATSAPP' || Boolean(template?.imageHeader))
+  return { ok: true, post: { accountId: account.id, channel, caption, needsMedia, template, contactIds } }
+}
 
-  // Picture → JPEG in the owner's folder + signed link valid until the post is due.
+async function executePost(
+  ctx: Owner,
+  supabase: Supabase,
+  secret: string,
+  item: { id: string; language: string },
+  post: PreparedPost,
+  input: PublishInput,
+  scheduledFor: Date | null,
+): Promise<PublishResult> {
+  const { user, business } = ctx
+  const base = { accountId: post.accountId, channel: post.channel }
+  if (!(await allowRequest('social_publishing'))) return { ...base, jobId: null, outcome: 'NOT_CREATED', error: 'errors.rateLimited' }
+
+  // Picture → JPEG in the owner's folder + signed link valid until the post is due (one file per job).
   let prepared = null
-  const needsMedia = input.mediaAssetId && (channel !== 'WHATSAPP' || template?.imageHeader)
-  if (needsMedia) {
+  if (post.needsMedia) {
     const result = await preparePublishingMedia({ ownerId: user.id, assetId: input.mediaAssetId!, publishAt: scheduledFor ?? new Date() })
-    if (!result.ok) return { ok: false, error: result.reason === 'storage' ? 'errors.saveFailed' : 'publishing.error.INVALID_MEDIA' }
+    if (!result.ok) return { ...base, jobId: null, outcome: 'NOT_CREATED', error: result.reason === 'storage' ? 'errors.saveFailed' : 'publishing.error.INVALID_MEDIA' }
     prepared = result.media
   }
 
   const { data: jobId, error } = await supabase.rpc('publishing_create_job', {
     p_secret: secret,
     p_content_id: item.id,
-    p_account_id: account.id,
+    p_account_id: post.accountId,
     p_scheduled_for: scheduledFor?.toISOString() ?? null,
-    p_caption: channel === 'WHATSAPP' ? '' : input.caption.trim(),
-    p_media_asset_id: needsMedia ? input.mediaAssetId! : null,
+    p_caption: post.caption,
+    p_media_asset_id: post.needsMedia ? input.mediaAssetId! : null,
     p_media_url: prepared?.url ?? null,
     p_media_path: prepared?.path ?? null,
     p_payload: {
-      ...(template
-        ? { whatsapp: { name: template.name, language: template.language, bodyParams: input.whatsapp!.params.map((p) => p.trim()), imageHeader: template.imageHeader }, contact_ids: contactIds }
+      ...(post.template
+        ? { whatsapp: { name: post.template.name, language: post.template.language, bodyParams: input.whatsapp!.params.map((p) => p.trim()), imageHeader: post.template.imageHeader }, contact_ids: post.contactIds }
         : {}),
       business: { website: business.website_url, phone: business.whatsapp_number || business.phone },
       language: item.language,
     } as Json,
     p_metadata: {
       ...(prepared ? { media_path: prepared.path, media_width: prepared.width, media_height: prepared.height } : {}),
-      ...(template ? { template: template.name, recipients: contactIds.length } : {}),
+      ...(post.template ? { template: post.template.name, recipients: post.contactIds.length } : {}),
     } as Json,
     p_allow_repeat: input.allowRepeat ?? false,
   })
   if (error || !jobId) {
     await removePublishingMedia(prepared?.path, user.id)
-    return { ok: false, error: error ? rpcError(error, 'create job') : 'errors.saveFailed' }
+    return { ...base, jobId: null, outcome: 'NOT_CREATED', error: error ? rpcError(error, 'create job') : 'errors.saveFailed' }
   }
-  log.info('[publishing] job created', { job: jobId, channel, mode: input.mode })
+  log.info('[publishing] job created', { job: jobId, channel: post.channel, mode: input.mode })
 
-  if (input.mode === 'schedule') return { ok: true, jobId, outcome: 'SCHEDULED' }
+  if (input.mode === 'schedule') return { ...base, jobId, outcome: 'SCHEDULED' }
   try {
-    const outcome = await runPublishingJob(jobId)
-    return { ok: true, jobId, outcome }
+    return { ...base, jobId, outcome: await runPublishingJob(jobId) }
   } catch {
     // The job exists; the scheduler resolves it (or marks it unknown) — the owner sees its status.
-    return { ok: true, jobId, outcome: 'QUEUED' }
+    return { ...base, jobId, outcome: 'QUEUED' }
   }
 }
 

@@ -1332,6 +1332,17 @@ export const en = {
   'stock.suggest.gift': 'Gifts',
   'stock.suggest.sale': 'Shopping',
   'media.detail.photographer': 'Photo by',
+  'publishing.form.accounts': 'Where? Choose one or more accounts',
+  'publishing.form.accountsLimit': 'Your {plan} plan — accounts in one post: up to {n}.',
+  'publishing.form.accountsUpgrade': 'Your plan allows {n} in one post.',
+  'publishing.form.seePlans': 'See plans for more',
+  'publishing.form.captionFor': 'Caption for {channel}',
+  'publishing.form.previewFor': 'Preview for {channel}',
+  'publishing.form.someFailed': 'Not sent on: {channels}. Check Publishing for details.',
+  'publishing.error.accountLimit': 'Your plan allows fewer accounts in one post.',
+  'publishing.error.accountLimitDetail': '{plan} plan — accounts in one post: up to {n}. Choose fewer accounts or upgrade your plan.',
+  'publishing.error.oneWhatsApp': 'Choose only one WhatsApp number in one post.',
+  'billing.accountsPerPost': 'Accounts in one post: {n}',
 } as const
 
 export type MessageKey = keyof typeof en

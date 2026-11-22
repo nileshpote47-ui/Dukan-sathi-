@@ -269,10 +269,16 @@ describe('input validation', () => {
   })
 
   it('publishing needs an explicit confirmation and ids, never an owner', () => {
-    const base = { contentId: crypto.randomUUID(), accountId: crypto.randomUUID(), caption: 'x', mode: 'now', confirm: true }
+    const id = crypto.randomUUID()
+    const base = { contentId: crypto.randomUUID(), accountIds: [id], captions: { INSTAGRAM: 'x' }, mode: 'now', confirm: true }
     expect(publishInputSchema.safeParse(base).success).toBe(true)
     expect(publishInputSchema.safeParse({ ...base, confirm: false }).success).toBe(false)
-    expect(publishInputSchema.safeParse({ ...base, accountId: 'not-a-uuid' }).success).toBe(false)
+    expect(publishInputSchema.safeParse({ ...base, accountIds: ['not-a-uuid'] }).success).toBe(false)
+    // One or more accounts, each once, never more than the hard cap (the plan limit is checked on the server).
+    expect(publishInputSchema.safeParse({ ...base, accountIds: [] }).success).toBe(false)
+    expect(publishInputSchema.safeParse({ ...base, accountIds: [id, id] }).success).toBe(false)
+    expect(publishInputSchema.safeParse({ ...base, accountIds: Array.from({ length: 11 }, () => crypto.randomUUID()) }).success).toBe(false)
+    expect(publishInputSchema.safeParse({ ...base, captions: { TWITTER: 'x' } }).success).toBe(false)
     expect(publishInputSchema.parse({ ...base, owner_id: 'x' })).not.toHaveProperty('owner_id')
     const many = Array.from({ length: 51 }, () => crypto.randomUUID())
     expect(publishInputSchema.safeParse({ ...base, whatsapp: { templateName: 'a', language: 'en', params: [], contactIds: many } }).success).toBe(false)

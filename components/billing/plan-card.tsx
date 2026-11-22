@@ -32,6 +32,10 @@ export function PlanCard({ plan, t, current, action }: { plan: Plan; t: Translat
             {t(`billing.entitlement.${key}` as MessageKey, { n: plan.entitlements[key] })}
           </li>
         ))}
+        <li className="flex items-start gap-2">
+          <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+          {t('billing.accountsPerPost', { n: plan.max_accounts_per_post })}
+        </li>
       </ul>
       {action && <div className="mt-auto">{action}</div>}
     </Card>

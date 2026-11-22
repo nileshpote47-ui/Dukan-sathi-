@@ -52,3 +52,18 @@ Remove it afterwards: `delete from public.admin_users where note like 'TEMPORARY
 ## Hardening (Phase 8)
 
 `tests/e2e/hardening.spec.ts`: health check, security headers, robots/sitemap/icon and landing copy, forged webhook and scheduler calls, signed-out access to private pages and APIs, and malformed or foreign IDs (another owner's content cannot be read, changed or deleted). The first five tests need no test users. Burst limits (`lib/config/rate-limits.ts`) are generous enough for the full suite; a whole run stays well below them.
+
+## Accounts per post on Growth (optional run)
+
+`publishing.spec.ts` checks the Free/Starter rule (one account per post) on every run. The Growth case (two
+accounts in one post) needs an ACTIVE Growth subscription for user A, which the browser cannot create. Run the
+suite with `E2E_PLAN_ACCOUNTS=growth`; the Growth test waits (up to 6 minutes) while the operator adds a
+temporary subscription for user A's freshly created shop in the SQL editor:
+
+```sql
+insert into public.business_subscriptions (business_id, owner_id, plan_id, status, provider, provider_subscription_id, current_period_start, current_period_end)
+select b.id, b.owner_id, (select id from public.billing_plans where slug = 'growth'), 'ACTIVE', 'mock', 'TEMP-e2e-growth-accounts-test', now(), now() + interval '1 day'
+from public.businesses b join auth.users u on u.id = b.owner_id where u.email = '<E2E_USER_A_EMAIL>';
+```
+
+The suite deletes the shop at the end, which also removes this subscription.

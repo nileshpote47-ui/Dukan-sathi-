@@ -54,7 +54,7 @@ test('owner analytics: real content and publishing, date filters, engagement ref
   await page.locator('div[aria-label="Facebook & Instagram"]').getByRole('link', { name: 'Connect' }).click()
   await expect(page.getByText('2 account(s) connected.')).toBeVisible()
   await page.goto(`/dashboard/content/${ids.content}/publish`)
-  await page.getByRole('radio', { name: /Facebook/ }).check()
+  await page.getByRole('checkbox', { name: /Facebook/ }).first().check()
   await page.getByRole('checkbox', { name: /I checked this post/ }).check()
   await page.getByRole('button', { name: 'Publish now' }).click()
   await page.waitForURL(/\/dashboard\/publishing\?job=/)

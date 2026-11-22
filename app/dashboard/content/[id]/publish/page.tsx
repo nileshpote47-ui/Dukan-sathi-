@@ -80,6 +80,8 @@ export default async function PublishPage({ params }: PageProps<'/dashboard/cont
         contacts={contacts.filter((c) => !c.opted_out_at).map((c) => ({ id: c.id, name: c.name ?? c.phone_e164, phone: c.phone_e164 }))}
         publishedAccountIds={[...new Set(jobs.filter((j) => j.status === 'PUBLISHED' && j.social_account_id).map((j) => j.social_account_id!))]}
         credits={usage ? { remaining: usage.remaining, limit: usage.monthly_limit } : null}
+        maxAccounts={billing.currentPlan.max_accounts_per_post ?? 1}
+        planName={billing.currentPlan.name}
         defaultSchedule={scheduled}
         businessName={business.business_name}
         whatsappDefaults={[copy?.short_text || item.offer_text || item.product_name || item.title, business.village || business.district || business.business_name]}

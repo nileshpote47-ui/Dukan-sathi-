@@ -152,6 +152,8 @@ export const PUBLISHING_LIMITS = {
   /** Scheduled posts: at least this far ahead (the scheduler runs every minute). */
   minLeadMinutes: 5,
   maxDaysAhead: 30,
+  /** Upper bound for accounts in one post (the real limit per plan is billing_plans.max_accounts_per_post). */
+  maxAccountsPerPostCap: 10,
   /** WhatsApp: recipients per send (no bulk blasting). */
   whatsappMaxRecipients: 50,
   /** WhatsApp template body variables we can fill. */

@@ -3,14 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import type { MessageKey } from '@/lib/i18n'
-import { createPublication, listTemplatesForAccount } from '@/lib/services/publishing'
+import { createPublication, listTemplatesForAccount, type PublishResult } from '@/lib/services/publishing'
 import { msg } from '@/lib/validation/fields'
 import { idSchema, publishInputSchema } from '@/lib/validation/publishing'
-import type { RunOutcome } from '@/services/publishing/runner'
 import type { WhatsAppTemplate } from '@/services/publishing/types'
 
 export type PublishActionResult =
-  | { ok: true; jobId: string; outcome: RunOutcome | 'SCHEDULED' }
+  | { ok: true; results: PublishResult[] }
   | { ok: false; error: MessageKey; issues?: string[] }
 
 /** Publish now or schedule. Validated again here and in the database; only an explicit, confirmed request. */

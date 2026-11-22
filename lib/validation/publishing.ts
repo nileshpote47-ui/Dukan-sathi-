@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { OPT_IN_SOURCES, PUBLISHING_LIMITS } from '@/lib/config/publishing'
+import { CHANNELS, OPT_IN_SOURCES, PUBLISHING_LIMITS } from '@/lib/config/publishing'
 import { msg } from './fields'
 
 /*
@@ -12,9 +12,15 @@ const uuid = z.uuid()
 
 export const publishInputSchema = z.object({
   contentId: uuid,
-  accountId: uuid,
+  /** Accounts this post goes to at once; the plan's limit (billing_plans.max_accounts_per_post) is checked on the server. */
+  accountIds: z
+    .array(uuid)
+    .min(1)
+    .max(PUBLISHING_LIMITS.maxAccountsPerPostCap)
+    .refine((ids) => new Set(ids).size === ids.length, { message: 'duplicate account' }),
   mediaAssetId: uuid.nullable().optional(),
-  caption: z.string().max(5000),
+  /** Caption per channel (each channel has its own rules); WhatsApp uses its template instead. */
+  captions: z.partialRecord(z.enum(CHANNELS), z.string().max(5000)),
   mode: z.enum(['now', 'schedule']),
   /** India time "YYYY-MM-DDTHH:mm" (datetime-local). */
   scheduledFor: z.string().max(20).optional(),

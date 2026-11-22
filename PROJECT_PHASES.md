@@ -69,8 +69,13 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Migration `20261122061947_stock_photos.sql` (source type `STOCK`); unit +9; E2E media 7/7; verified live on production (search + save)
 - Env: `PIXABAY_API_KEY` (set in Vercel, Sensitive); optional `STOCK_PROVIDER`
 
+### Accounts per post (completed 2026-11-22)
+- One post to several accounts at once; limit per plan from the database: Free 1 / Starter 1 / Growth 2 / Premium 4 (migration `20261122075556_accounts_per_post.sql`)
+- All accounts validated before any job is created; per-account results; pricing page shows the limit
+
 ### Next
-- All planned Phase 9 stages are complete; Phase 9 stays open for owner requests
+- Premium Autopilot (owner approved): AI prepares 5 posts a week, one-tap approval, auto-posting to Facebook, Instagram, WhatsApp
+- Then: Google Business Profile and YouTube setup (owner accounts + app review)
 
 ---
 

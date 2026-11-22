@@ -85,7 +85,7 @@ async function openPublish(page: Page) {
 
 async function publishTo(page: Page, account: RegExp, opts: { caption?: string; schedule?: string; repeat?: boolean } = {}) {
   await openPublish(page)
-  await page.getByRole('radio', { name: account }).check()
+  await page.getByRole('checkbox', { name: account }).first().check()
   if (opts.caption !== undefined) await page.getByLabel('Post text').fill(opts.caption)
   if (opts.schedule) {
     await page.getByRole('radio', { name: 'Schedule' }).check()
@@ -145,9 +145,9 @@ test('publish now to Instagram: validation, preview, JPEG picture, external id, 
   await expect(page.getByText('Mark the content as Ready before publishing.')).toBeVisible()
 
   await openPublish(page)
-  await page.getByRole('radio', { name: /Instagram/ }).check()
+  await page.getByRole('checkbox', { name: /Instagram/ }).first().check()
   // YouTube is listed but cannot be chosen (no video export yet).
-  await expect(page.getByRole('radio', { name: /YouTube/ })).toBeDisabled()
+  await expect(page.getByRole('checkbox', { name: /YouTube/ }).first()).toBeDisabled()
   // Caption pre-filled from the saved AI copy, with hashtags for Instagram.
   await expect(page.getByLabel('Post text')).toHaveValue(/Diwali rice offer[\s\S]*#Diwali #Shirur/)
   await expect(page.getByLabel('Preview').getByText('Fresh basmati rice at our shop.')).toBeVisible()
@@ -177,7 +177,7 @@ test('publish now to Instagram: validation, preview, JPEG picture, external id, 
 test('duplicates need confirmation; schedule, see it under Scheduled, cancel it', async ({ page }) => {
   await login(page, users.a)
   await openPublish(page)
-  await page.getByRole('radio', { name: /Instagram/ }).check()
+  await page.getByRole('checkbox', { name: /Instagram/ }).first().check()
   await expect(page.getByText('This content was already published on this account.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Publish now' })).toBeDisabled()
 
@@ -194,6 +194,51 @@ test('duplicates need confirmation; schedule, see it under Scheduled, cancel it'
   await expect(page.getByText('Post cancelled.')).toBeVisible()
   r = await rows()
   expect(r.jobs.find((j) => j.id === jobId)!.status).toBe('CANCELLED')
+})
+
+test('accounts per post follow the plan: Free/Starter one at a time (picking another switches)', async ({ page }) => {
+  test.skip(process.env.E2E_PLAN_ACCOUNTS === 'growth', 'This run uses a temporary Growth plan')
+  await login(page, users.a)
+  await openPublish(page)
+  await expect(page.getByText('Your Free plan — accounts in one post: up to 1.')).toBeVisible()
+  await page.getByRole('checkbox', { name: /Facebook/ }).first().check()
+  await page.getByRole('checkbox', { name: /Instagram/ }).first().check()
+  await expect(page.getByRole('checkbox', { name: /Instagram/ }).first()).toBeChecked()
+  await expect(page.getByRole('checkbox', { name: /Facebook/ }).first()).not.toBeChecked()
+})
+
+/*
+ * Growth (2 accounts) needs a real Growth subscription for user A, which the browser cannot create. Run with
+ * E2E_PLAN_ACCOUNTS=growth after giving user A a temporary ACTIVE Growth subscription (tests/e2e/README.md).
+ */
+test('Growth: one post goes to Facebook and Instagram at once; a third account is blocked', async ({ page }) => {
+  test.skip(process.env.E2E_PLAN_ACCOUNTS !== 'growth', 'Needs a temporary Growth subscription (see README)')
+  test.setTimeout(420_000)
+  // The shop is recreated by this suite, so the operator adds the temporary subscription while this waits.
+  const { client } = await apiClientFor(users.a)
+  await expect
+    .poll(async () => (await client.from('business_subscriptions').select('id').eq('status', 'ACTIVE')).data?.length ?? 0, { timeout: 360_000, intervals: [5_000] })
+    .toBeGreaterThan(0)
+  await login(page, users.a)
+  await openPublish(page)
+  await expect(page.getByText('accounts in one post: up to 2.')).toBeVisible()
+  // Nothing is ticked in advance when several accounts are allowed.
+  await expect(page.getByRole('checkbox', { name: /Facebook/ }).first()).not.toBeChecked()
+  await page.getByRole('checkbox', { name: /Facebook/ }).first().check()
+  await page.getByRole('checkbox', { name: /Instagram/ }).first().check()
+  await expect(page.getByRole('checkbox', { name: /Google Business Profile/ }).first()).toBeDisabled()
+  await page.getByLabel('Caption for Facebook').fill('Diwali rice offer this week! (Facebook)')
+  await page.getByLabel('Caption for Instagram').fill('Diwali rice offer this week! #Diwali')
+  await page.getByRole('radio', { name: 'Schedule' }).check()
+  await page.getByLabel('Date and time (India time)').fill(istIn(120))
+  const repeat = page.getByRole('checkbox', { name: 'Publish it again anyway' })
+  if (await repeat.isVisible()) await repeat.check()
+  await page.getByRole('checkbox', { name: /I checked this post/ }).check()
+  await page.getByRole('button', { name: 'Schedule post' }).click()
+  await page.waitForURL(/\/dashboard\/publishing/)
+  const r = await rows()
+  const scheduled = r.jobs.filter((j) => j.status === 'QUEUED' && j.publish_mode === 'SCHEDULED')
+  expect(scheduled.map((j) => j.channel).sort()).toEqual(['FACEBOOK', 'INSTAGRAM'])
 })
 
 test('failures: rejection and permission problems use no credit; expired access → reconnect; explicit retry; temporary limits retry later', async ({ page }) => {
@@ -256,7 +301,7 @@ test('WhatsApp: opted-in customers only, approved template, per-recipient result
   await expect(page.getByRole('listitem', { name: 'Opted out' }).getByText('Stopped')).toBeVisible()
 
   await openPublish(page)
-  await page.getByRole('radio', { name: /WhatsApp/ }).check()
+  await page.getByRole('checkbox', { name: /WhatsApp/ }).first().check()
   await page.getByLabel('Approved message template').selectOption({ label: 'festival_offer (en)' })
   await expect(page.getByLabel('Value for {{1}}')).not.toHaveValue('')
   // Customers who opted out are not offered.
