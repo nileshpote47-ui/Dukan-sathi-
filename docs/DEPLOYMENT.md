@@ -49,6 +49,7 @@ All are documented in `.env.example` (placeholders only). Real values live in `.
 | `META_APP_ID`, `META_APP_SECRET`, `META_LOGIN_CONFIG_ID` | server secret | set | Facebook Login for Business |
 | `META_WHATSAPP_CONFIG_ID`, `META_WEBHOOK_VERIFY_TOKEN` | server | unset | WhatsApp ("Not set up yet") |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | server secret | set (Production + Preview, 2026-11-22) | Google Business Profile / YouTube OAuth client (project "Dukaan Sathi", Testing status); Business Profile API access requested separately |
+| `GBP_API_ACCESS` | server | unset | Set to `approved` once Google grants Business Profile API access; until then Google Business Profile shows "Coming soon" (YouTube unaffected) |
 | `SUPPORT_EMAIL` | server (not secret) | to add | Support and data-deletion email on `/privacy` and `/terms` (pages are static: redeploy after changing) |
 
 Only the three `NEXT_PUBLIC_` variables reach the browser. There is no Supabase service-role key anywhere in the app. Preview deployments are protected by Vercel Authentication and have no `NEXT_PUBLIC_SITE_URL` (they fall back to the production URL for links).

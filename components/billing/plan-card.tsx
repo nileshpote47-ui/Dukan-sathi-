@@ -5,11 +5,13 @@ import { FEATURE_KEYS } from '@/lib/config/billing'
 import type { Plan } from '@/lib/data/billing'
 import { formatPrice } from '@/lib/billing/format'
 import { allowedChannels } from '@/lib/billing/channels'
+import { isBusinessProfileApproved } from '@/services/publishing/env'
 import type { MessageKey, Translate } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 
 /** One plan: name, price per month, monthly limits (from the database), and an action. */
 export function PlanCard({ plan, t, current, action }: { plan: Plan; t: Translate; current?: boolean; action?: ReactNode }) {
+  const gbpReady = isBusinessProfileApproved()
   return (
     <Card className={cn('flex flex-col gap-4', current && 'border-primary ring-2 ring-primary')} aria-label={plan.name}>
       <div>
@@ -35,7 +37,11 @@ export function PlanCard({ plan, t, current, action }: { plan: Plan; t: Translat
         ))}
         <li className="flex items-start gap-2">
           <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
-          {t('billing.channels', { channels: allowedChannels(plan).map((c) => t(`publishing.channel.${c}` as MessageKey)).join(', ') })}
+          {t('billing.channels', {
+            channels: allowedChannels(plan)
+              .map((c) => t(`publishing.channel.${c}` as MessageKey) + (c === 'GOOGLE_BUSINESS_PROFILE' && !gbpReady ? ` (${t('common.comingSoon')})` : ''))
+              .join(', '),
+          })}
         </li>
         {plan.max_connected_accounts != null && (
           <li className="flex items-start gap-2">

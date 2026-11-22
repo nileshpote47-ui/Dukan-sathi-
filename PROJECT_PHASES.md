@@ -87,10 +87,12 @@ Never mark a future phase complete. Never repeat a completed phase.
 ### Google Business Profile and YouTube setup (in progress, 2026-11-22)
 - Privacy Policy `/privacy` and Terms `/terms` pages (Google Limited Use statement, data deletion) — also for Meta App Review
 - Google Cloud project "Dukaan Sathi": YouTube Data API + Business Profile APIs enabled, OAuth consent screen (Testing) and web client; `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` set in Vercel; verified on production: both Connect buttons reach Google sign-in with the right client, redirect URI, scopes and PKCE
-- Business Profile API access: application submitted 2026-11-22 with the owner's verified Business Profile (Anand Agro Agencies); Google reviews in ~14 days (approved when the quota shows 300 QPM)
+- Business Profile API access: first application (with Anand Agro Agencies' profile) was declined at once (name/website/profile did not match the applicant). Plan (owner's decision): build everything around Dukaan Sathi — own domain, Dukaan Sathi's own verified Business Profile with that website, support email on the domain, re-apply after 60 days
+- Until approval Google Business Profile shows "Coming soon" (`GBP_API_ACCESS=approved` turns it on); YouTube connection stays available
 - Waiting: API approval; support email for `/privacy` and `/terms` (`SUPPORT_EMAIL`); YouTube publishing needs reel video (MP4) export, not built yet
 
 ### Next
+- Own domain for Dukaan Sathi (then update site URL, OAuth redirect URIs, Meta/Razorpay URLs, Search Console)
 - After approval: connect a real Business Profile and publish one post end to end
 
 ---

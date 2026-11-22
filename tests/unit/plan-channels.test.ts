@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { isBusinessProfileApproved } from '@/services/publishing/env'
 import { acceptNewAccounts, allowedChannels, freeSlots, planAllowsChannel, usableAccountIds } from '@/lib/billing/channels'
 import { CHANNELS, type Channel } from '@/lib/config/publishing'
 import { en } from '@/lib/i18n/messages/en'
@@ -79,5 +80,20 @@ describe('plan channel data and texts', () => {
     const keys = Object.keys(en).filter((k) => !k.startsWith('admin.') && /planChannel|planAccounts|plan_channel|plan_accounts|choose_one|planOnly|planLimit|chooseOne|notInPlan|billing\.channels|connectedAccounts/.test(k))
     expect(keys.length).toBeGreaterThanOrEqual(10)
     for (const dict of [mr, hi] as Record<string, string>[]) for (const key of keys) expect(dict[key], key).toBeTruthy()
+  })
+})
+
+describe('Google Business Profile availability', () => {
+  afterEach(() => vi.unstubAllEnvs())
+  it('stays "coming soon" until Google grants API access (tests with the mock provider are unaffected)', () => {
+    vi.stubEnv('PUBLISHING_PROVIDER', '')
+    vi.stubEnv('GBP_API_ACCESS', '')
+    expect(isBusinessProfileApproved()).toBe(false)
+    vi.stubEnv('GBP_API_ACCESS', 'approved')
+    expect(isBusinessProfileApproved()).toBe(true)
+    vi.stubEnv('GBP_API_ACCESS', '')
+    vi.stubEnv('PUBLISHING_PROVIDER', 'mock')
+    vi.stubEnv('VERCEL_ENV', 'preview')
+    expect(isBusinessProfileApproved()).toBe(true)
   })
 })

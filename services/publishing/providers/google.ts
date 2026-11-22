@@ -1,6 +1,6 @@
 import 'server-only'
 import { CONNECTOR_SCOPES } from '@/lib/config/publishing'
-import { env } from '../env'
+import { env, isBusinessProfileApproved } from '../env'
 import { HttpTimeoutError, requestJson, summarize } from '../http'
 import type { ConnectedAccount, Connector, PublishFailure, PublishRequest, PublishResult, StoredCredentials } from '../types'
 import { PublishingProviderError } from '../types'
@@ -144,6 +144,11 @@ export class YouTubeConnector extends GoogleConnector {
 
 export class BusinessProfileConnector extends GoogleConnector {
   readonly id = 'google_business_profile' as const
+
+  /** OAuth client set AND Google's Business Profile API access granted (see isBusinessProfileApproved). */
+  isConfigured() {
+    return super.isConfigured() && isBusinessProfileApproved()
+  }
 
   async handleOAuthCallback({ code, redirectUri, codeVerifier }: { code: string; redirectUri: string; codeVerifier: string }) {
     const { scopes, ...credentials } = await this.tokensFromCode(code, redirectUri, codeVerifier)

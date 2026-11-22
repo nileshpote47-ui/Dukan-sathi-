@@ -21,6 +21,14 @@ export function isMockPublishing(): boolean {
   return env('PUBLISHING_PROVIDER') === 'mock' && process.env.VERCEL_ENV !== 'production'
 }
 
+/**
+ * Google Business Profile needs Google's API access approval for the project (GBP_API_ACCESS=approved once granted).
+ * Until then the channel is shown as "coming soon" and cannot be connected. Mock publishing (tests) is unaffected.
+ */
+export function isBusinessProfileApproved(): boolean {
+  return isMockPublishing() || env('GBP_API_ACCESS') === 'approved'
+}
+
 /** Publishing can run at all: server secret + encryption key present. */
 export function isPublishingReady(): boolean {
   return Boolean(serverSecret() && env('SOCIAL_TOKEN_ENCRYPTION_KEY'))
