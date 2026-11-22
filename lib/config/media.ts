@@ -11,7 +11,7 @@ export const MEDIA_ASSET_TYPES = ['IMAGE', 'POSTER'] as const
 export type MediaAssetType = (typeof MEDIA_ASSET_TYPES)[number]
 
 /** Where a file came from. */
-export const MEDIA_SOURCE_TYPES = ['UPLOAD', 'AI_GENERATED', 'TEMPLATE_RENDERED'] as const
+export const MEDIA_SOURCE_TYPES = ['UPLOAD', 'AI_GENERATED', 'TEMPLATE_RENDERED', 'STOCK'] as const
 export type MediaSourceType = (typeof MEDIA_SOURCE_TYPES)[number]
 
 /** GENERATING → READY or FAILED. A failed generation is never marked READY. */

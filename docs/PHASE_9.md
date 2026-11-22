@@ -7,7 +7,7 @@ Requested after launch readiness (Phase 8). Based on a study of a comparable cre
 | 1 | Dashboard composer, one-tap AI from the content page, grouped navigation, attention bell, Devanagari fonts, illustrated tool cards | **COMPLETED** (2026-11-21) |
 | 2 | "Ideas for today" (festival calendar + ideas per business category), weekly progress from real data, real poster-template previews | **COMPLETED** (2026-11-22) |
 | 3a | **Direct poster**: AI designs the whole poster with the owner's own lines (GPT Image 2.6 Sunburst) | **COMPLETED** (2026-11-21) |
-| 3b | Reel voiceover (Sarvam Bulbul) · free stock photos (Pixabay — Pexels stopped issuing keys) | Voiceover **COMPLETED** (2026-11-22); stock photos in progress |
+| 3b | Reel voiceover (Sarvam Bulbul) · free stock photos (Pixabay — Pexels stopped issuing keys) | **COMPLETED** (2026-11-22) |
 
 ## Stage 1 — what changed
 
@@ -71,6 +71,20 @@ Unit `tests/unit/ideas.test.ts` (12): calendar dates valid/ordered/unique/in ran
 **Database.** Migration `20261122055753_voiceover.sql`: feature `voiceover` (check constraints, `billing_reserve_for`), limits Free 3 / Starter 20 / Growth 50 / Premium 100; `content_items.voiceover` (reels only, path must be inside the owner's own `voiceovers/` folder); bucket accepts `audio/mpeg`.
 
 **Tests.** Unit `tests/unit/voiceover.test.ts` (12): owner lines only, request accepts only item + voice, record shape, Sarvam request/header/MP3 + error mapping (key never in messages), provider selection (mock refused in production), MP3 check by content, texts in en/mr/hi. pgTAP `voiceover.test.sql` 10/10 on the live database (rolled back): limits, MP3 allowed, own-folder and reels-only constraints, reserve/release/commit, isolation. E2E (`media.spec.ts`): write a line → save → make (female) → plays/downloads → new version (male) replaces the file → other owner cannot read it; ran with the mock voice and once with real Sarvam (2 real calls, 1.3–2.8 s).
+
+## Stage 3b — Free stock photos (Pixabay)
+
+**Why Pixabay.** Pexels (planned) stopped issuing new API keys in November 2026. Pixabay is free, allows commercial use without attribution, and requires apps to download photos to their own server instead of hotlinking, which matches how Dukaan Sathi stores pictures.
+
+**What the owner sees.** In every picture picker (poster editor, each reel scene) a **Free photos** button opens a search box with suggestions for the shop's category (labels in Marathi/Hindi/English, e.g. मसाले → "indian spices"; Pixabay searches only in English). Tapping a photo saves it to the owner's pictures and selects it. "Free photos from Pixabay" is shown with results; the media page shows "Free photo (Pixabay)" and the photographer.
+
+**How it works**
+- `searchStockPhotosAction` → `stockSearchSchema` → burst limit (30 per 5 min) → `searchStockPhotos()` (cached 24 h by provider + query + page with `unstable_cache`; the key is never in the cache key or logs).
+- `saveStockPhotoAction` → `stockSaveSchema` (only the numeric photo id + optional own content item) → burst limit (20 per 10 min) → `downloadStockPhoto()` looks the photo up again by id and downloads the 1280 px version only from `pixabay.com`/`cdn.pixabay.com` → `validateImage()` → `storeMedia({ sourceType: 'STOCK', metadata.stock: {provider, photo_id, photographer, page_url} })`.
+- Not metered (the photos are free); search grid previews are the provider's URLs, shown only while searching, as Pixabay allows.
+- Migration `20261122061947_stock_photos.sql`: `media_assets.source_type` allows `STOCK`.
+
+**Tests.** Unit `tests/unit/stock.test.ts` (8): request parameters (English, photos only, safe search), off-host results dropped, download by id only and only from Pixabay hosts (no metadata/IP hosts), error mapping without the key, provider selection (mock refused in production), input accepts only a numeric id, mock images pass the file check, suggestions + texts in en/mr/hi. E2E (`media.spec.ts`, mock provider): open → suggestion → more → tap → saved as STOCK with the photographer, linked to the content, shown on the media page. Full media suite 7/7.
 
 ## Stage 3a — Direct poster (AI designs the whole poster)
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, ImageOff, ImagePlus, Sparkles } from 'lucide-react'
+import { Check, Images, ImageOff, ImagePlus, Sparkles } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { generatePicture, uploadPicture } from '@/app/dashboard/media/actions'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { resizeForUpload } from '@/lib/media/browser-image'
 import type { MessageKey } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils/cn'
+import { StockPhotoSearch, type StockOptions } from './stock-photo-search'
 
 export interface Picture {
   id: string
@@ -27,6 +28,8 @@ interface PicturePickerProps {
   aiAvailable: boolean
   generate: { purpose: 'poster' | 'scene'; aspect_ratio: AspectRatio; template?: string; visual?: string }
   disabled?: boolean
+  /** Free stock photos (Pixabay), when configured. */
+  stock?: StockOptions
 }
 
 /**
@@ -34,12 +37,13 @@ interface PicturePickerProps {
  * one AI picture. Uploads and generation happen only on button press; a ref guard stops
  * double submissions while a request is running.
  */
-export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdded, aiAvailable, generate, disabled }: PicturePickerProps) {
+export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdded, aiAvailable, generate, disabled, stock }: PicturePickerProps) {
   const { t } = useI18n()
   const fileRef = useRef<HTMLInputElement>(null)
   const busyRef = useRef(false)
   const [busy, setBusy] = useState<'upload' | 'generate' | null>(null)
   const [error, setError] = useState<MessageKey | null>(null)
+  const [stockOpen, setStockOpen] = useState(false)
 
   async function run(kind: 'upload' | 'generate', task: () => Promise<Picture | null>) {
     if (busyRef.current) return
@@ -147,6 +151,12 @@ export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdd
           <ImagePlus aria-hidden className="size-4" />
           {busy === 'upload' ? t('media.picture.uploading') : t('media.picture.upload')}
         </Button>
+        {stock?.available && (
+          <Button type="button" variant="secondary" size="sm" onClick={() => setStockOpen((o) => !o)} aria-expanded={stockOpen} disabled={locked}>
+            <Images aria-hidden className="size-4" />
+            {t('stock.open')}
+          </Button>
+        )}
         {aiAvailable && (
           <Button type="button" variant="secondary" size="sm" onClick={onGenerate} loading={busy === 'generate'} disabled={locked}>
             <Sparkles aria-hidden className="size-4" />
@@ -154,6 +164,19 @@ export function PicturePicker({ contentId, pictures, selectedId, onSelect, onAdd
           </Button>
         )}
       </div>
+      {stock?.available && stockOpen && (
+        <StockPhotoSearch
+          contentId={contentId}
+          options={stock}
+          disabled={locked}
+          onPicked={(saved) => {
+            const picture = { id: saved.id, url: saved.url, ai: false }
+            onAdded?.(picture)
+            onSelect(picture)
+            setStockOpen(false)
+          }}
+        />
+      )}
       {aiAvailable && <p className="text-xs text-muted-foreground">{t('media.picture.aiHint')}</p>}
       <ActionError messageKey={error} />
     </div>

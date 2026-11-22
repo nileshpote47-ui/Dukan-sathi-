@@ -71,7 +71,9 @@ describe('config matches the database', () => {
 
   it('media asset types, sources, statuses and file types', () => {
     expect(checkValues('asset_type', 'media_engine')).toEqual([...MEDIA_ASSET_TYPES])
-    expect(checkValues('source_type', 'media_engine')).toEqual([...MEDIA_SOURCE_TYPES])
+    // Source types: the media migration's column check, extended later by a named constraint (latest wins).
+    const sourceTypes = [...allMigrations.matchAll(/media_assets_source_type_check\s+check \(source_type in \(([^)]*)\)\)/g)].at(-1)
+    expect(sourceTypes ? [...sourceTypes[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : checkValues('source_type', 'media_engine')).toEqual([...MEDIA_SOURCE_TYPES])
     expect(checkValues('status', 'media_engine')).toEqual([...MEDIA_STATUSES])
     expect(checkValues('mime_type', 'media_engine')).toEqual([...MEDIA_MIME_TYPES])
   })

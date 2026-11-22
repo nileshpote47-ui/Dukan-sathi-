@@ -28,6 +28,7 @@ export default async function MediaDetailPage({ params }: PageProps<'/dashboard/
   const poster = asset.asset_type === 'POSTER' ? posterFromMetadata(asset.metadata) : null
   const providerName = asset.provider === 'gemini' ? 'Google Gemini' : asset.provider === 'openai' ? 'OpenAI' : asset.provider
   const reviewPending = needsReview(asset.metadata)
+  const stock = asset.source_type === 'STOCK' ? (asset.metadata as { stock?: { photographer?: string } } | null)?.stock : null
 
   const rows: [string, string][] = [
     [t('media.detail.type'), t(`media.type.${asset.asset_type}` as MessageKey)],
@@ -36,6 +37,7 @@ export default async function MediaDetailPage({ params }: PageProps<'/dashboard/
     ...(asset.width && asset.height ? ([[t('media.detail.size'), `${asset.width} × ${asset.height} px`]] as [string, string][]) : []),
     ...(asset.file_size ? ([[t('media.detail.fileSize'), formatSize(asset.file_size)]] as [string, string][]) : []),
     ...(asset.source_type === 'AI_GENERATED' && providerName ? ([[t('media.detail.provider'), providerName]] as [string, string][]) : []),
+    ...(stock?.photographer ? ([[t('media.detail.photographer'), `${stock.photographer} · Pixabay`]] as [string, string][]) : []),
     [t('content.created'), formatDateTime(asset.created_at, locale)],
   ]
 

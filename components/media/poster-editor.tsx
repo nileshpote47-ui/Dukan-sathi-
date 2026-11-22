@@ -18,6 +18,7 @@ import type { MessageKey } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils/cn'
 import { PicturePicker, type Picture } from './picture-picker'
+import type { StockOptions } from './stock-photo-search'
 import { PosterCanvas } from './poster-canvas'
 
 export interface PosterTemplateOption {
@@ -34,6 +35,7 @@ interface PosterEditorProps {
   aiAvailable: boolean
   /** Direct posters (AI designs the whole poster with the owner's text). */
   direct: { available: boolean; remaining: number | null }
+  stock?: StockOptions
 }
 
 const TEXT_LIMITS: Record<keyof PosterTexts, number> = { headline: 120, body: 400, badge: 60, cta: 80, businessName: 100, footer: 120 }
@@ -42,7 +44,7 @@ const TEXT_LIMITS: Record<keyof PosterTexts, number> = { headline: 120, body: 40
  * Poster / social creative editor: template → size → texts → picture → live preview → save.
  * The preview canvas is the exported file; the server validates it before storing.
  */
-export function PosterEditor({ contentId, templates, initial, pictures: initialPictures, aiAvailable, direct }: PosterEditorProps) {
+export function PosterEditor({ contentId, templates, initial, pictures: initialPictures, aiAvailable, direct, stock }: PosterEditorProps) {
   const { t } = useI18n()
   const router = useRouter()
   const toast = useToast()
@@ -234,6 +236,7 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
             aiAvailable={aiAvailable}
             generate={{ purpose: 'poster', aspect_ratio: aspectRatio, template }}
             disabled={saving}
+            stock={stock}
           />
         </Card>
       </div>

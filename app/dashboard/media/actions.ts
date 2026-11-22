@@ -19,6 +19,11 @@ import { getDirectPosterConfig, getMediaConfig } from '@/services/media/provider
 import { generateDirectPoster, generateMarketingImage } from '@/services/media/service'
 import { AIError } from '@/services/ai/types'
 import { z } from 'zod'
+import { allowRequest } from '@/lib/security/rate-limit'
+import { stockSaveSchema, stockSearchSchema } from '@/lib/validation/stock'
+import { isStockConfigured } from '@/services/stock/provider'
+import { downloadStockPhoto, searchStockPhotos } from '@/services/stock/service'
+import { StockError, type StockSearchResult } from '@/services/stock/types'
 
 /*
  * Media Server Actions. Each one re-checks the session and resolves the owner's own
@@ -233,4 +238,61 @@ export async function deleteMedia(id: unknown): Promise<ActionResult> {
   if (!result.ok) return result
   revalidatePath('/dashboard', 'layout')
   return { ok: true, message: 'media.deleted' }
+}
+
+const STOCK_ERRORS: Record<StockError['code'], MessageKey> = {
+  not_configured: 'stock.error.notConfigured',
+  rate_limited: 'stock.error.busy',
+  not_found: 'stock.error.notFound',
+  unavailable: 'stock.error.unavailable',
+  invalid_response: 'stock.error.unavailable',
+}
+
+/** Search free stock photos (Pixabay). Results are cached for 24 hours; nothing is stored. */
+export async function searchStockPhotosAction(input: unknown): Promise<ActionResult<StockSearchResult>> {
+  await requireOnboardedBusiness()
+  const parsed = stockSearchSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: 'stock.error.query' }
+  if (!(await allowRequest('stock_search'))) return { ok: false, error: 'errors.rateLimited' }
+  try {
+    return { ok: true, data: await searchStockPhotos(parsed.data.query, parsed.data.page) }
+  } catch (error) {
+    return { ok: false, error: STOCK_ERRORS[error instanceof StockError ? error.code : 'unavailable'] }
+  }
+}
+
+/**
+ * Save a chosen stock photo as the owner's own picture: looked up again by id on the server (no URL from the
+ * browser), downloaded, checked by content, stored in the owner's private folder with the photographer's name.
+ */
+export async function saveStockPhotoAction(input: unknown): Promise<ActionResult<{ id: string; url: string | null }>> {
+  await requireOnboardedBusiness()
+  const parsed = stockSaveSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: 'errors.validation' }
+  const { photo_id, content_id } = parsed.data
+  if (content_id && !(await getContentItem(content_id))) return { ok: false, error: 'errors.contentNotFound' }
+  if (!isStockConfigured()) return { ok: false, error: 'stock.error.notConfigured' }
+  if (!(await allowRequest('stock_save'))) return { ok: false, error: 'errors.rateLimited' }
+
+  let photo: Awaited<ReturnType<typeof downloadStockPhoto>>
+  try {
+    photo = await downloadStockPhoto(photo_id)
+  } catch (error) {
+    return { ok: false, error: STOCK_ERRORS[error instanceof StockError ? error.code : 'unavailable'] }
+  }
+  const checked = validateImage(photo.bytes)
+  if (!checked.ok) return { ok: false, error: FILE_PROBLEMS[checked.problem] }
+
+  const result = await storeMedia({
+    bytes: photo.bytes,
+    info: checked.info,
+    assetType: 'IMAGE',
+    sourceType: 'STOCK',
+    contentItemId: content_id,
+    metadata: { stock: { provider: photo.provider, photo_id, photographer: photo.photographer, page_url: photo.pageUrl } },
+  })
+  if (!result.ok || !result.data) return result.ok ? { ok: false, error: 'errors.saveFailed' } : result
+  const urls = await getAssetUrls([result.data.id])
+  revalidatePath('/dashboard/media')
+  return { ok: true, data: { id: result.data.id, url: urls[result.data.id] ?? null }, message: 'stock.saved' }
 }

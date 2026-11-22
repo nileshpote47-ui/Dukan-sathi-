@@ -9,6 +9,7 @@ import { BASIC_LAYOUT_SLUG, isPosterLayoutSlug } from '@/lib/config/poster-templ
 import { getContentItem, getTemplates } from '@/lib/data/content'
 import { getMediaAsset, listPictures } from '@/lib/data/media'
 import { getTranslator } from '@/lib/i18n'
+import { stockOptions } from '@/lib/media/stock-options'
 import { posterDefaults, posterFromMetadata } from '@/lib/media/poster-defaults'
 import { generatedCopySchema, hasGeneratedCopy } from '@/services/ai/output'
 import { isDirectPosterConfigured, isImageGenerationConfigured } from '@/services/media/provider'
@@ -64,6 +65,7 @@ export default async function PosterPage({ params, searchParams }: PageProps<'/d
         pictures={pictureOptions}
         aiAvailable={isImageGenerationConfigured()}
         direct={{ available: isDirectPosterConfigured(), remaining: directUsage ? directUsage.remaining : null }}
+        stock={stockOptions(business.business_category, t)}
       />
     </>
   )

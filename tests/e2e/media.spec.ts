@@ -273,6 +273,34 @@ test('reel voiceover: the saved voiceover lines become an MP3 that plays with th
   expect(errors).toEqual([])
 })
 
+test('free stock photo: search, tap, saved as the owner\'s own picture with the photographer (mock provider)', async ({ page }) => {
+  const errors = trackPageErrors(page)
+  await login(page, users.a)
+  await page.goto(`/dashboard/content/${ids.offer}/poster`)
+  await page.getByRole('button', { name: 'Free photos' }).click()
+  await expect(page.getByText('Free photos from')).toBeVisible()
+  await page.getByRole('group', { name: 'Suggestions for your shop' }).getByRole('button').first().click()
+  const results = page.getByRole('list', { name: 'Free photos' }).getByRole('button')
+  await expect(results).toHaveCount(6)
+  await page.getByRole('button', { name: 'More photos' }).click()
+  await expect(results).toHaveCount(12)
+  await results.nth(1).click()
+
+  // The photo is copied into the owner's storage and selected for the poster.
+  const { client } = await apiClientFor(users.a)
+  await expect.poll(async () => (await client.from('media_assets').select('id').eq('source_type', 'STOCK')).data?.length ?? 0, { timeout: 15_000 }).toBe(1)
+  const { data: stock } = await client.from('media_assets').select('*').eq('source_type', 'STOCK').single()
+  expect(stock).toMatchObject({ asset_type: 'IMAGE', status: 'READY', content_item_id: ids.offer })
+  expect((stock!.metadata as { stock: Record<string, string> }).stock).toMatchObject({ provider: 'mock', photo_id: '1001', photographer: 'Mock Photographer' })
+  expect(stock!.storage_path).toMatch(/^[0-9a-f-]{36}\//)
+  await expect(page.getByText('Free photos from')).toHaveCount(0)
+
+  await page.goto(`/dashboard/media/${stock!.id}`)
+  await expect(page.getByText('Free photo (Pixabay)')).toBeVisible()
+  await expect(page.getByText('Mock Photographer · Pixabay')).toBeVisible()
+  expect(errors).toEqual([])
+})
+
 test('safe failures: provider error is never READY, wrong files are refused', async ({ page }) => {
   await login(page, users.a)
   await page.goto(`/dashboard/content/${ids.failing}/poster`)

@@ -17,6 +17,7 @@ import type { MessageKey } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n/provider'
 import { cn } from '@/lib/utils/cn'
 import { PicturePicker, type Picture } from './picture-picker'
+import type { StockOptions } from './stock-photo-search'
 import { ReelPreview } from './reel-preview'
 
 interface StoryboardEditorProps {
@@ -29,6 +30,7 @@ interface StoryboardEditorProps {
   aiAvailable: boolean
   /** Signed URL of the saved voiceover; plays with the preview. */
   voiceoverUrl?: string | null
+  stock?: StockOptions
 }
 
 const newScene = (): StoryboardScene => ({
@@ -46,7 +48,7 @@ const newScene = (): StoryboardScene => ({
  * Reel storyboard: generate scenes from the saved reel script, edit texts and durations,
  * reorder, assign pictures, preview, save. Nothing is saved or generated automatically.
  */
-export function StoryboardEditor({ contentId, initial, hasCopy, editable, businessName, pictures: initialPictures, aiAvailable, voiceoverUrl }: StoryboardEditorProps) {
+export function StoryboardEditor({ contentId, initial, hasCopy, editable, businessName, pictures: initialPictures, aiAvailable, voiceoverUrl, stock }: StoryboardEditorProps) {
   const { t } = useI18n()
   const toast = useToast()
   const busyRef = useRef(false)
@@ -269,6 +271,7 @@ export function StoryboardEditor({ contentId, initial, hasCopy, editable, busine
                       aiAvailable={aiAvailable}
                       generate={{ purpose: 'scene', aspect_ratio: REEL_ASPECT_RATIO, visual: scene.visual_prompt || scene.on_screen_text }}
                       disabled={busy !== null}
+                      stock={stock}
                     />
                   ) : null}
                 </div>

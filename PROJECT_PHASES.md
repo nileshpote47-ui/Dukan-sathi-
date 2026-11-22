@@ -13,14 +13,14 @@ Never mark a future phase complete. Never repeat a completed phase.
 | 6 | Social / WhatsApp / Publishing | **COMPLETED** |
 | 7 | Analytics, Admin & Business Intelligence | **COMPLETED** |
 | 8 | Production Hardening & Launch | **COMPLETED** |
-| 9 | UX Refresh & AI Studio (requested after launch) | **IN PROGRESS** — Stages 1, 2 and direct posters completed |
+| 9 | UX Refresh & AI Studio (requested after launch) | **IN PROGRESS** — Stages 1, 2, 3a and 3b completed |
 
 **Product status: PRODUCTION_READY** (code, infrastructure, security, operations). **Roadmap: ALL_PLANNED_PHASES_COMPLETED.** Taking paying customers needs the owner-side launch steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#launch-checklist) (Supabase Pro, SMTP + email confirmation, Razorpay live, Meta App Review).
 
 ---
 
 ## PHASE 9 — UX REFRESH & AI STUDIO
-**Status: IN PROGRESS.** Stage 1 **COMPLETED** (2026-11-21), Stage 2 **COMPLETED** (2026-11-22); Stage 3b planned. Details: [docs/PHASE_9.md](docs/PHASE_9.md).
+**Status: IN PROGRESS.** Stage 1 **COMPLETED** (2026-11-21), Stage 2 and Stage 3b **COMPLETED** (2026-11-22). Details: [docs/PHASE_9.md](docs/PHASE_9.md).
 
 ### Stage 1 — completed features
 - Dashboard composer "What shall we make today: a reel, a poster or a WhatsApp status?": one sentence (or example) → reel script, poster text, WhatsApp message, post, offer or festival copy in one tap, type and language cards, remaining AI posts shown; draft kept if AI fails
@@ -63,8 +63,14 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Tests: unit +12 · pgTAP voiceover 10/10 · E2E media 6/6 (mock voice, and once with real Sarvam)
 - Env: `SARVAM_API_KEY` (set in Vercel, Sensitive); optional `VOICE_PROVIDER`, `VOICE_MODEL`
 
+### Stage 3b — free stock photos (completed 2026-11-22)
+- "Free photos" in every picture picker: search Pixabay (category suggestions in mr/hi/en), tap to save as the owner's own picture (server re-fetches by id, downloads from Pixabay hosts only, checks the file); photographer shown on the media page
+- Pexels replaced by Pixabay (Pexels stopped issuing API keys); searches cached 24 h; burst limits; not metered
+- Migration `20261122061947_stock_photos.sql` (source type `STOCK`); unit +8; E2E media 7/7
+- Env: `PIXABAY_API_KEY` (set in Vercel, Sensitive); optional `STOCK_PROVIDER`
+
 ### Next
-- Stage 3b (rest): free stock photos (Pixabay; Pexels stopped issuing API keys)
+- All planned Phase 9 stages are complete; Phase 9 stays open for owner requests
 
 ---
 

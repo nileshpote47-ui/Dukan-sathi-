@@ -13,6 +13,7 @@ import { getAssetUrls, listPictures } from '@/lib/data/media'
 import { getBillingOverview } from '@/lib/data/billing'
 import { getVoiceoverView } from '@/lib/data/voiceover'
 import { voiceoverText } from '@/lib/media/voiceover-text'
+import { stockOptions } from '@/lib/media/stock-options'
 import { isVoiceConfigured } from '@/services/voice/provider'
 import { getTranslator } from '@/lib/i18n'
 import { hasReelCopy } from '@/lib/media/storyboard'
@@ -68,6 +69,7 @@ export default async function StoryboardPage({ params }: PageProps<'/dashboard/c
         pictures={options}
         aiAvailable={isImageGenerationConfigured()}
         voiceoverUrl={voiceover?.url ?? null}
+        stock={stockOptions(business.business_category, t)}
       />
       <div className="mt-4">
         <VoiceoverPanel
