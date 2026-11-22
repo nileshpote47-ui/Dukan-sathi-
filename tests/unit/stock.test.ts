@@ -48,6 +48,12 @@ describe('Pixabay provider', () => {
     expect(Buffer.from(photo.bytes)).toEqual(Buffer.from(png))
     expect(String((fetchImpl.mock.calls[1] as unknown[])[0])).toBe('https://pixabay.com/get/7_1280.jpg')
     await expect(provider.download('7; drop')).rejects.toMatchObject({ code: 'not_found' })
+    // When the large version is refused, the 640 px version is used.
+    const fallback = vi.fn(async (input: string | URL | Request) =>
+      String(input).includes('/api/') ? json({ hits: [hit(9)] }) : String(input).includes('_1280') ? new Response('no', { status: 400 }) : new Response(png),
+    )
+    expect(Buffer.from((await new PixabayStockProvider({ apiKey: 'k', fetchImpl: fallback }).download('9')).bytes)).toEqual(Buffer.from(png))
+    expect(String((fallback.mock.calls[2] as unknown[])[0])).toBe('https://pixabay.com/get/9_640.jpg')
     const evil = new PixabayStockProvider({ apiKey: 'k', fetchImpl: vi.fn(async () => json({ hits: [hit(8, { largeImageURL: 'http://169.254.169.254/x', webformatURL: undefined })] })) })
     await expect(evil.download('8')).rejects.toMatchObject({ code: 'not_found' })
   })

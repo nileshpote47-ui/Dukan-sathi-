@@ -67,17 +67,23 @@ export class PixabayStockProvider implements StockProvider {
     if (!/^\d{1,12}$/.test(id)) throw new StockError('not_found', 'Bad photo id')
     const { hits } = await this.call({ id })
     const hit = hits[0]
-    const source = hit?.largeImageURL ?? hit?.webformatURL
-    if (!hit || !source || !allowedHost(source)) throw new StockError('not_found', 'Pixabay photo not found')
-    let response: Response
-    try {
-      response = await (this.options.fetchImpl ?? fetch)(source, { signal: AbortSignal.timeout(STOCK_TIMEOUT_MS), cache: 'no-store' })
-    } catch (error) {
-      throw new StockError('unavailable', 'Pixabay image download failed', { cause: error })
+    // The 1280 px version first, the 640 px one if that is refused; both only from Pixabay hosts.
+    const sources = [hit?.largeImageURL, hit?.webformatURL].filter((u): u is string => Boolean(u) && allowedHost(u!))
+    if (!hit || !sources.length) throw new StockError('not_found', 'Pixabay photo not found')
+    const statuses: string[] = []
+    for (const source of sources) {
+      try {
+        const response = await (this.options.fetchImpl ?? fetch)(source, { signal: AbortSignal.timeout(STOCK_TIMEOUT_MS), cache: 'no-store', headers: { Accept: 'image/*' } })
+        if (response.ok) {
+          const bytes = new Uint8Array(await response.arrayBuffer())
+          return { bytes, photographer: (hit.user ?? '').slice(0, 80), pageUrl: hit.pageURL && allowedHost(hit.pageURL) ? hit.pageURL : 'https://pixabay.com/' }
+        }
+        statuses.push(String(response.status))
+      } catch (error) {
+        statuses.push(error instanceof Error ? error.name : 'error')
+      }
     }
-    if (!response.ok) throw new StockError('unavailable', `Pixabay image error ${response.status}`)
-    const bytes = new Uint8Array(await response.arrayBuffer())
-    return { bytes, photographer: (hit.user ?? '').slice(0, 80), pageUrl: hit.pageURL && allowedHost(hit.pageURL) ? hit.pageURL : 'https://pixabay.com/' }
+    throw new StockError('unavailable', `Pixabay image download failed (${statuses.join(', ')})`)
   }
 }
 

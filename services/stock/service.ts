@@ -21,7 +21,7 @@ export async function searchStockPhotos(query: string, page: number): Promise<St
   try {
     return await cachedSearch(provider, query.trim().toLowerCase(), page)
   } catch (error) {
-    log.error('[stock] search failed', { provider, code: error instanceof StockError ? error.code : 'unknown' })
+    log.error('[stock] search failed', { provider, code: error instanceof StockError ? error.code : 'unknown', reason: error instanceof Error ? error.message : 'unknown' })
     throw error instanceof StockError ? error : new StockError('unavailable', 'Stock search failed', { cause: error })
   }
 }
@@ -31,7 +31,7 @@ export async function downloadStockPhoto(id: string) {
   try {
     return { ...(await provider.download(id)), provider: provider.id }
   } catch (error) {
-    log.error('[stock] download failed', { provider: provider.id, code: error instanceof StockError ? error.code : 'unknown' })
+    log.error('[stock] download failed', { provider: provider.id, code: error instanceof StockError ? error.code : 'unknown', reason: error instanceof Error ? error.message : 'unknown' })
     throw error instanceof StockError ? error : new StockError('unavailable', 'Stock download failed', { cause: error })
   }
 }
