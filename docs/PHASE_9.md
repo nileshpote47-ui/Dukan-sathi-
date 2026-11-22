@@ -80,11 +80,12 @@ Unit `tests/unit/ideas.test.ts` (12): calendar dates valid/ordered/unique/in ran
 
 **How it works**
 - `searchStockPhotosAction` → `stockSearchSchema` → burst limit (30 per 5 min) → `searchStockPhotos()` (cached 24 h by provider + query + page with `unstable_cache`; the key is never in the cache key or logs).
-- `saveStockPhotoAction` → `stockSaveSchema` (only the numeric photo id + optional own content item) → burst limit (20 per 10 min) → `downloadStockPhoto()` looks the photo up again by id and downloads the 1280 px version only from `pixabay.com`/`cdn.pixabay.com` → `validateImage()` → `storeMedia({ sourceType: 'STOCK', metadata.stock: {provider, photo_id, photographer, page_url} })`.
+- Picking a photo: the owner's browser downloads the 1280 px version (fallback: the preview size) from Pixabay — Pixabay answers 429 to downloads from Vercel's shared server addresses but allows browser downloads (CORS `*`) — resizes it like any upload and sends it to `saveStockPhotoAction` → `stockSaveSchema` (numeric photo id + optional own content item) → burst limit (20 per 10 min) → `validateImage()` (checked by content) → `lookupStockPhoto()` confirms the id with Pixabay and supplies the photographer and page (never taken from the browser) → `storeMedia({ sourceType: 'STOCK', metadata.stock: {provider, photo_id, photographer, page_url} })`.
+- Found in the live test: the first version downloaded on the server and got HTTP 429 from Pixabay on Vercel; fixed as above and verified on production.
 - Not metered (the photos are free); search grid previews are the provider's URLs, shown only while searching, as Pixabay allows.
 - Migration `20261122061947_stock_photos.sql`: `media_assets.source_type` allows `STOCK`.
 
-**Tests.** Unit `tests/unit/stock.test.ts` (8): request parameters (English, photos only, safe search), off-host results dropped, download by id only and only from Pixabay hosts (no metadata/IP hosts), error mapping without the key, provider selection (mock refused in production), input accepts only a numeric id, mock images pass the file check, suggestions + texts in en/mr/hi. E2E (`media.spec.ts`, mock provider): open → suggestion → more → tap → saved as STOCK with the photographer, linked to the content, shown on the media page. Full media suite 7/7.
+**Tests.** Unit `tests/unit/stock.test.ts` (9): request parameters (English, photos only, safe search), off-host results dropped, browser download link only on Pixabay hosts (unsafe links skipped), credits looked up by id, error mapping without the key, provider selection (mock refused in production), input accepts only a numeric id, mock images pass the file check, suggestions + texts in en/mr/hi. E2E (`media.spec.ts`, mock provider): open → suggestion → more → tap → saved as STOCK with the photographer, linked to the content, shown on the media page. Full media suite 7/7.
 
 ## Stage 3a — Direct poster (AI designs the whole poster)
 

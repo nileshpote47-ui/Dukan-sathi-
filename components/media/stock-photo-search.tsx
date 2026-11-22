@@ -6,6 +6,7 @@ import { saveStockPhotoAction, searchStockPhotosAction } from '@/app/dashboard/m
 import { ActionError } from '@/components/billing/action-error'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { resizeForUpload } from '@/lib/media/browser-image'
 import type { MessageKey } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n/provider'
 import type { StockPhoto } from '@/services/stock/types'
@@ -56,7 +57,25 @@ export function StockPhotoSearch({
     setSaving(photo.id)
     setError(null)
     try {
-      const result = await saveStockPhotoAction({ photo_id: photo.id, content_id: contentId })
+      // Download in the browser (large version first, then the preview size), resize like any upload, then save.
+      let blob: Blob | null = null
+      for (const url of [photo.downloadUrl, photo.previewUrl].filter(Boolean)) {
+        try {
+          const response = await fetch(url, { referrerPolicy: 'no-referrer' })
+          if (response.ok) {
+            blob = await resizeForUpload(await response.blob())
+            break
+          }
+        } catch {
+          // try the next size
+        }
+      }
+      if (!blob) return setError('stock.error.unavailable')
+      const form = new FormData()
+      form.set('file', blob, 'stock.jpg')
+      form.set('photo_id', photo.id)
+      form.set('content_id', contentId)
+      const result = await saveStockPhotoAction(form)
       if (!result.ok || !result.data) return setError(result.ok ? 'errors.saveFailed' : result.error)
       onPicked(result.data)
     } finally {

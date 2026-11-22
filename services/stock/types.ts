@@ -13,6 +13,8 @@ export interface StockPhoto {
   photographer: string
   /** The photo's page on the provider's site. */
   pageUrl: string
+  /** Larger version the owner's browser downloads when they pick the photo (CORS allowed by the provider). */
+  downloadUrl: string
 }
 
 export interface StockSearchResult {
@@ -23,8 +25,11 @@ export interface StockSearchResult {
 export interface StockProvider {
   readonly id: string
   search(query: string, page: number): Promise<StockSearchResult>
-  /** Look a photo up again BY ID (never trust a URL from the browser) and download it. */
-  download(id: string): Promise<{ bytes: Uint8Array; photographer: string; pageUrl: string }>
+  /**
+   * Look a photo up again BY ID to confirm it exists and get its credits. The picture itself is downloaded by the
+   * owner's browser (the provider refuses server downloads from shared hosting addresses) and checked by content.
+   */
+  lookup(id: string): Promise<{ photographer: string; pageUrl: string }>
 }
 
 export class StockError extends Error {

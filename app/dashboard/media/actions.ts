@@ -22,7 +22,7 @@ import { z } from 'zod'
 import { allowRequest } from '@/lib/security/rate-limit'
 import { stockSaveSchema, stockSearchSchema } from '@/lib/validation/stock'
 import { isStockConfigured } from '@/services/stock/provider'
-import { downloadStockPhoto, searchStockPhotos } from '@/services/stock/service'
+import { lookupStockPhoto, searchStockPhotos } from '@/services/stock/service'
 import { StockError, type StockSearchResult } from '@/services/stock/types'
 
 /*
@@ -262,29 +262,34 @@ export async function searchStockPhotosAction(input: unknown): Promise<ActionRes
 }
 
 /**
- * Save a chosen stock photo as the owner's own picture: looked up again by id on the server (no URL from the
- * browser), downloaded, checked by content, stored in the owner's private folder with the photographer's name.
+ * Save a chosen stock photo as the owner's own picture. The owner's browser downloads the photo (Pixabay refuses
+ * server downloads from shared hosting addresses) and uploads it here; the server checks the file by content,
+ * confirms the photo id with the provider (credits come from the provider, never from the browser) and stores it
+ * in the owner's private folder.
  */
-export async function saveStockPhotoAction(input: unknown): Promise<ActionResult<{ id: string; url: string | null }>> {
+export async function saveStockPhotoAction(formData: FormData): Promise<ActionResult<{ id: string; url: string | null }>> {
   await requireOnboardedBusiness()
-  const parsed = stockSaveSchema.safeParse(input)
+  const parsed = stockSaveSchema.safeParse({ photo_id: formData.get('photo_id'), content_id: formData.get('content_id') ?? undefined })
   if (!parsed.success) return { ok: false, error: 'errors.validation' }
   const { photo_id, content_id } = parsed.data
   if (content_id && !(await getContentItem(content_id))) return { ok: false, error: 'errors.contentNotFound' }
   if (!isStockConfigured()) return { ok: false, error: 'stock.error.notConfigured' }
   if (!(await allowRequest('stock_save'))) return { ok: false, error: 'errors.rateLimited' }
 
-  let photo: Awaited<ReturnType<typeof downloadStockPhoto>>
+  const bytes = await readFile(formData.get('file'))
+  if (!bytes) return { ok: false, error: 'media.error.notImage' }
+  const checked = validateImage(bytes)
+  if (!checked.ok) return { ok: false, error: FILE_PROBLEMS[checked.problem] }
+
+  let photo: Awaited<ReturnType<typeof lookupStockPhoto>>
   try {
-    photo = await downloadStockPhoto(photo_id)
+    photo = await lookupStockPhoto(photo_id)
   } catch (error) {
     return { ok: false, error: STOCK_ERRORS[error instanceof StockError ? error.code : 'unavailable'] }
   }
-  const checked = validateImage(photo.bytes)
-  if (!checked.ok) return { ok: false, error: FILE_PROBLEMS[checked.problem] }
 
   const result = await storeMedia({
-    bytes: photo.bytes,
+    bytes,
     info: checked.info,
     assetType: 'IMAGE',
     sourceType: 'STOCK',

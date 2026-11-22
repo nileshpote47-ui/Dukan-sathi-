@@ -64,9 +64,9 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Env: `SARVAM_API_KEY` (set in Vercel, Sensitive); optional `VOICE_PROVIDER`, `VOICE_MODEL`
 
 ### Stage 3b — free stock photos (completed 2026-11-22)
-- "Free photos" in every picture picker: search Pixabay (category suggestions in mr/hi/en), tap to save as the owner's own picture (server re-fetches by id, downloads from Pixabay hosts only, checks the file); photographer shown on the media page
+- "Free photos" in every picture picker: search Pixabay (category suggestions in mr/hi/en), tap to save as the owner's own picture (browser downloads from Pixabay, server checks the file and confirms the photo id with Pixabay); photographer shown on the media page
 - Pexels replaced by Pixabay (Pexels stopped issuing API keys); searches cached 24 h; burst limits; not metered
-- Migration `20261122061947_stock_photos.sql` (source type `STOCK`); unit +8; E2E media 7/7
+- Migration `20261122061947_stock_photos.sql` (source type `STOCK`); unit +9; E2E media 7/7; verified live on production (search + save)
 - Env: `PIXABAY_API_KEY` (set in Vercel, Sensitive); optional `STOCK_PROVIDER`
 
 ### Next

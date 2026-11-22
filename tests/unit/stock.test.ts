@@ -40,22 +40,21 @@ describe('Pixabay provider', () => {
     expect(result.total).toBe(2)
   })
 
-  it('downloads by id only, from Pixabay hosts only', async () => {
-    const png = new Uint8Array([137, 80, 78, 71])
-    const fetchImpl = vi.fn(async (input: string | URL | Request) => (String(input).includes('/api/') ? json({ hits: [hit(7)] }) : new Response(png)))
+  it('offers the large version for the browser to download, from Pixabay hosts only', async () => {
+    const fetchImpl = vi.fn(async () => json({ totalHits: 1, hits: [hit(3), hit(4, { largeImageURL: 'http://169.254.169.254/x' })] }))
+    const { photos } = await new PixabayStockProvider({ apiKey: 'k', fetchImpl }).search('rice', 1)
+    expect(photos[0].downloadUrl).toBe('https://pixabay.com/get/3_1280.jpg')
+    expect(photos[1].downloadUrl).toBe('https://pixabay.com/get/4_640.jpg') // unsafe large URL skipped
+  })
+
+  it('confirms a photo by id and takes the credits from Pixabay, not from the browser', async () => {
+    const fetchImpl = vi.fn(async () => json({ hits: [hit(7)] }))
     const provider = new PixabayStockProvider({ apiKey: 'k', fetchImpl })
-    const photo = await provider.download('7')
-    expect(Buffer.from(photo.bytes)).toEqual(Buffer.from(png))
-    expect(String((fetchImpl.mock.calls[1] as unknown[])[0])).toBe('https://pixabay.com/get/7_1280.jpg')
-    await expect(provider.download('7; drop')).rejects.toMatchObject({ code: 'not_found' })
-    // When the large version is refused, the 640 px version is used.
-    const fallback = vi.fn(async (input: string | URL | Request) =>
-      String(input).includes('/api/') ? json({ hits: [hit(9)] }) : String(input).includes('_1280') ? new Response('no', { status: 400 }) : new Response(png),
-    )
-    expect(Buffer.from((await new PixabayStockProvider({ apiKey: 'k', fetchImpl: fallback }).download('9')).bytes)).toEqual(Buffer.from(png))
-    expect(String((fallback.mock.calls[2] as unknown[])[0])).toBe('https://pixabay.com/get/9_640.jpg')
-    const evil = new PixabayStockProvider({ apiKey: 'k', fetchImpl: vi.fn(async () => json({ hits: [hit(8, { largeImageURL: 'http://169.254.169.254/x', webformatURL: undefined })] })) })
-    await expect(evil.download('8')).rejects.toMatchObject({ code: 'not_found' })
+    expect(await provider.lookup('7')).toEqual({ photographer: 'Josch13', pageUrl: 'https://pixabay.com/photos/7/' })
+    expect(new URL(String((fetchImpl.mock.calls[0] as unknown[])[0])).searchParams.get('id')).toBe('7')
+    await expect(provider.lookup('7; drop')).rejects.toMatchObject({ code: 'not_found' })
+    const missing = new PixabayStockProvider({ apiKey: 'k', fetchImpl: vi.fn(async () => json({ hits: [] })) })
+    await expect(missing.lookup('8')).rejects.toMatchObject({ code: 'not_found' })
   })
 
   it('maps errors without exposing the key', async () => {
@@ -101,8 +100,11 @@ describe('provider selection, input and test provider', () => {
 
   it('mock photos are real images that pass the file check', async () => {
     const mock = new MockStockProvider()
-    expect((await mock.search('rice', 1)).photos).toHaveLength(6)
-    expect(validateImage((await mock.download('1001')).bytes).ok).toBe(true)
+    const { photos } = await mock.search('rice', 1)
+    expect(photos).toHaveLength(6)
+    const bytes = new Uint8Array(Buffer.from(photos[0].downloadUrl.split(',')[1], 'base64'))
+    expect(validateImage(bytes).ok).toBe(true)
+    await expect(mock.lookup('999999')).rejects.toMatchObject({ code: 'not_found' })
     await expect(mock.search('fail', 1)).rejects.toMatchObject({ code: 'unavailable' })
   })
 })

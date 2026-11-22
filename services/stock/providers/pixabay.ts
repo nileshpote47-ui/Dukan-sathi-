@@ -4,7 +4,8 @@ import { StockError, type StockProvider, type StockSearchResult } from '../types
 
 /*
  * Pixabay (royalty-free photos, commercial use allowed). Plain HTTPS, no SDK. The key is a query
- * parameter, so request URLs are never logged. Photos are downloaded to our storage before use.
+ * parameter, so request URLs are never logged. A chosen photo is downloaded by the owner's browser (allowed by Pixabay's CORS)
+ * and uploaded to our storage; it is never hotlinked.
  */
 const API = 'https://pixabay.com/api/'
 
@@ -59,31 +60,16 @@ export class PixabayStockProvider implements StockProvider {
           height: h.imageHeight ?? 0,
           photographer: (h.user ?? '').slice(0, 80),
           pageUrl: h.pageURL && allowedHost(h.pageURL) ? h.pageURL : 'https://pixabay.com/',
+          downloadUrl: [h.largeImageURL, h.webformatURL, h.previewURL].find((u) => u && allowedHost(u))!,
         })),
     }
   }
 
-  async download(id: string) {
+  async lookup(id: string) {
     if (!/^\d{1,12}$/.test(id)) throw new StockError('not_found', 'Bad photo id')
-    const { hits } = await this.call({ id })
-    const hit = hits[0]
-    // The 1280 px version first, the 640 px one if that is refused; both only from Pixabay hosts.
-    const sources = [hit?.largeImageURL, hit?.webformatURL].filter((u): u is string => Boolean(u) && allowedHost(u!))
-    if (!hit || !sources.length) throw new StockError('not_found', 'Pixabay photo not found')
-    const statuses: string[] = []
-    for (const source of sources) {
-      try {
-        const response = await (this.options.fetchImpl ?? fetch)(source, { signal: AbortSignal.timeout(STOCK_TIMEOUT_MS), cache: 'no-store', headers: { Accept: 'image/*' } })
-        if (response.ok) {
-          const bytes = new Uint8Array(await response.arrayBuffer())
-          return { bytes, photographer: (hit.user ?? '').slice(0, 80), pageUrl: hit.pageURL && allowedHost(hit.pageURL) ? hit.pageURL : 'https://pixabay.com/' }
-        }
-        statuses.push(String(response.status))
-      } catch (error) {
-        statuses.push(error instanceof Error ? error.name : 'error')
-      }
-    }
-    throw new StockError('unavailable', `Pixabay image download failed (${statuses.join(', ')})`)
+    const hit = (await this.call({ id })).hits[0]
+    if (!hit) throw new StockError('not_found', 'Pixabay photo not found')
+    return { photographer: (hit.user ?? '').slice(0, 80), pageUrl: hit.pageURL && allowedHost(hit.pageURL) ? hit.pageURL : 'https://pixabay.com/' }
   }
 }
 
