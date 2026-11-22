@@ -69,4 +69,4 @@ No database migration; no new environment variables; no new paid API. AI still r
 | Reel storyboards | 5 | 30 | 100 | **200** |
 | Posts / WhatsApp sends | 10 | 60 | 200 | **600** |
 
-Payment: needs a Razorpay monthly plan of ₹999 and `RAZORPAY_PLAN_PREMIUM` in Vercel; until then choosing Premium shows the friendly "payment not set up" message (the amount is always re-checked against the database). Tests: unit (plan order, Razorpay mapping), config-sync (every plan seeded with every feature), pgTAP `premium_plan.test.sql`, pricing e2e.
+Payment: Razorpay (test mode) monthly plan of ₹999 created and set as `RAZORPAY_PLAN_PREMIUM` in Vercel (production + preview) on 2026-11-22; the amount is always re-checked against the database at checkout. Production cleanup after testing: temporary e2e admin and mock webhook secret removed. Tests: unit (plan order, Razorpay mapping), config-sync (every plan seeded with every feature), pgTAP `premium_plan.test.sql`, pricing e2e.
