@@ -36,6 +36,8 @@ All are documented in `.env.example` (placeholders only). Real values live in `.
 | `MEDIA_PROVIDER`, `MEDIA_MODEL` | server | unset | AI pictures off |
 | `OPENAI_API_KEY` | server secret | set (Production + Preview) | Direct posters (GPT Image); set a monthly budget in the OpenAI dashboard |
 | `DIRECT_POSTER_PROVIDER`, `DIRECT_POSTER_MODEL` | server | unset | Defaults: `openai` when the key is set, `gpt-image-2.6-sunburst` |
+| `SARVAM_API_KEY` | server secret | set (Production + Preview) | Reel voiceovers (Sarvam Bulbul v3, ~₹3 per 1,000 characters); top up credits at sarvam.ai — when credits run out voiceovers fail safely and are not charged |
+| `VOICE_PROVIDER`, `VOICE_MODEL` | server | unset | Defaults: `sarvam` when the key is set, `bulbul:v3`; `mock` only for tests |
 | `BILLING_PROVIDER` | server | `razorpay` | |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | server secret | test keys | |
 | `RAZORPAY_PLAN_STARTER`, `RAZORPAY_PLAN_GROWTH`, `RAZORPAY_PLAN_PREMIUM` | server | set (test mode) | Razorpay monthly plans (₹199 / ₹499 / ₹999); amounts are re-checked against `billing_plans` |

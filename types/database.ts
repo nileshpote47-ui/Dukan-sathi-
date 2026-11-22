@@ -472,6 +472,7 @@ export type Database = {
           template_id: string | null
           title: string
           updated_at: string
+          voiceover: Json | null
           tone: string | null
           generated_copy: Json | null
           ai_provider: string | null
@@ -498,6 +499,7 @@ export type Database = {
           template_id?: string | null
           title: string
           updated_at?: string
+          voiceover?: Json | null
           tone?: string | null
           generated_copy?: Json | null
           ai_provider?: string | null
@@ -524,6 +526,7 @@ export type Database = {
           template_id?: string | null
           title?: string
           updated_at?: string
+          voiceover?: Json | null
           tone?: string | null
           generated_copy?: Json | null
           ai_provider?: string | null

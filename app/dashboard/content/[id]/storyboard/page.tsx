@@ -4,11 +4,16 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { PageHeader } from '@/components/layout/page-header'
 import { StoryboardEditor } from '@/components/media/storyboard-editor'
+import { VoiceoverPanel } from '@/components/media/voiceover-panel'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import type { ContentStatus } from '@/lib/config/content'
 import { isEditable } from '@/lib/content/status'
 import { getContentItem } from '@/lib/data/content'
 import { getAssetUrls, listPictures } from '@/lib/data/media'
+import { getBillingOverview } from '@/lib/data/billing'
+import { getVoiceoverView } from '@/lib/data/voiceover'
+import { voiceoverText } from '@/lib/media/voiceover-text'
+import { isVoiceConfigured } from '@/services/voice/provider'
 import { getTranslator } from '@/lib/i18n'
 import { hasReelCopy } from '@/lib/media/storyboard'
 import { storyboardSchema } from '@/lib/validation/media'
@@ -20,7 +25,7 @@ export const maxDuration = 60
 
 export default async function StoryboardPage({ params }: PageProps<'/dashboard/content/[id]/storyboard'>) {
   const { id } = await params
-  const [{ business, profile }, item, pictures] = await Promise.all([requireOnboardedBusiness(), getContentItem(id), listPictures()])
+  const [{ business, profile }, item, pictures, billing] = await Promise.all([requireOnboardedBusiness(), getContentItem(id), listPictures(), getBillingOverview()])
   if (!item) notFound()
   if (item.content_type !== 'REEL') redirect(`/dashboard/content/${item.id}`)
   const t = getTranslator(profile?.preferred_language)
@@ -28,6 +33,9 @@ export default async function StoryboardPage({ params }: PageProps<'/dashboard/c
   const copy = generatedCopySchema.safeParse(item.generated_copy ?? undefined)
   const saved = item.storyboard ? storyboardSchema.safeParse(item.storyboard) : null
   const storyboard = saved?.success ? saved.data : null
+
+  const voiceover = await getVoiceoverView(item.voiceover, item.id)
+  const voiceUsage = billing.usage.find((row) => row.feature_key === 'voiceover')
 
   // Pictures for the pickers, plus any assigned picture that is older than the picker list.
   const options = pictures.map((p) => ({ id: p.id, url: p.url, ai: p.source_type === 'AI_GENERATED' }))
@@ -59,7 +67,18 @@ export default async function StoryboardPage({ params }: PageProps<'/dashboard/c
         businessName={business.business_name}
         pictures={options}
         aiAvailable={isImageGenerationConfigured()}
+        voiceoverUrl={voiceover?.url ?? null}
       />
+      <div className="mt-4">
+        <VoiceoverPanel
+          contentId={item.id}
+          available={isVoiceConfigured()}
+          remaining={voiceUsage ? voiceUsage.remaining : null}
+          hasLines={Boolean(storyboard && voiceoverText(storyboard))}
+          editable={isEditable(item.status as ContentStatus)}
+          current={voiceover}
+        />
+      </div>
     </>
   )
 }

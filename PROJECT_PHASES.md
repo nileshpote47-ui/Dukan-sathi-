@@ -57,8 +57,14 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Tests: unit 226/226 (+12 ideas/calendar/week) · lint · typecheck · build · E2E 48/48 run (experience, media, foundation, content, AI, direct poster, hardening, publishing, analytics; billing not re-run — unchanged); 1 old composer locator scoped to the "Make it as" group
 - No migration, no new env vars, no new paid API
 
+### Stage 3b — reel voiceover (completed 2026-11-22)
+- Reel storyboard page: "Make voiceover" reads the owner's own saved voiceover lines aloud (Sarvam Bulbul v3, female/male voice, mr/hi/en); MP3 plays with the preview and downloads
+- Metered `voiceover`: Free 3 / Starter 20 / Growth 50 / Premium 100; burst 10 per 10 min (migration `20261122055753_voiceover.sql`)
+- Tests: unit +12 · pgTAP voiceover 10/10 · E2E media 6/6 (mock voice, and once with real Sarvam)
+- Env: `SARVAM_API_KEY` (set in Vercel, Sensitive); optional `VOICE_PROVIDER`, `VOICE_MODEL`
+
 ### Next
-- Stage 3b: free stock photos (Pexels), reel voiceover
+- Stage 3b (rest): free stock photos (Pixabay; Pexels stopped issuing API keys)
 
 ---
 

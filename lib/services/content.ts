@@ -1,4 +1,7 @@
 import 'server-only'
+import { MEDIA_BUCKET } from '@/lib/config/media'
+import { VOICEOVER_FOLDER } from '@/lib/config/voiceover'
+import { log } from '@/lib/observability/log'
 import { getBusiness, requireUser } from '@/lib/auth/dal'
 import type { ContentStatus } from '@/lib/config/content'
 import { statusChangeProblem } from '@/lib/content/status'
@@ -111,8 +114,14 @@ export async function changeContentStatus(
 export async function deleteContentItem(id: string): Promise<ServiceResult> {
   const user = await requireUser()
   const supabase = await createClient()
-  const { data, error } = await supabase.from('content_items').delete().eq('id', id).eq('owner_id', user.id).select('id')
+  const { data, error } = await supabase.from('content_items').delete().eq('id', id).eq('owner_id', user.id).select('id, voiceover')
   if (error) return dbError(error)
   if (!data?.length) return { ok: false, error: 'errors.contentNotFound' }
+  // A reel's voiceover file belongs only to that reel: remove it too (pictures and posters are kept).
+  const path = (data[0].voiceover as { path?: unknown } | null)?.path
+  if (typeof path === 'string' && path.startsWith(`${user.id}/${VOICEOVER_FOLDER}/${id}/`)) {
+    const { error: removeError } = await supabase.storage.from(MEDIA_BUCKET).remove([path])
+    if (removeError) log.error('[storage] voiceover remove on delete', removeError.message)
+  }
   return { ok: true }
 }

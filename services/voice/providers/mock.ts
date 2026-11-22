@@ -1,0 +1,21 @@
+import { AIError } from '@/services/ai/types'
+import type { SpeechRequest, SpeechResponse, VoiceProvider } from '../types'
+
+/**
+ * Deterministic voice provider for automated tests (VOICE_PROVIDER=mock). No network, no cost.
+ * Returns a short, valid silent MP3. "[mock:fail]" in the text simulates a provider failure.
+ */
+const SILENT_FRAME = Buffer.from(
+  '/+MYxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVV/+MYxDsAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVV/+MYxHYAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVV/+MYxLEAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxMQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxMQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxMQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+  'base64',
+)
+
+export class MockVoiceProvider implements VoiceProvider {
+  readonly id = 'mock'
+  readonly model = 'mock-voice-1'
+
+  async synthesize(request: SpeechRequest): Promise<SpeechResponse> {
+    if (request.text.includes('[mock:fail]')) throw new AIError('unavailable', 'Mock voice failure')
+    return { bytes: new Uint8Array(SILENT_FRAME), mimeType: 'audio/mpeg' }
+  }
+}

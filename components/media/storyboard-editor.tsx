@@ -27,6 +27,8 @@ interface StoryboardEditorProps {
   businessName: string
   pictures: Picture[]
   aiAvailable: boolean
+  /** Signed URL of the saved voiceover; plays with the preview. */
+  voiceoverUrl?: string | null
 }
 
 const newScene = (): StoryboardScene => ({
@@ -44,7 +46,7 @@ const newScene = (): StoryboardScene => ({
  * Reel storyboard: generate scenes from the saved reel script, edit texts and durations,
  * reorder, assign pictures, preview, save. Nothing is saved or generated automatically.
  */
-export function StoryboardEditor({ contentId, initial, hasCopy, editable, businessName, pictures: initialPictures, aiAvailable }: StoryboardEditorProps) {
+export function StoryboardEditor({ contentId, initial, hasCopy, editable, businessName, pictures: initialPictures, aiAvailable, voiceoverUrl }: StoryboardEditorProps) {
   const { t } = useI18n()
   const toast = useToast()
   const busyRef = useRef(false)
@@ -138,7 +140,7 @@ export function StoryboardEditor({ contentId, initial, hasCopy, editable, busine
         <div className="flex flex-col gap-3 lg:sticky lg:top-4">
           <Card className="p-3">
             <CardTitle className="mb-3 text-base">{t('reel.preview')}</CardTitle>
-            <ReelPreview scenes={scenes} urls={urls} businessName={businessName} />
+            <ReelPreview scenes={scenes} urls={urls} businessName={businessName} audioUrl={voiceoverUrl} />
           </Card>
           <Card className="p-3 text-sm">
             <p className={cn('font-medium', !totalOk && 'text-destructive')}>

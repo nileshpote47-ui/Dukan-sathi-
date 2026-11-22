@@ -230,6 +230,49 @@ test('reel: storyboard from saved reel script, edit, duration, picture, preview,
   expect(errors).toEqual([])
 })
 
+test('reel voiceover: the saved voiceover lines become an MP3 that plays with the preview (mock voice)', async ({ page }) => {
+  const errors = trackPageErrors(page)
+  await login(page, users.a)
+  await page.goto(`/dashboard/content/${ids.reel}/storyboard`)
+  const scenes = page.getByRole('list', { name: 'Scenes' }).getByRole('listitem').filter({ has: page.getByRole('heading', { name: /^Scene \d+$/ }) })
+  await scenes.first().getByLabel('What to say (voice-over)').fill('दिवाळीसाठी खास ऑफर, काजू ₹899 किलो')
+  await page.getByRole('button', { name: 'Save storyboard' }).click()
+  await expect(page.getByText('Storyboard saved.')).toBeVisible()
+  await page.reload()
+
+  const make = page.getByRole('button', { name: 'Make voiceover' })
+  await expect(page.getByText(/Uses 1 voiceover/)).toBeVisible()
+  await make.click()
+  await expect(page.getByLabel('Reel voiceover')).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('link', { name: 'Download MP3' })).toBeVisible()
+
+  const { client } = await apiClientFor(users.a)
+  const first = (await client.from('content_items').select('voiceover').eq('id', ids.reel).single()).data!.voiceover as { path: string; voice: string; language: string }
+  expect(first).toMatchObject({ voice: 'female' })
+  expect(first.path).toMatch(new RegExp(`/voiceovers/${ids.reel}/[0-9a-f-]+\\.mp3$`))
+  expect((await client.storage.from('business-media').download(first.path)).error).toBeNull()
+
+  // A new version with the male voice replaces the file (the old one is removed).
+  await page.getByRole('button', { name: 'Male voice', exact: true }).click()
+  await page.getByRole('button', { name: 'Make a new voiceover' }).click()
+  await expect.poll(async () => ((await client.from('content_items').select('voiceover').eq('id', ids.reel).single()).data!.voiceover as { path: string }).path, { timeout: 30_000 }).not.toBe(first.path)
+  const second = (await client.from('content_items').select('voiceover').eq('id', ids.reel).single()).data!.voiceover as { path: string; voice: string }
+  expect(second.voice).toBe('male')
+  // Only the new file is left in the reel's voiceover folder (downloads can be served from cache, so list instead).
+  const folder = first.path.slice(0, first.path.lastIndexOf('/'))
+  await expect
+    .poll(async () => ((await client.storage.from('business-media').list(folder)).data ?? []).map((f) => `${folder}/${f.name}`), { timeout: 15_000 })
+    .toEqual([second.path])
+
+  // The preview plays with the voiceover loaded.
+  await expect(page.locator('audio.hidden')).toHaveCount(1)
+
+  // Another owner cannot read the file.
+  const b = await apiClientFor(users.b)
+  expect((await b.client.storage.from('business-media').download(second.path)).error).not.toBeNull()
+  expect(errors).toEqual([])
+})
+
 test('safe failures: provider error is never READY, wrong files are refused', async ({ page }) => {
   await login(page, users.a)
   await page.goto(`/dashboard/content/${ids.failing}/poster`)

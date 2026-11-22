@@ -7,7 +7,7 @@ Requested after launch readiness (Phase 8). Based on a study of a comparable cre
 | 1 | Dashboard composer, one-tap AI from the content page, grouped navigation, attention bell, Devanagari fonts, illustrated tool cards | **COMPLETED** (2026-11-21) |
 | 2 | "Ideas for today" (festival calendar + ideas per business category), weekly progress from real data, real poster-template previews | **COMPLETED** (2026-11-22) |
 | 3a | **Direct poster**: AI designs the whole poster with the owner's own lines (GPT Image 2.6 Sunburst) | **COMPLETED** (2026-11-21) |
-| 3b | Free stock photos (Pexels), voiceover for reels | Planned |
+| 3b | Reel voiceover (Sarvam Bulbul) · free stock photos (Pixabay — Pexels stopped issuing keys) | Voiceover **COMPLETED** (2026-11-22); stock photos in progress |
 
 ## Stage 1 — what changed
 
@@ -56,6 +56,21 @@ No database migration; no new environment variables; no new paid API. AI still r
 
 ### Tests
 Unit `tests/unit/ideas.test.ts` (12): calendar dates valid/ordered/unique/in range, types and groups valid, every name/idea in en/mr/hi, look-ahead and ordering, festival day included and past excluded, group filter, daily rotation, after-calendar fallback, translated cards, IST week and day marking. E2E: ideas fill the composer and "This week" counts the content made (`experience.spec.ts`); each template card contains a canvas (`media.spec.ts`). Runs: unit 226/226; E2E 48/48 across experience, media, foundation, content, AI, direct poster, hardening, publishing and analytics.
+
+## Stage 3b — Reel voiceover
+
+**What the owner sees.** On the reel storyboard page, under the editor: **Voiceover**. The owner picks a female or male voice and taps **Make voiceover**: the voiceover lines they wrote in the saved storyboard are read aloud in the reel's language (Marathi, Hindi or English). The MP3 plays together with the preview (Play starts it from the same second) and can be downloaded. **Make a new voiceover** replaces it (uses one more).
+
+**Voice choice.** OpenAI voices (gpt-4o-mini-tts, gpt-audio) were tried first; the owner found the Marathi pronunciation not native. Sarvam AI's Bulbul v3 (built for Indian languages) was chosen after the owner listened to samples. Voices: `priya` (female), `rahul` (male) — `VOICES` in `lib/config/voiceover.ts`. Price: ₹3 per 1,000 characters (a typical reel ≈ 150–300 characters ≈ ₹0.5–1). Commercial use of generated audio is licensed by Sarvam when credits are consumed (including free credits).
+
+**How it works**
+- `generateVoiceoverAction` (`app/dashboard/content/[id]/storyboard/actions.ts`): session → `voiceoverRequestSchema` (only item + voice) → the item's SAVED storyboard → `voiceoverText()` (owner lines, scene order, word for word) → `withUsage('voiceover')` (plan limit + burst limit 10 per 10 min) → `generateVoiceover()` → MP3 checked by content (`isMp3`) → `saveVoiceover()` uploads to `<owner_id>/voiceovers/<content_id>/<uuid>.mp3`, stores `{path, voice, language, chars, created_at}` on `content_items.voiceover`, removes the previous file. Any failure releases the credit; the provider is called once, no retries.
+- Provider: `SarvamVoiceProvider` (`services/voice/providers/sarvam.ts`, plain HTTPS, `api-subscription-key` header, `bulbul:v3`, MP3, number/price normalisation on; safe error codes, 402 = credits used up). `getVoiceConfig()`: `sarvam` when `SARVAM_API_KEY` is set; `mock` for tests, refused in production.
+- Deleting a reel also removes its voiceover file.
+
+**Database.** Migration `20261122055753_voiceover.sql`: feature `voiceover` (check constraints, `billing_reserve_for`), limits Free 3 / Starter 20 / Growth 50 / Premium 100; `content_items.voiceover` (reels only, path must be inside the owner's own `voiceovers/` folder); bucket accepts `audio/mpeg`.
+
+**Tests.** Unit `tests/unit/voiceover.test.ts` (12): owner lines only, request accepts only item + voice, record shape, Sarvam request/header/MP3 + error mapping (key never in messages), provider selection (mock refused in production), MP3 check by content, texts in en/mr/hi. pgTAP `voiceover.test.sql` 10/10 on the live database (rolled back): limits, MP3 allowed, own-folder and reels-only constraints, reserve/release/commit, isolation. E2E (`media.spec.ts`): write a line → save → make (female) → plays/downloads → new version (male) replaces the file → other owner cannot read it; ran with the mock voice and once with real Sarvam (2 real calls, 1.3–2.8 s).
 
 ## Stage 3a — Direct poster (AI designs the whole poster)
 

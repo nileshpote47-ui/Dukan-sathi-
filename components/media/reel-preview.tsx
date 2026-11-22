@@ -1,7 +1,7 @@
 'use client'
 
 import { Pause, Play, RotateCcw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { StoryboardScene } from '@/lib/media/storyboard'
 import { useI18n } from '@/lib/i18n/provider'
@@ -11,11 +11,37 @@ import { cn } from '@/lib/utils/cn'
  * Plays a storyboard in a 9:16 frame: each scene's picture (if any) with its on-screen
  * text, for its duration. A preview only — no video file is produced.
  */
-export function ReelPreview({ scenes, urls, businessName }: { scenes: StoryboardScene[]; urls: Record<string, string>; businessName: string }) {
+export function ReelPreview({
+  scenes,
+  urls,
+  businessName,
+  audioUrl,
+}: {
+  scenes: StoryboardScene[]
+  urls: Record<string, string>
+  businessName: string
+  /** The reel's voiceover (signed URL); plays along with the preview. */
+  audioUrl?: string | null
+}) {
   const { t } = useI18n()
   const [playing, setPlaying] = useState(false)
   const [elapsed, setElapsed] = useState(0)
+  const audioRef = useRef<HTMLAudioElement>(null)
   const total = scenes.reduce((sum, s) => sum + s.duration_seconds, 0)
+
+  // Keep the voiceover in step with the preview: start where the preview is, stop when it stops.
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (playing) {
+      audio.currentTime = Math.min(elapsed, Number.isFinite(audio.duration) ? audio.duration : elapsed)
+      void audio.play().catch(() => undefined)
+    } else {
+      audio.pause()
+    }
+    // elapsed is read once when playback (re)starts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, audioUrl])
 
   useEffect(() => {
     if (!playing) return
@@ -49,6 +75,7 @@ export function ReelPreview({ scenes, urls, businessName }: { scenes: Storyboard
 
   return (
     <div className="flex flex-col items-center gap-3">
+      {audioUrl && <audio ref={audioRef} src={audioUrl} preload="auto" className="hidden" />}
       <div
         className="relative aspect-[9/16] w-full max-w-[15rem] overflow-hidden rounded-2xl bg-gradient-to-b from-primary to-slate-900 text-white shadow"
         aria-label={t('reel.previewLabel')}

@@ -10,6 +10,7 @@ export const RATE_LIMITS = {
   media_export: { limit: 30, windowSeconds: 5 * 60 },
   social_publishing: { limit: 30, windowSeconds: 10 * 60 },
   direct_poster: { limit: 6, windowSeconds: 10 * 60 },
+  voiceover: { limit: 10, windowSeconds: 10 * 60 },
   social_connect: { limit: 20, windowSeconds: 10 * 60 },
 } as const satisfies Record<string, { limit: number; windowSeconds: number }>
 
