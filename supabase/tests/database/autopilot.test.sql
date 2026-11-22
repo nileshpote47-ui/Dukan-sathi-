@@ -51,7 +51,7 @@ select is(
   1, 'one post saved as draft content'
 );
 select results_eq(
-  $$ select state from public.usage_ledger where id = any((select ids from res)) order by state $$,
+  $$ select state from public.usage_ledger where id in (select unnest(ids) from res) order by state $$,
   $$ values ('COMMITTED'::text), ('RELEASED'::text) $$,
   'the used credit is committed, the unused one released'
 );

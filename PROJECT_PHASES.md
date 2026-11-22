@@ -82,7 +82,7 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Every Monday 5 posts prepared (festivals, shop ideas, owner's own offers) as drafts; owner approves each (or all) with one tap; approved posts scheduled on Facebook + Instagram at the chosen time; WhatsApp coming soon
 - Owner-approved exception to "AI only on a tap" (Premium + turned on, once a week, never published without approval) — CLAUDE.md
 - Migration `20261122085946_autopilot.sql` (settings, posts, secret-gated generator functions, hourly cron); `/api/autopilot/run`
-- Tests: unit +7 (+1 route check), E2E 3/3 on Premium; fixed: generator route was behind the login redirect
+- Tests: unit +7 (+1 route check), pgTAP 12/12, E2E 3/3 on Premium; fixed: generator route was behind the login redirect
 
 ### Next
 - Google Business Profile and YouTube setup (owner accounts + app review)
