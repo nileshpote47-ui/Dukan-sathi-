@@ -17,6 +17,116 @@ export type Database = {
   }
   public: {
     Tables: {
+      autopilot_posts: {
+        Row: {
+          business_id: string
+          content_item_id: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          idea: Json
+          job_ids: string[]
+          owner_id: string
+          planned_for: string
+          slot: number
+          status: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          business_id: string
+          content_item_id: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          idea?: Json
+          job_ids?: string[]
+          owner_id: string
+          planned_for: string
+          slot: number
+          status?: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          business_id?: string
+          content_item_id?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          idea?: Json
+          job_ids?: string[]
+          owner_id?: string
+          planned_for?: string
+          slot?: number
+          status?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autopilot_posts_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "autopilot_posts_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      autopilot_settings: {
+        Row: {
+          account_ids: string[]
+          business_id: string
+          created_at: string
+          enabled: boolean
+          last_run_at: string | null
+          last_run_week: string | null
+          owner_id: string
+          owner_offers: string | null
+          post_time: string
+          updated_at: string
+        }
+        Insert: {
+          account_ids?: string[]
+          business_id: string
+          created_at?: string
+          enabled?: boolean
+          last_run_at?: string | null
+          last_run_week?: string | null
+          owner_id?: string
+          owner_offers?: string | null
+          post_time?: string
+          updated_at?: string
+        }
+        Update: {
+          account_ids?: string[]
+          business_id?: string
+          created_at?: string
+          enabled?: boolean
+          last_run_at?: string | null
+          last_run_week?: string | null
+          owner_id?: string
+          owner_offers?: string | null
+          post_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autopilot_settings_business_owner_fkey"
+            columns: ["business_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
       billing_payments: {
         Row: {
           amount_paise: number
@@ -109,6 +219,7 @@ export type Database = {
           is_active: boolean
           is_price_final: boolean
           allowed_channels: string[]
+          autopilot_posts_per_week: number
           max_accounts_per_post: number
           max_connected_accounts: number | null
           name: string
@@ -126,6 +237,7 @@ export type Database = {
           is_active?: boolean
           is_price_final?: boolean
           allowed_channels?: string[]
+          autopilot_posts_per_week?: number
           max_accounts_per_post?: number
           max_connected_accounts?: number | null
           name: string
@@ -143,6 +255,7 @@ export type Database = {
           is_active?: boolean
           is_price_final?: boolean
           allowed_channels?: string[]
+          autopilot_posts_per_week?: number
           max_accounts_per_post?: number
           max_connected_accounts?: number | null
           name?: string
@@ -1090,6 +1203,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      autopilot_begin: {
+        Args: {
+          p_business_id: string
+          p_count: number
+          p_secret: string
+          p_week_start: string
+        }
+        Returns: string[]
+      }
+      autopilot_due: {
+        Args: { p_secret: string; p_week_start: string }
+        Returns: {
+          business: Json
+          business_id: string
+          owner_id: string
+          owner_offers: string
+          post_time: string
+          posts_per_week: number
+          preferred_language: string
+        }[]
+      }
+      autopilot_save: {
+        Args: {
+          p_business_id: string
+          p_commit: string[]
+          p_posts: Json
+          p_release: string[]
+          p_secret: string
+          p_week_start: string
+        }
+        Returns: number
+      }
       admin_business_detail: { Args: { p_business_id: string }; Returns: Json }
       admin_is_admin: { Args: never; Returns: boolean }
       admin_list_businesses: {

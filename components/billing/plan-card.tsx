@@ -47,6 +47,12 @@ export function PlanCard({ plan, t, current, action }: { plan: Plan; t: Translat
           <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
           {t('billing.accountsPerPost', { n: plan.max_accounts_per_post })}
         </li>
+        {plan.autopilot_posts_per_week > 0 && (
+          <li className="flex items-start gap-2 font-semibold">
+            <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+            {t('billing.autopilot', { n: plan.autopilot_posts_per_week })}
+          </li>
+        )}
       </ul>
       {action && <div className="mt-auto">{action}</div>}
     </Card>

@@ -78,9 +78,14 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Plan data (`allowed_channels`, `max_connected_accounts`, migration `20261122083040_plan_channels.sql`), checked when connecting and publishing
 - Tests: unit +6, pgTAP 4/4, E2E plan-channels + full publishing suite on Premium 8/8
 
+### Premium Autopilot (completed 2026-11-22)
+- Every Monday 5 posts prepared (festivals, shop ideas, owner's own offers) as drafts; owner approves each (or all) with one tap; approved posts scheduled on Facebook + Instagram at the chosen time; WhatsApp coming soon
+- Owner-approved exception to "AI only on a tap" (Premium + turned on, once a week, never published without approval) — CLAUDE.md
+- Migration `20261122085946_autopilot.sql` (settings, posts, secret-gated generator functions, hourly cron); `/api/autopilot/run`
+- Tests: unit +7 (+1 route check), E2E 3/3 on Premium; fixed: generator route was behind the login redirect
+
 ### Next
-- Premium Autopilot (owner approved): AI prepares 5 posts a week, one-tap approval, auto-posting to Facebook, Instagram, WhatsApp
-- Then: Google Business Profile and YouTube setup (owner accounts + app review)
+- Google Business Profile and YouTube setup (owner accounts + app review)
 
 ---
 

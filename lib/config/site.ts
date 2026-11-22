@@ -23,6 +23,8 @@ export const PUBLIC_ROUTES = [
   '/api/billing/webhooks',
   // Publishing scheduler (pg_cron, server secret) and Meta webhooks (app-secret signature).
   '/api/publishing/run',
+  // Weekly Autopilot generator (pg_cron, server secret).
+  '/api/autopilot/run',
   '/api/webhooks',
 ] as const
 

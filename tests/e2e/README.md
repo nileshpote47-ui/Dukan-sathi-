@@ -68,4 +68,5 @@ from public.businesses b join auth.users u on u.id = b.owner_id where u.email = 
 ```
 
 The suite deletes the shop at the end, which also removes this subscription. Without `E2E_PLAN=premium` the
-suite is skipped.
+suite is skipped. `autopilot.spec.ts` works the same way and also needs the app started with
+`AUTOPILOT_TEST_CLOCK=1` (a fixed "now" for the generator; ignored in production).

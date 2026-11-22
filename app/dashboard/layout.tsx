@@ -5,6 +5,7 @@ import { Providers } from '@/components/providers'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import { getMessages, getTranslator, type MessageKey } from '@/lib/i18n'
 import { getAttentionSummary } from '@/lib/data/publishing'
+import { countPendingAutopilot } from '@/lib/data/autopilot'
 import { formatLocation } from '@/lib/utils/business'
 import { DEFAULT_LANGUAGE, isLanguageCode } from '@/lib/config/languages'
 
@@ -19,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const shell: ShellInfo = {
     businessName: business.business_name,
     businessMeta: [t(`category.${business.business_category}` as MessageKey), formatLocation(business)].filter(Boolean).join(' · '),
-    attention: await getAttentionSummary(),
+    attention: { ...(await getAttentionSummary()), autopilotPending: await countPendingAutopilot() },
   }
 
   return (

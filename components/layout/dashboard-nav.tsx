@@ -41,7 +41,7 @@ export interface ShellInfo {
   businessName: string
   /** e.g. "Grocery · Shirur" */
   businessMeta: string
-  attention: { failedJobs: number; accountsToReconnect: number }
+  attention: { failedJobs: number; accountsToReconnect: number; autopilotPending: number }
 }
 
 function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
@@ -89,11 +89,12 @@ function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => v
   )
 }
 
-/** Bell with the number of things that need the owner (failed posts, accounts to reconnect). */
+/** Bell with the number of things that need the owner (failed posts, accounts to reconnect, Autopilot posts to approve). */
 export function AttentionBell({ attention, className }: { attention: ShellInfo['attention']; className?: string }) {
   const { t } = useI18n()
-  const count = attention.failedJobs + attention.accountsToReconnect
-  const href = attention.failedJobs > 0 ? '/dashboard/publishing?tab=failed' : '/dashboard/accounts'
+  const count = attention.failedJobs + attention.accountsToReconnect + attention.autopilotPending
+  const href =
+    attention.failedJobs > 0 ? '/dashboard/publishing?tab=failed' : attention.accountsToReconnect > 0 ? '/dashboard/accounts' : '/dashboard/autopilot'
   const label = count > 0 ? t('nav.attention', { count }) : t('nav.attentionNone')
   return (
     <Link

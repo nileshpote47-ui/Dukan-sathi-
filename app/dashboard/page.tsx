@@ -15,6 +15,7 @@ import { DEFAULT_LANGUAGE, isLanguageCode, type LanguageCode } from '@/lib/confi
 import { getContentCounts, getRecentContent } from '@/lib/data/content'
 import { getBillingOverview } from '@/lib/data/billing'
 import { getWeeklyProgress } from '@/lib/data/progress'
+import { countPendingAutopilot } from '@/lib/data/autopilot'
 import { exampleGroupFor } from '@/lib/config/category-examples'
 import { presentIdeas } from '@/lib/ideas/present'
 import { ideasForToday } from '@/lib/ideas/today'
@@ -29,7 +30,7 @@ export const metadata: Metadata = { title: 'Dashboard' }
 
 export default async function DashboardPage() {
   const { business, profile } = await requireOnboardedBusiness()
-  const [counts, recent, billing, week] = await Promise.all([getContentCounts(), getRecentContent(5), getBillingOverview(), getWeeklyProgress()])
+  const [counts, recent, billing, week, autopilotPending] = await Promise.all([getContentCounts(), getRecentContent(5), getBillingOverview(), getWeeklyProgress(), countPendingAutopilot()])
   const t = getTranslator(profile?.preferred_language)
   const locale = intlLocale(profile?.preferred_language)
   const completion = profileCompletion(business)
@@ -64,6 +65,19 @@ export default async function DashboardPage() {
             : t('dashboard.welcome')}
         </p>
       </header>
+
+      {autopilotPending > 0 && (
+        <Link
+          href="/dashboard/autopilot"
+          className="mb-5 flex items-center justify-between gap-3 rounded-2xl border-2 border-primary bg-primary-soft p-4 font-semibold transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          <span>{t('dashboard.autopilotReady', { n: autopilotPending })}</span>
+          <span className="inline-flex items-center gap-1 text-primary">
+            {t('dashboard.autopilotOpen')}
+            <ArrowRight aria-hidden className="size-4" />
+          </span>
+        </Link>
+      )}
 
       <Composer defaultLanguage={contentLanguage} remaining={aiUsage ? aiUsage.remaining : null} aiReady={isAIConfigured()} ideas={ideas} />
 

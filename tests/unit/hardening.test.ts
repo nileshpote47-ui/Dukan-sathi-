@@ -65,6 +65,8 @@ describe('rate limits', () => {
 describe('public routes, robots and sitemap', () => {
   it('health check is public; private areas are not in the sitemap and are disallowed', () => {
     expect(PUBLIC_ROUTES).toContain('/api/health')
+    // Called by the scheduler without a session (the route checks the server secret itself).
+    expect(PUBLIC_ROUTES).toEqual(expect.arrayContaining(['/api/publishing/run', '/api/autopilot/run']))
     const rules = robots().rules as { disallow: string[] }
     for (const path of ['/dashboard', '/admin', '/onboarding', '/api/']) expect(rules.disallow).toContain(path)
     const urls = sitemap().map((entry) => entry.url)

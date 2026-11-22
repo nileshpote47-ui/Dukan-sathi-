@@ -11,6 +11,7 @@ import {
   Send,
   Settings,
   Store,
+  Bot,
 } from 'lucide-react'
 import type { MessageKey } from '@/lib/i18n'
 
@@ -34,6 +35,7 @@ export const DASHBOARD_NAV: NavItem[] = [
   { group: 'create', href: '/dashboard/create', labelKey: 'nav.create', icon: PlusCircle, comingSoon: false, mobile: true },
   { group: 'create', href: '/dashboard/content', labelKey: 'nav.content', icon: FileText, comingSoon: false, mobile: true },
   { group: 'create', href: '/dashboard/media', labelKey: 'nav.media', icon: Images, comingSoon: false, mobile: false },
+  { group: 'create', href: '/dashboard/autopilot', labelKey: 'nav.autopilot', icon: Bot, comingSoon: false, mobile: false },
   { group: 'reach', href: '/dashboard/calendar', labelKey: 'nav.calendar', icon: CalendarDays, comingSoon: false, mobile: true },
   { group: 'reach', href: '/dashboard/publishing', labelKey: 'nav.publishing', icon: Send, comingSoon: false, mobile: false },
   { group: 'reach', href: '/dashboard/accounts', labelKey: 'nav.accounts', icon: Link2, comingSoon: false, mobile: false },
