@@ -1,6 +1,7 @@
 import { CheckCircle2 } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { LegalFooter } from '@/components/layout/legal-footer'
 import { Logo } from '@/components/layout/logo'
 import { buttonVariants } from '@/components/ui/button'
 import { getTranslator, type MessageKey } from '@/lib/i18n'
@@ -45,6 +46,7 @@ export default function HomePage() {
         </div>
         <p className="mt-6 text-sm text-muted-foreground">{t('landing.note')}</p>
       </main>
+      <LegalFooter />
     </div>
   )
 }

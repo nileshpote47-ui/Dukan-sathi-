@@ -49,6 +49,7 @@ All are documented in `.env.example` (placeholders only). Real values live in `.
 | `META_APP_ID`, `META_APP_SECRET`, `META_LOGIN_CONFIG_ID` | server secret | set | Facebook Login for Business |
 | `META_WHATSAPP_CONFIG_ID`, `META_WEBHOOK_VERIFY_TOKEN` | server | unset | WhatsApp ("Not set up yet") |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | server secret | unset | Google Business Profile / YouTube ("Not set up yet") |
+| `SUPPORT_EMAIL` | server (not secret) | to add | Support and data-deletion email on `/privacy` and `/terms` (pages are static: redeploy after changing) |
 
 Only the three `NEXT_PUBLIC_` variables reach the browser. There is no Supabase service-role key anywhere in the app. Preview deployments are protected by Vercel Authentication and have no `NEXT_PUBLIC_SITE_URL` (they fall back to the production URL for links).
 
@@ -97,7 +98,8 @@ Test mode today. To go live: create live plans with the same amounts as `billing
 ## Social providers
 - **Meta**: the app is in development mode — only people with a role on the app can connect. For real customers: Business Verification + App Review for `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, `instagram_basic`, `instagram_content_publish`, `business_management`, then switch the app to Live.
 - **WhatsApp**: needs Tech Provider onboarding, an Embedded Signup configuration (`META_WHATSAPP_CONFIG_ID`), webhook verify token and approved marketing templates.
-- **Google Business Profile / YouTube**: needs a Google Cloud OAuth client, Business Profile API access approval and OAuth verification.
+- **Google Business Profile / YouTube**: needs a Google Cloud OAuth client, Business Profile API access approval (Google requires the applicant's own verified Business Profile, active 60+ days, with a website) and OAuth verification (privacy policy `/privacy`, terms `/terms`, domain ownership in Search Console, scope justification and demo video). In Testing status at most 100 test users and refresh tokens expire after 7 days. YouTube publishing additionally needs reel video (MP4) export, which is not built yet.
+- **Privacy Policy / Terms**: `/privacy` and `/terms` (also needed for Meta App Review: use `/privacy` as the privacy policy URL and its "Your choices and data deletion" section as the data-deletion instructions URL).
 Until configured, each channel shows "Not set up yet" and cannot be selected.
 
 ## Monitoring

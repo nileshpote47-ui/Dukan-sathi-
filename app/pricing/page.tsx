@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { LegalFooter } from '@/components/layout/legal-footer'
 import { PlanCard } from '@/components/billing/plan-card'
 import { Logo } from '@/components/layout/logo'
 import { buttonVariants } from '@/components/ui/button'
@@ -49,6 +50,7 @@ export default async function PricingPage() {
         </div>
         <p className="mt-6 text-sm text-muted-foreground">{t('billing.pricingNote')}</p>
       </main>
+      <LegalFooter />
     </div>
   )
 }

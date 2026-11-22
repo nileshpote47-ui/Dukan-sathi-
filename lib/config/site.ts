@@ -4,6 +4,10 @@ export const siteConfig = {
   description: 'Your daily marketing assistant for your business.',
   /** Business-facing times (greetings, dates) use Indian Standard Time, not server time. */
   timeZone: 'Asia/Kolkata',
+  /** Support / data-request email shown on the Privacy and Terms pages (SUPPORT_EMAIL, read on the server). */
+  supportEmail: process.env.SUPPORT_EMAIL?.trim() ?? '',
+  /** Date the Privacy Policy and Terms were last changed. */
+  legalUpdated: '22 November 2026',
 } as const
 
 /** Routes that do not require a signed-in user. Everything else does. */
@@ -14,6 +18,8 @@ export const PUBLIC_ROUTES = [
   '/auth/confirm',
   '/auth/error',
   '/pricing',
+  '/privacy',
+  '/terms',
   // Health check for uptime monitoring (no user data).
   '/api/health',
   // Search engine files.
@@ -40,4 +46,4 @@ export function publicSiteUrl(): string {
 }
 
 /** Public pages listed in the sitemap. Dashboard, onboarding, admin and API routes are not indexed. */
-export const SITEMAP_ROUTES = ['/', '/pricing', '/signup', '/login'] as const
+export const SITEMAP_ROUTES = ['/', '/pricing', '/signup', '/login', '/privacy', '/terms'] as const
