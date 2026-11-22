@@ -26,7 +26,7 @@ test('dashboard composer: example sentence → Marathi offer with AI copy, owner
   await expect(make).toBeDisabled() // nothing written yet
   await page.getByRole('button', { name: 'Diwali offer' }).click()
   await expect(page.getByLabel('In your own words')).toHaveValue('20% off all dry fruits for Diwali, cashews ₹899/kg')
-  await expect(page.getByRole('button', { name: /Offer/ }).first()).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('group', { name: 'Make it as' }).getByRole('button', { name: 'Offer' })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: /मराठी/ }).click()
   await make.click()
 
@@ -35,6 +35,26 @@ test('dashboard composer: example sentence → Marathi offer with AI copy, owner
   await expect(page.getByRole('heading', { name: '20% off all dry fruits for Diwali', level: 1 })).toBeVisible()
   await expect(page.getByText('20% off all dry fruits for Diwali, cashews ₹899/kg')).toBeVisible() // description, as typed
   await expect(page.getByText('मराठी').first()).toBeVisible()
+  expect(errors).toEqual([])
+})
+
+test('ideas for today fill the composer; this week counts real content', async ({ page }) => {
+  const errors = trackPageErrors(page)
+  await login(page, users.a)
+  const ideas = page.getByRole('region', { name: 'Ideas for today' })
+  await expect(ideas).toBeVisible()
+  const cards = ideas.getByRole('button')
+  expect(await cards.count()).toBeGreaterThanOrEqual(2)
+  await expect(ideas.getByText('For your shop').first()).toBeVisible() // grocery ideas for this shop
+  const card = cards.last()
+  const brief = (await card.locator('span').last().textContent())!.trim()
+  await card.click()
+  await expect(page.getByLabel('In your own words')).toHaveValue(brief)
+  await expect(page.getByLabel('In your own words')).toBeFocused()
+
+  const week = page.getByRole('region', { name: 'This week' })
+  await expect(week).toContainText('1 made · 0 published') // the offer made in the test above
+  await expect(week.getByRole('listitem')).toHaveCount(7)
   expect(errors).toEqual([])
 })
 

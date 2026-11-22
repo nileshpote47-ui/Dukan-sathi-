@@ -5,7 +5,7 @@ Requested after launch readiness (Phase 8). Based on a study of a comparable cre
 | Stage | Scope | Status |
 |---|---|---|
 | 1 | Dashboard composer, one-tap AI from the content page, grouped navigation, attention bell, Devanagari fonts, illustrated tool cards | **COMPLETED** (2026-11-21) |
-| 2 | "Ideas for today" (festival calendar + ideas per business category), weekly progress from real data, real poster-template previews | Planned |
+| 2 | "Ideas for today" (festival calendar + ideas per business category), weekly progress from real data, real poster-template previews | **COMPLETED** (2026-11-22) |
 | 3a | **Direct poster**: AI designs the whole poster with the owner's own lines (GPT Image 2.6 Sunburst) | **COMPLETED** (2026-11-21) |
 | 3b | Free stock photos (Pexels), voiceover for reels | Planned |
 
@@ -38,6 +38,24 @@ Requested after launch readiness (Phase 8). Based on a study of a comparable cre
 
 ## Not changed
 No database migration; no new environment variables; no new paid API. AI still runs only on an explicit tap, through the existing provider, limits and logging.
+
+## Stage 2 — Ideas for today, this week, template previews
+
+### Ideas for today (dashboard, above the composer)
+- Up to two **upcoming festivals** within 21 days (`ideasForToday()`, `lib/ideas/today.ts`) from a curated calendar (`lib/config/festivals.ts`: Christmas 2026 → Diwali 2027, dates checked against published 2027 calendars; Dhanteras only for shops that sell gold, clothes, electronics or tools). Badge "Today / Tomorrow / In N days".
+- Then two **everyday ideas** for the shop's group (grocery, mobile, fashion, agri, food, services, general; 4 per group), rotated by date so the dashboard changes daily.
+- Tapping a card fills the composer with a ready sentence and the matching type (Offer, Festival, WhatsApp, Reel…), focuses it, and the owner edits and presses **Make it**. No AI call, no database, no cost until then.
+- Text in English, Marathi and Hindi (`ideas.*`, `festival.*`).
+- After `CALENDAR_COVERS_UNTIL` (2027-10-31) only everyday ideas show; extend the list yearly.
+
+### This week
+- Monday–Sunday in IST: a filled day when content was created, plus "N made · M published" (`getWeeklyProgress()`, `lib/data/progress.ts`, owner-filtered; published = publishing jobs with status PUBLISHED). Empty week → nudge to use an idea. No goals or streaks are invented.
+
+### Real template previews
+- In the poster editor each template card is a small (¼ size) real rendering by the same canvas code, with the owner's current lines and picture (`PosterCanvas scale`). Decorative for screen readers; the card keeps the template name.
+
+### Tests
+Unit `tests/unit/ideas.test.ts` (12): calendar dates valid/ordered/unique/in range, types and groups valid, every name/idea in en/mr/hi, look-ahead and ordering, festival day included and past excluded, group filter, daily rotation, after-calendar fallback, translated cards, IST week and day marking. E2E: ideas fill the composer and "This week" counts the content made (`experience.spec.ts`); each template card contains a canvas (`media.spec.ts`). Runs: unit 226/226; E2E 48/48 across experience, media, foundation, content, AI, direct poster, hardening, publishing and analytics.
 
 ## Stage 3a — Direct poster (AI designs the whole poster)
 

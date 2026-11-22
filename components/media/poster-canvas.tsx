@@ -112,13 +112,17 @@ interface PosterCanvasProps {
   ref?: Ref<HTMLCanvasElement>
   label: string
   onImageError?: () => void
+  /** Draw at a fraction of full size (template thumbnails); the layout scales with the canvas. */
+  scale?: number
 }
 
-export function PosterCanvas({ template, aspectRatio, texts, imageUrl, className, ref, label, onImageError }: PosterCanvasProps) {
+export function PosterCanvas({ template, aspectRatio, texts, imageUrl, className, ref, label, onImageError, scale = 1 }: PosterCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [image, setImage] = useState<{ url: string; element: HTMLImageElement } | null>(null)
   const [fontsReady, setFontsReady] = useState(false)
-  const { width, height } = ASPECT_RATIOS[aspectRatio]
+  const full = ASPECT_RATIOS[aspectRatio]
+  const width = Math.round(full.width * scale)
+  const height = Math.round(full.height * scale)
 
   // Wait for web fonts (if any) so text is measured with the final font.
   useEffect(() => {

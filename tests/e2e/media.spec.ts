@@ -84,6 +84,7 @@ test('poster: from content to template, 4:5, picture, preview, save, open, downl
   await expect(page.getByRole('heading', { name: 'Create poster' })).toBeVisible()
   // Defaults come from the content: offer template, 4:5, saved AI copy, the owner's price as badge.
   await expect(page.getByRole('radio', { name: /Special Offer/ })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.getByRole('radio', { name: /Product Showcase/ }).locator('canvas')).toHaveCount(1) // a real small rendering of each design
   await expect(page.getByRole('radio', { name: /^4:5/ })).toHaveAttribute('aria-checked', 'true')
   await expect(page.getByLabel('Headline')).toHaveValue('ताजा बासमती तांदूळ')
   await expect(page.getByLabel(/^Offer or price badge/)).toHaveValue('₹40/kg')

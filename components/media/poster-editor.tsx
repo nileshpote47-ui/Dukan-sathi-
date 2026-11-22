@@ -12,7 +12,6 @@ import { Input, Textarea } from '@/components/ui/input'
 import { ActionError } from '@/components/billing/action-error'
 import { useToast } from '@/components/ui/toast'
 import { ASPECT_RATIO_KEYS, ASPECT_RATIO_LABELS, type AspectRatio } from '@/lib/config/media'
-import { getPosterLayout } from '@/lib/config/poster-templates'
 import { exportCanvas } from '@/lib/media/browser-image'
 import type { PosterTexts } from '@/lib/media/poster-layout'
 import type { MessageKey } from '@/lib/i18n'
@@ -74,7 +73,10 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
       const blob = await exportCanvas(canvasRef.current)
       const form = new FormData()
       form.set('file', blob, blob.type === 'image/png' ? 'poster.png' : 'poster.jpg')
-      form.set('spec', JSON.stringify({ content_id: contentId, template, aspect_ratio: aspectRatio, texts, image_asset_id: picture?.id ?? null }))
+      form.set(
+        'spec',
+        JSON.stringify({ content_id: contentId, template, aspect_ratio: aspectRatio, texts, image_asset_id: picture?.id ?? null }),
+      )
       const result = await savePoster(form)
       if (!result.ok || !result.data) {
         setError(result.ok ? 'errors.saveFailed' : result.error)
@@ -101,7 +103,9 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
               <span className="font-semibold">{t('poster.preview')}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{aspectRatio}</span>
             </div>
-            <div className={cn('mx-auto', aspectRatio === '9:16' ? 'max-w-[18rem]' : aspectRatio === '16:9' ? 'max-w-full' : 'max-w-[24rem]')}>
+            <div
+              className={cn('mx-auto', aspectRatio === '9:16' ? 'max-w-[18rem]' : aspectRatio === '16:9' ? 'max-w-full' : 'max-w-[24rem]')}
+            >
               <PosterCanvas
                 ref={canvasRef}
                 template={template}
@@ -139,7 +143,6 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
           <CardTitle className="mb-3 text-base">{t('poster.chooseTemplate')}</CardTitle>
           <div role="radiogroup" aria-label={t('poster.chooseTemplate')} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {templates.map((option) => {
-              const layout = getPosterLayout(option.slug)
               const selected = option.slug === template
               return (
                 <button
@@ -153,11 +156,18 @@ export function PosterEditor({ contentId, templates, initial, pictures: initialP
                     selected && 'border-primary ring-2 ring-primary',
                   )}
                 >
-                  <span
-                    aria-hidden
-                    className="h-10 w-full rounded-lg"
-                    style={{ background: `linear-gradient(135deg, ${layout.colors.background[0]}, ${layout.colors.background[1]} 60%, ${layout.colors.accent})` }}
-                  />
+                  {/* A real, small rendering of this design with the owner's own text and picture. */}
+                  <span aria-hidden className="block">
+                    <PosterCanvas
+                      template={option.slug}
+                      aspectRatio={aspectRatio === '16:9' ? '16:9' : '1:1'}
+                      texts={texts}
+                      imageUrl={picture?.url ?? null}
+                      scale={0.25}
+                      label={t('poster.templateSample')}
+                      className="rounded-lg shadow-none"
+                    />
+                  </span>
                   <span className="font-medium">{option.name}</span>
                 </button>
               )

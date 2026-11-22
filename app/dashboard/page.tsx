@@ -5,6 +5,7 @@ import { ContentCard } from '@/components/content/content-card'
 import { ContentEmptyState } from '@/components/content/content-empty-state'
 import { QuickActionCard } from '@/components/content/quick-action-card'
 import { Composer } from '@/components/dashboard/composer'
+import { WeeklyProgressStrip } from '@/components/dashboard/weekly-progress'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -13,21 +14,26 @@ import { QUICK_ACTION_TYPES } from '@/lib/config/content'
 import { DEFAULT_LANGUAGE, isLanguageCode, type LanguageCode } from '@/lib/config/languages'
 import { getContentCounts, getRecentContent } from '@/lib/data/content'
 import { getBillingOverview } from '@/lib/data/billing'
+import { getWeeklyProgress } from '@/lib/data/progress'
+import { exampleGroupFor } from '@/lib/config/category-examples'
+import { presentIdeas } from '@/lib/ideas/present'
+import { ideasForToday } from '@/lib/ideas/today'
 import { UsageList } from '@/components/billing/usage-list'
 import { getTranslator, type MessageKey } from '@/lib/i18n'
 import { profileCompletion } from '@/lib/utils/business'
 import { isAIConfigured } from '@/services/ai/provider'
-import { intlLocale } from '@/lib/utils/datetime'
+import { intlLocale, istDateKey } from '@/lib/utils/datetime'
 import { greetingKey } from '@/lib/utils/greeting'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
 export default async function DashboardPage() {
   const { business, profile } = await requireOnboardedBusiness()
-  const [counts, recent, billing] = await Promise.all([getContentCounts(), getRecentContent(5), getBillingOverview()])
+  const [counts, recent, billing, week] = await Promise.all([getContentCounts(), getRecentContent(5), getBillingOverview(), getWeeklyProgress()])
   const t = getTranslator(profile?.preferred_language)
   const locale = intlLocale(profile?.preferred_language)
   const completion = profileCompletion(business)
+  const ideas = presentIdeas(ideasForToday(istDateKey(new Date()), exampleGroupFor(business.business_category)), t)
 
   // Real numbers from the database only.
   const tiles: { key: MessageKey; value: number; icon: LucideIcon; href: string }[] = [
@@ -59,7 +65,9 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <Composer defaultLanguage={contentLanguage} remaining={aiUsage ? aiUsage.remaining : null} aiReady={isAIConfigured()} />
+      <Composer defaultLanguage={contentLanguage} remaining={aiUsage ? aiUsage.remaining : null} aiReady={isAIConfigured()} ideas={ideas} />
+
+      <WeeklyProgressStrip progress={week} t={t} locale={locale} />
 
       {completion < 100 && (
         <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-accent/40 bg-accent-soft px-4 py-3">
