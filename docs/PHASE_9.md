@@ -89,12 +89,28 @@ Unit `tests/unit/ideas.test.ts` (12): calendar dates valid/ordered/unique/in ran
 
 ## Accounts per post (owner's request, 2026-11-22)
 
-One post can now go to several connected accounts at once; how many is plan data (`billing_plans.max_accounts_per_post`, migration `20261122075556_accounts_per_post.sql`): **Free 1 · Starter 1 · Growth 2 · Premium 4**. Shown on the pricing page ("Accounts in one post: n").
+One post can now go to several connected accounts at once; how many is plan data (`billing_plans.max_accounts_per_post`, migration `20261122075556_accounts_per_post.sql`): **Free 1 · Starter 1 · Growth 2 · Premium 4** (channels per plan: see below). Shown on the pricing page ("Accounts in one post: n").
 
 - Publish page: accounts are checkboxes. On one-account plans the first account is ticked and picking another switches to it; on multi-account plans nothing is pre-ticked and further accounts are disabled at the limit, with a link to plans. One caption box and one preview per chosen channel; one WhatsApp number per post.
 - Server (`createPublication`): plan limit and remaining posts checked first, then EVERY chosen account is checked (connected, channel rules, picture, WhatsApp template and customers); only if all pass is one job created per account, so a mistake never sends to some accounts and not others. Results are reported per account. Each job uses one post credit as before.
 - Channels: Facebook, Instagram, WhatsApp (customers), YouTube, Google Business Profile — all manual. Autopilot (next) will post only to Facebook, Instagram and WhatsApp.
 - Tests: unit (input: 1–10 unique accounts, known channels only), pgTAP `accounts_per_post.test.sql` 3/3 on the live database, E2E: Free switches between accounts; Growth (run with `E2E_PLAN_ACCOUNTS=growth` and a temporary subscription, README) scheduled one post to Facebook + Instagram, third account blocked, nothing pre-ticked — passed; publishing/analytics regression passed.
+
+## Channels per plan (owner's decision, 2026-11-22)
+
+| Plan | Channels | Connected accounts | Accounts in one post |
+|---|---|---|---|
+| Free | Facebook **or** Instagram | **1** (owner chooses which) | 1 |
+| Starter | Facebook, Instagram, Google Business Profile | no limit | 1 (the same post can be published again to another account separately) |
+| Growth | All: Facebook, Instagram, WhatsApp, YouTube, Google Business Profile | no limit | 2 |
+| Premium | All | no limit | 4 |
+
+Plan data: `billing_plans.allowed_channels`, `billing_plans.max_connected_accounts` (migration `20261122083040_plan_channels.sql`). Checked on the server:
+- **Connect** (`/api/social/[connector]/connect` and callback, WhatsApp signup): channels outside the plan are refused; on Free the owner picks "Facebook Page" or "Instagram" first (the choice travels in the signed OAuth state) and only that account is saved, even though the Meta login returns both; no new account once the slot is used (reconnecting the same account is always allowed). Helpers: `lib/billing/channels.ts` (`acceptNewAccounts`, `freeSlots`).
+- **Publish** (`createPublication`): channel must be in the plan; on plans with an account limit only the earliest connected accounts are usable (e.g. after moving down to Free) (`usableAccountIds`).
+- **Pages**: accounts page shows the Free choice, the limit, and "Available on: <plans>" (from plan data) for other channels; the publish page shows out-of-plan accounts disabled; pricing lists channels and connected accounts.
+
+Tests: unit `plan-channels.test.ts` (6); pgTAP `plan_channels.test.sql` 4/4 on the live database; E2E `plan-channels.spec.ts` (Free: choose Instagram → only Instagram saved, limit shown, typed connect links refused, pricing lines); analytics updated (Free connects the Facebook Page only); the full `publishing.spec.ts` now runs on a temporary Premium subscription (`E2E_PLAN=premium`, README) — 8/8, including one post to Facebook + Instagram at once.
 
 ## Stage 3a — Direct poster (AI designs the whole poster)
 

@@ -49,10 +49,10 @@ test('owner analytics: real content and publishing, date filters, engagement ref
   const errors = trackPageErrors(page)
   await login(page, users.a)
 
-  // Real activity: connect the (mock) Meta account and publish once to Facebook.
+  // Real activity: connect the (mock) Facebook Page — the Free plan allows one account — and publish once.
   await page.goto('/dashboard/accounts')
-  await page.locator('div[aria-label="Facebook & Instagram"]').getByRole('link', { name: 'Connect' }).click()
-  await expect(page.getByText('2 account(s) connected.')).toBeVisible()
+  await page.locator('div[aria-label="Facebook & Instagram"]').getByRole('link', { name: 'Facebook', exact: true }).click()
+  await expect(page.getByText('1 account(s) connected.')).toBeVisible()
   await page.goto(`/dashboard/content/${ids.content}/publish`)
   await page.getByRole('checkbox', { name: /Facebook/ }).first().check()
   await page.getByRole('checkbox', { name: /I checked this post/ }).check()
@@ -63,7 +63,7 @@ test('owner analytics: real content and publishing, date filters, engagement ref
   await expect(tile(page, 'Content created')).toContainText('2')
   await expect(tile(page, 'Published')).toContainText('1')
   await expect(tile(page, 'Publishing success')).toContainText('100%')
-  await expect(tile(page, 'Connected channels')).toContainText('2')
+  await expect(tile(page, 'Connected channels')).toContainText('1')
   await expect(page.getByRole('region', { name: 'By type' })).toContainText('Offer')
   await expect(page.getByRole('region', { name: 'By language' })).toContainText('मराठी')
   await expect(page.getByRole('table').filter({ hasText: 'Channel' }).first()).toContainText('Facebook')

@@ -1343,6 +1343,18 @@ export const en = {
   'publishing.error.accountLimitDetail': '{plan} plan — accounts in one post: up to {n}. Choose fewer accounts or upgrade your plan.',
   'publishing.error.oneWhatsApp': 'Choose only one WhatsApp number in one post.',
   'billing.accountsPerPost': 'Accounts in one post: {n}',
+  'publishing.error.planChannel': 'Your plan does not include this channel. See plans to add it.',
+  'publishing.error.planAccounts': 'Your plan allows fewer connected accounts. Remove one or see plans.',
+  'publishing.accounts.error.plan_channel': 'Your plan does not include this channel.',
+  'publishing.accounts.error.plan_accounts': 'Your plan allows no more connected accounts. Remove one first or see plans.',
+  'publishing.accounts.error.choose_one': 'Choose Facebook Page or Instagram first.',
+  'publishing.accounts.planOnly': 'Available on: {plans}.',
+  'publishing.accounts.planLimit': '{plan} plan: {n} connected account. To add another, remove this one or upgrade.',
+  'publishing.accounts.chooseOne': '{plan} plan: connect ONE account — Facebook Page or Instagram.',
+  'publishing.accounts.notInPlan': 'Not included in your {plan} plan — posts cannot go here.',
+  'publishing.form.notInPlan': 'not in your plan',
+  'billing.channels': 'Channels: {channels}',
+  'billing.connectedAccounts': 'Connected accounts: {n}',
 } as const
 
 export type MessageKey = keyof typeof en

@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card'
 import { FEATURE_KEYS } from '@/lib/config/billing'
 import type { Plan } from '@/lib/data/billing'
 import { formatPrice } from '@/lib/billing/format'
+import { allowedChannels } from '@/lib/billing/channels'
 import type { MessageKey, Translate } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 
@@ -32,6 +33,16 @@ export function PlanCard({ plan, t, current, action }: { plan: Plan; t: Translat
             {t(`billing.entitlement.${key}` as MessageKey, { n: plan.entitlements[key] })}
           </li>
         ))}
+        <li className="flex items-start gap-2">
+          <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+          {t('billing.channels', { channels: allowedChannels(plan).map((c) => t(`publishing.channel.${c}` as MessageKey)).join(', ') })}
+        </li>
+        {plan.max_connected_accounts != null && (
+          <li className="flex items-start gap-2">
+            <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+            {t('billing.connectedAccounts', { n: plan.max_connected_accounts })}
+          </li>
+        )}
         <li className="flex items-start gap-2">
           <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
           {t('billing.accountsPerPost', { n: plan.max_accounts_per_post })}

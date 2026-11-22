@@ -10,6 +10,8 @@ import { Card, CardTitle } from '@/components/ui/card'
 import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import { CONNECTOR_CHANNELS, CONNECTOR_SCOPES, CONNECTORS, META_GRAPH_VERSION, type ConnectorId } from '@/lib/config/publishing'
 import { listSocialAccounts, listWhatsAppContacts } from '@/lib/data/publishing'
+import { getBillingOverview } from '@/lib/data/billing'
+import { allowedChannels, freeSlots, usableAccountIds } from '@/lib/billing/channels'
 import { getTranslator, type MessageKey } from '@/lib/i18n'
 import { formatDate, intlLocale } from '@/lib/utils/datetime'
 import { env, isMockPublishing, isPublishingReady } from '@/services/publishing/env'
@@ -24,13 +26,19 @@ const HINTS: Record<ConnectorId, MessageKey> = {
   google_business_profile: 'publishing.accounts.gbpHint',
 }
 
-const ERRORS = ['denied', 'state', 'no_accounts', 'failed', 'not_configured', 'rate_limited'] as const
+const ERRORS = ['denied', 'state', 'no_accounts', 'failed', 'not_configured', 'rate_limited', 'plan_channel', 'plan_accounts', 'choose_one'] as const
 
 export default async function AccountsPage({ searchParams }: PageProps<'/dashboard/accounts'>) {
   const [{ profile }, raw] = await Promise.all([requireOnboardedBusiness(), searchParams])
   const t = getTranslator(profile?.preferred_language)
   const locale = intlLocale(profile?.preferred_language)
-  const [accounts, contacts] = await Promise.all([listSocialAccounts(), listWhatsAppContacts()])
+  const [accounts, contacts, billing] = await Promise.all([listSocialAccounts(), listWhatsAppContacts(), getBillingOverview()])
+  const plan = billing.currentPlan
+  const planChannels = allowedChannels(plan)
+  const slots = freeSlots(plan, accounts)
+  const usable = usableAccountIds(plan, accounts)
+  const plansWith = (channels: readonly string[]) =>
+    billing.plans.filter((p) => allowedChannels(p).some((c) => channels.includes(c))).map((p) => p.name).join(', ')
   const ready = isPublishingReady()
   const mock = isMockPublishing()
   const connected = Number(raw.connected) || 0
@@ -58,6 +66,8 @@ export default async function AccountsPage({ searchParams }: PageProps<'/dashboa
           const configured = ready && getConnector(connector).isConfigured()
           const list = accounts.filter((a) => (CONNECTOR_CHANNELS[connector] as readonly string[]).includes(a.channel))
           const needsReconnect = list.some((a) => a.status !== 'CONNECTED')
+          const allowedHere = planChannels.filter((c) => (CONNECTOR_CHANNELS[connector] as readonly string[]).includes(c))
+          const chooseOne = plan.max_connected_accounts === 1 && allowedHere.length > 1
           return (
             <Card key={connector} className="flex flex-col gap-4" aria-label={t(`publishing.accounts.${connector}` as MessageKey)}>
               <div>
@@ -76,6 +86,9 @@ export default async function AccountsPage({ searchParams }: PageProps<'/dashboa
                           <AccountStatusBadge status={account.status} t={t} />
                         </div>
                         <p className="font-semibold break-words">{account.external_account_name}</p>
+                        {!usable.has(account.id) && (
+                          <p className="rounded-lg bg-accent-soft px-2 py-1 text-xs text-accent-foreground">{t('publishing.accounts.notInPlan', { plan: plan.name })}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           {meta.page_name && <>{t('publishing.accounts.linkedPage', { page: meta.page_name })} · </>}
                           {t('publishing.accounts.connectedAt', { date: formatDate(account.connected_at, locale) })}
@@ -89,8 +102,33 @@ export default async function AccountsPage({ searchParams }: PageProps<'/dashboa
                 </ul>
               )}
 
-              {!configured ? (
+              {!allowedHere.length ? (
+                <p className="rounded-xl bg-accent-soft p-3 text-sm">
+                  {t('publishing.accounts.planOnly', { plans: plansWith(CONNECTOR_CHANNELS[connector]) })}{' '}
+                  <Link href="/dashboard/billing" className="font-medium text-primary underline underline-offset-4">
+                    {t('publishing.form.seePlans')}
+                  </Link>
+                </p>
+              ) : !configured ? (
                 <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">{t('publishing.accounts.notSetUp')}</p>
+              ) : slots === 0 && !needsReconnect ? (
+                <p className="rounded-xl bg-accent-soft p-3 text-sm">
+                  {t('publishing.accounts.planLimit', { plan: plan.name, n: plan.max_connected_accounts ?? 0 })}{' '}
+                  <Link href="/dashboard/billing" className="font-medium text-primary underline underline-offset-4">
+                    {t('publishing.form.seePlans')}
+                  </Link>
+                </p>
+              ) : chooseOne && !list.length ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm">{t('publishing.accounts.chooseOne', { plan: plan.name })}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {allowedHere.map((channel) => (
+                      <a key={channel} href={`/api/social/${connector}/connect?only=${channel}`} className={buttonVariants({})}>
+                        {t(`publishing.channel.${channel}` as MessageKey)}
+                      </a>
+                    ))}
+                  </div>
+                </div>
               ) : connector === 'whatsapp' ? (
                 <WhatsAppSignupButton
                   appId={env('META_APP_ID') ?? null}

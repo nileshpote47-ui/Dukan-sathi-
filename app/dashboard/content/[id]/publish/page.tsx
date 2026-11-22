@@ -10,6 +10,7 @@ import { requireOnboardedBusiness } from '@/lib/auth/dal'
 import { PUBLISHABLE_STATUSES, type ContentStatus } from '@/lib/config/content'
 import { CHANNELS, isChannel, type Channel } from '@/lib/config/publishing'
 import { getBillingOverview } from '@/lib/data/billing'
+import { usableAccountIds } from '@/lib/billing/channels'
 import { getContentItem } from '@/lib/data/content'
 import { listMediaForContent } from '@/lib/data/media'
 import { listJobsForContent, listSocialAccounts, listWhatsAppContacts } from '@/lib/data/publishing'
@@ -60,9 +61,11 @@ export default async function PublishPage({ params }: PageProps<'/dashboard/cont
   ])
 
   const captions = Object.fromEntries(CHANNELS.map((c) => [c, defaultCaption(c, item, copy)])) as Record<Channel, string>
+  // Plan rules: channels outside the plan (or accounts over its limit) are shown but cannot be chosen.
+  const usable = usableAccountIds(billing.currentPlan, accounts)
   const options: PublishAccountOption[] = accounts
     .filter((a) => a.status === 'CONNECTED' && isChannel(a.channel))
-    .map((a) => ({ id: a.id, channel: a.channel as Channel, name: a.external_account_name ?? a.channel }))
+    .map((a) => ({ id: a.id, channel: a.channel as Channel, name: a.external_account_name ?? a.channel, inPlan: usable.has(a.id) }))
   const usage = billing.usage.find((u) => u.feature_key === 'social_publishing')
   const scheduled = item.scheduled_for && isSchedulableDate(item.scheduled_for) ? isoToIstInput(item.scheduled_for) : ''
 

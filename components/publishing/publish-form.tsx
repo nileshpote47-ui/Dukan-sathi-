@@ -25,6 +25,8 @@ export interface PublishAccountOption {
   id: string
   channel: Channel
   name: string
+  /** False when the owner's plan does not include this channel (or this account). */
+  inPlan: boolean
 }
 
 interface MediaOption {
@@ -57,7 +59,7 @@ export function PublishForm(props: Props) {
   const toast = useToast()
   const router = useRouter()
   const { accounts, media, contacts, maxAccounts } = props
-  const firstUsable = accounts.find((a) => canPublishToday(a.channel))
+  const firstUsable = accounts.find((a) => a.inPlan && canPublishToday(a.channel))
   // One-account plans start with the first account ticked; with several allowed the owner picks each one,
   // so a post never goes to an account they did not choose.
   const [accountIds, setAccountIds] = useState<string[]>(firstUsable && maxAccounts === 1 ? [firstUsable.id] : [])
@@ -203,7 +205,7 @@ export function PublishForm(props: Props) {
             <p className="mb-3 text-sm text-muted-foreground">{t('publishing.form.accountsLimit', { n: maxAccounts, plan: props.planName })}</p>
             <div className="flex flex-col gap-2">
               {accounts.map((a) => {
-                const usable = canPublishToday(a.channel)
+                const usable = a.inPlan && canPublishToday(a.channel)
                 const on = accountIds.includes(a.id)
                 const blocked = !on && atLimit && maxAccounts > 1
                 return (
@@ -216,7 +218,7 @@ export function PublishForm(props: Props) {
                       <ChannelLabel channel={a.channel} t={t} />
                       <span className="text-sm break-words text-muted-foreground">
                         {a.name}
-                        {!usable && ` · ${t('publishing.form.needsVideo')}`}
+                        {!a.inPlan ? ` · ${t('publishing.form.notInPlan')}` : !usable && ` · ${t('publishing.form.needsVideo')}`}
                       </span>
                     </span>
                   </label>

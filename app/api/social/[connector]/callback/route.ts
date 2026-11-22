@@ -2,6 +2,9 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { getBusiness, getCurrentUser } from '@/lib/auth/dal'
 import { isConnectorId } from '@/lib/config/publishing'
+import { acceptNewAccounts } from '@/lib/billing/channels'
+import { getBillingOverview } from '@/lib/data/billing'
+import { listSocialAccounts } from '@/lib/data/publishing'
 import { OAUTH_COOKIE, readOAuthState, saveConnectedAccounts } from '@/services/publishing/connect'
 import { redirectUriFor, siteUrl } from '@/services/publishing/env'
 import { getConnector } from '@/services/publishing/registry'
@@ -42,7 +45,11 @@ export async function GET(request: Request, ctx: RouteContext<'/api/social/[conn
       codeVerifier: oauth.verifier,
     })
     if (!accounts.length) return done('error=no_accounts')
-    const saved = await saveConnectedAccounts(accounts)
+    // Plan rules again on the way back (never trust the start step alone).
+    const [{ currentPlan }, existing] = await Promise.all([getBillingOverview(), listSocialAccounts()])
+    const accepted = acceptNewAccounts(currentPlan, accounts, existing, oauth.only ?? null)
+    if (!accepted.length) return done('error=plan_accounts')
+    const saved = await saveConnectedAccounts(accepted)
     if (!saved) return done('error=failed')
     log.info('[publishing] connected', { connector, accounts: saved })
     return done(`connected=${saved}`)

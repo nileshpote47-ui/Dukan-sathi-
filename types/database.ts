@@ -108,7 +108,9 @@ export type Database = {
           id: string
           is_active: boolean
           is_price_final: boolean
+          allowed_channels: string[]
           max_accounts_per_post: number
+          max_connected_accounts: number | null
           name: string
           price_paise: number
           slug: string
@@ -123,7 +125,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_price_final?: boolean
+          allowed_channels?: string[]
           max_accounts_per_post?: number
+          max_connected_accounts?: number | null
           name: string
           price_paise: number
           slug: string
@@ -138,7 +142,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_price_final?: boolean
+          allowed_channels?: string[]
           max_accounts_per_post?: number
+          max_connected_accounts?: number | null
           name?: string
           price_paise?: number
           slug?: string

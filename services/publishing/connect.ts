@@ -1,6 +1,6 @@
 import 'server-only'
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import type { ConnectorId } from '@/lib/config/publishing'
+import type { Channel, ConnectorId } from '@/lib/config/publishing'
 import { createClient } from '@/lib/supabase/server'
 import type { Json } from '@/types/database'
 import { encryptCredentials, newPkce, randomToken } from './crypto'
@@ -23,14 +23,16 @@ interface OAuthState {
   verifier: string
   userId: string
   exp: number
+  /** On plans that allow one account: the single channel the owner chose to connect. */
+  only?: Channel | null
 }
 
 const sign = (value: string, secret: string) => createHmac('sha256', secret).update(value).digest('base64url')
 
-export function createOAuthState(connector: ConnectorId, userId: string, secret = serverSecret()) {
+export function createOAuthState(connector: ConnectorId, userId: string, secret = serverSecret(), only: Channel | null = null) {
   if (!secret) throw new Error('Publishing is not configured')
   const pkce = newPkce()
-  const payload: OAuthState = { connector, state: randomToken(), verifier: pkce.verifier, userId, exp: Math.floor(Date.now() / 1000) + TTL_SECONDS }
+  const payload: OAuthState = { connector, state: randomToken(), verifier: pkce.verifier, userId, exp: Math.floor(Date.now() / 1000) + TTL_SECONDS, only }
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
   return { cookie: `${body}.${sign(body, secret)}`, state: payload.state, challenge: pkce.challenge, maxAge: TTL_SECONDS }
 }

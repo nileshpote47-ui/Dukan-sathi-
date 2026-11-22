@@ -73,6 +73,11 @@ Never mark a future phase complete. Never repeat a completed phase.
 - One post to several accounts at once; limit per plan from the database: Free 1 / Starter 1 / Growth 2 / Premium 4 (migration `20261122075556_accounts_per_post.sql`)
 - All accounts validated before any job is created; per-account results; pricing page shows the limit
 
+### Channels per plan (completed 2026-11-22)
+- Free: ONE account, Facebook Page or Instagram (owner's choice); Starter: Facebook, Instagram, Google Business Profile; Growth/Premium: all channels
+- Plan data (`allowed_channels`, `max_connected_accounts`, migration `20261122083040_plan_channels.sql`), checked when connecting and publishing
+- Tests: unit +6, pgTAP 4/4, E2E plan-channels + full publishing suite on Premium 8/8
+
 ### Next
 - Premium Autopilot (owner approved): AI prepares 5 posts a week, one-tap approval, auto-posting to Facebook, Instagram, WhatsApp
 - Then: Google Business Profile and YouTube setup (owner accounts + app review)

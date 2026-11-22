@@ -4,6 +4,8 @@ import { LIMIT_MESSAGES } from '@/lib/config/billing'
 import { CHANNEL_CONNECTOR, canPublishToday, isChannel, type Channel } from '@/lib/config/publishing'
 import { getContentItem } from '@/lib/data/content'
 import { getBillingOverview } from '@/lib/data/billing'
+import { listSocialAccounts } from '@/lib/data/publishing'
+import { acceptNewAccounts, planAllowsChannel, usableAccountIds } from '@/lib/billing/channels'
 import type { MessageKey } from '@/lib/i18n'
 import { validateDraft, type ValidationIssue } from '@/lib/publishing/compose'
 import { preparePublishingMedia, removePublishingMedia, resignPublishingMedia } from '@/lib/publishing/prepare-media'
@@ -162,6 +164,12 @@ export async function createPublication(input: PublishInput): Promise<PublishSer
   const byId = new Map((accounts ?? []).map((a) => [a.id, a]))
   const chosen = input.accountIds.map((id) => byId.get(id))
   if (chosen.some((a) => !a || a.status !== 'CONNECTED' || !isChannel(a.channel))) return { ok: false, error: 'publishing.error.ACCOUNT_NOT_CONNECTED' }
+  // Plan rules: allowed channels, and on plans with an account limit only the first connected accounts.
+  if (chosen.some((a) => !planAllowsChannel(billing.currentPlan, a!.channel as Channel))) return { ok: false, error: 'publishing.error.planChannel' }
+  if (billing.currentPlan.max_connected_accounts != null) {
+    const usable = usableAccountIds(billing.currentPlan, await listSocialAccounts())
+    if (chosen.some((a) => !usable.has(a!.id))) return { ok: false, error: 'publishing.error.planAccounts' }
+  }
   // One WhatsApp number per post (its own template and customers).
   if (chosen.filter((a) => a!.channel === 'WHATSAPP').length > 1) return { ok: false, error: 'publishing.error.oneWhatsApp' }
 
@@ -357,8 +365,11 @@ export async function completeWhatsAppSignup(input: { code: string; wabaId: stri
   const connector = getConnector('whatsapp')
   if (!connector.isConfigured() || !connector.completeEmbeddedSignup) return { ok: false, error: 'publishing.error.notConfigured' }
   if (!(await allowRequest('social_connect'))) return { ok: false, error: 'errors.rateLimited' }
+  const [{ currentPlan }, existing] = await Promise.all([getBillingOverview(), listSocialAccounts()])
+  if (!planAllowsChannel(currentPlan, 'WHATSAPP')) return { ok: false, error: 'publishing.error.planChannel' }
   try {
-    const accounts = await connector.completeEmbeddedSignup(input)
+    const accounts = acceptNewAccounts(currentPlan, await connector.completeEmbeddedSignup(input), existing)
+    if (!accounts.length) return { ok: false, error: 'publishing.error.planAccounts' }
     const count = await saveConnectedAccounts(accounts)
     return count ? { ok: true, count } : { ok: false, error: 'errors.saveFailed' }
   } catch (error) {

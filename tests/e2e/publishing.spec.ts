@@ -13,12 +13,19 @@ test.describe.configure({ mode: 'serial', timeout: 150_000 })
 const serverSecret = process.env.PUBLISHING_SERVER_SECRET ?? ''
 const metaAppSecret = process.env.META_APP_SECRET ?? ''
 test.skip(!hasTestUsers || !serverSecret || !metaAppSecret, 'Set E2E_USER_*, PUBLISHING_SERVER_SECRET and META_APP_SECRET (see tests/e2e/README.md)')
+// Every channel and several accounts per post need a Premium plan for user A (see README: E2E_PLAN=premium).
+test.skip(process.env.E2E_PLAN !== 'premium', 'Needs a temporary Premium subscription for user A (E2E_PLAN=premium, see README)')
 
 let ids: { aBusiness: string; aUser: string; content: string; draft: string; poster: string }
 
 test.beforeAll(async () => {
   const a = await resetBusiness(users.a, 'Shree Ganesh Kirana', 'grocery')
   await resetBusiness(users.b, 'B Mobiles', 'mobile_shop')
+  // The operator adds a temporary Premium subscription for this freshly created shop (README); wait for it.
+  console.log(`[e2e] waiting for a Premium subscription for business ${a.businessId}`)
+  await expect
+    .poll(async () => (await a.client.from('business_subscriptions').select('id').eq('status', 'ACTIVE')).data?.length ?? 0, { timeout: 360_000, intervals: [5_000] })
+    .toBeGreaterThan(0)
   const insert = async (title: string, ready: boolean) => {
     const { data } = await a.client
       .from('content_items')
@@ -196,37 +203,14 @@ test('duplicates need confirmation; schedule, see it under Scheduled, cancel it'
   expect(r.jobs.find((j) => j.id === jobId)!.status).toBe('CANCELLED')
 })
 
-test('accounts per post follow the plan: Free/Starter one at a time (picking another switches)', async ({ page }) => {
-  test.skip(process.env.E2E_PLAN_ACCOUNTS === 'growth', 'This run uses a temporary Growth plan')
+test('Premium: one post goes to Facebook and Instagram at once (up to 4 accounts)', async ({ page }) => {
   await login(page, users.a)
   await openPublish(page)
-  await expect(page.getByText('Your Free plan — accounts in one post: up to 1.')).toBeVisible()
-  await page.getByRole('checkbox', { name: /Facebook/ }).first().check()
-  await page.getByRole('checkbox', { name: /Instagram/ }).first().check()
-  await expect(page.getByRole('checkbox', { name: /Instagram/ }).first()).toBeChecked()
-  await expect(page.getByRole('checkbox', { name: /Facebook/ }).first()).not.toBeChecked()
-})
-
-/*
- * Growth (2 accounts) needs a real Growth subscription for user A, which the browser cannot create. Run with
- * E2E_PLAN_ACCOUNTS=growth after giving user A a temporary ACTIVE Growth subscription (tests/e2e/README.md).
- */
-test('Growth: one post goes to Facebook and Instagram at once; a third account is blocked', async ({ page }) => {
-  test.skip(process.env.E2E_PLAN_ACCOUNTS !== 'growth', 'Needs a temporary Growth subscription (see README)')
-  test.setTimeout(420_000)
-  // The shop is recreated by this suite, so the operator adds the temporary subscription while this waits.
-  const { client } = await apiClientFor(users.a)
-  await expect
-    .poll(async () => (await client.from('business_subscriptions').select('id').eq('status', 'ACTIVE')).data?.length ?? 0, { timeout: 360_000, intervals: [5_000] })
-    .toBeGreaterThan(0)
-  await login(page, users.a)
-  await openPublish(page)
-  await expect(page.getByText('accounts in one post: up to 2.')).toBeVisible()
+  await expect(page.getByText('accounts in one post: up to 4.')).toBeVisible()
   // Nothing is ticked in advance when several accounts are allowed.
   await expect(page.getByRole('checkbox', { name: /Facebook/ }).first()).not.toBeChecked()
   await page.getByRole('checkbox', { name: /Facebook/ }).first().check()
   await page.getByRole('checkbox', { name: /Instagram/ }).first().check()
-  await expect(page.getByRole('checkbox', { name: /Google Business Profile/ }).first()).toBeDisabled()
   await page.getByLabel('Caption for Facebook').fill('Diwali rice offer this week! (Facebook)')
   await page.getByLabel('Caption for Instagram').fill('Diwali rice offer this week! #Diwali')
   await page.getByRole('radio', { name: 'Schedule' }).check()
@@ -239,6 +223,9 @@ test('Growth: one post goes to Facebook and Instagram at once; a third account i
   const r = await rows()
   const scheduled = r.jobs.filter((j) => j.status === 'QUEUED' && j.publish_mode === 'SCHEDULED')
   expect(scheduled.map((j) => j.channel).sort()).toEqual(['FACEBOOK', 'INSTAGRAM'])
+  // Cancel them so the later tests start from a clean schedule.
+  const { client } = await apiClientFor(users.a)
+  for (const job of scheduled) expect((await client.rpc('publishing_cancel_job', { p_job_id: job.id })).error).toBeNull()
 })
 
 test('failures: rejection and permission problems use no credit; expired access → reconnect; explicit retry; temporary limits retry later', async ({ page }) => {
