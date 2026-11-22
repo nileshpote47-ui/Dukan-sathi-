@@ -84,8 +84,14 @@ Never mark a future phase complete. Never repeat a completed phase.
 - Migration `20261122085946_autopilot.sql` (settings, posts, secret-gated generator functions, hourly cron); `/api/autopilot/run`
 - Tests: unit +7 (+1 route check), pgTAP 12/12, E2E 3/3 on Premium; fixed: generator route was behind the login redirect
 
+### Google Business Profile and YouTube setup (in progress, 2026-11-22)
+- Privacy Policy `/privacy` and Terms `/terms` pages (Google Limited Use statement, data deletion) — also for Meta App Review
+- Google Cloud project "Dukaan Sathi": YouTube Data API + Business Profile APIs enabled, OAuth consent screen (Testing) and web client; `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` set in Vercel; verified on production: both Connect buttons reach Google sign-in with the right client, redirect URI, scopes and PKCE
+- Business Profile API access: application submitted 2026-11-22 with the owner's verified Business Profile (Anand Agro Agencies); Google reviews in ~14 days (approved when the quota shows 300 QPM)
+- Waiting: API approval; support email for `/privacy` and `/terms` (`SUPPORT_EMAIL`); YouTube publishing needs reel video (MP4) export, not built yet
+
 ### Next
-- Google Business Profile and YouTube setup (owner accounts + app review)
+- After approval: connect a real Business Profile and publish one post end to end
 
 ---
 
