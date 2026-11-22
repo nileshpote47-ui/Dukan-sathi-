@@ -48,7 +48,7 @@ All are documented in `.env.example` (placeholders only). Real values live in `.
 | `SOCIAL_TOKEN_ENCRYPTION_KEY` | server secret | set | AES-256-GCM key for stored social tokens; changing it disconnects every account |
 | `META_APP_ID`, `META_APP_SECRET`, `META_LOGIN_CONFIG_ID` | server secret | set | Facebook Login for Business |
 | `META_WHATSAPP_CONFIG_ID`, `META_WEBHOOK_VERIFY_TOKEN` | server | unset | WhatsApp ("Not set up yet") |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | server secret | unset | Google Business Profile / YouTube ("Not set up yet") |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | server secret | set (Production + Preview, 2026-11-22) | Google Business Profile / YouTube OAuth client (project "Dukaan Sathi", Testing status); Business Profile API access requested separately |
 | `SUPPORT_EMAIL` | server (not secret) | to add | Support and data-deletion email on `/privacy` and `/terms` (pages are static: redeploy after changing) |
 
 Only the three `NEXT_PUBLIC_` variables reach the browser. There is no Supabase service-role key anywhere in the app. Preview deployments are protected by Vercel Authentication and have no `NEXT_PUBLIC_SITE_URL` (they fall back to the production URL for links).
